@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="BeaverX.Admin.Application.Contracts/BeaverX.Admin.Application.Contracts.csproj" />
+  <Project Path="BeaverX.Admin.Application/BeaverX.Admin.Application.csproj" />
+  <Project Path="BeaverX.Admin.Domain.Shared/BeaverX.Admin.Domain.Shared.csproj" />
+  <Project Path="BeaverX.Admin.Domain/BeaverX.Admin.Domain.csproj" />
+  <Project Path="BeaverX.Admin.EntityFrameworkCore/BeaverX.Admin.EntityFrameworkCore.csproj" />
+  <Project Path="BeaverX.Admin.Http.Api/BeaverX.Admin.Http.Api.csproj" />
+  <Project Path="BeaverX.Admin.Http.Host/BeaverX.Admin.Http.Host.csproj" />
+</Solution>
