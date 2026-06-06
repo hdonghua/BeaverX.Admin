@@ -1,0 +1,170 @@
+using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
+using BeaverX.Admin.Domain.Rbac;
+using BeaverX.Admin.Domain.Shared.Rbac;
+using BeaverX.Core.Dependency;
+using BeaverX.Domain.Repositories;
+using BeaverX.Domain.Users;
+using Microsoft.EntityFrameworkCore;
+
+namespace BeaverX.Admin.Application.Rbac;
+
+public class AuthAppService : IAuthAppService, IScopedDependency
+{
+    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<Permission> _permissionRepository;
+    private readonly IRepository<Menu> _menuRepository;
+    private readonly JwtTokenService _jwtTokenService;
+    private readonly ICurrentUser _currentUser;
+
+    public AuthAppService(
+        IRepository<User> userRepository,
+        IRepository<Permission> permissionRepository,
+        IRepository<Menu> menuRepository,
+        JwtTokenService jwtTokenService,
+        ICurrentUser currentUser)
+    {
+        _userRepository = userRepository;
+        _permissionRepository = permissionRepository;
+        _menuRepository = menuRepository;
+        _jwtTokenService = jwtTokenService;
+        _currentUser = currentUser;
+    }
+
+    public async Task<LoginResultDto> LoginAsync(LoginDto input, CancellationToken cancellationToken = default)
+    {
+        var user = await LoadUserWithAccessAsync(input.UserName.Trim(), cancellationToken);
+
+        if (user == null || !user.IsEnabled || !PasswordHasher.Verify(input.Password, user.PasswordHash))
+        {
+            throw new RbacException("用户名或密码错误");
+        }
+
+        var roles = GetRoleCodes(user);
+        var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
+        var (token, expiresIn) = _jwtTokenService.CreateToken(user.Id, user.UserName, roles, permissions);
+
+        return new LoginResultDto
+        {
+            Token = token,
+            ExpiresIn = expiresIn,
+            User = BuildProfile(user, roles, permissions)
+        };
+    }
+
+    public async Task<UserProfileDto> GetProfileAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var user = await LoadUserWithAccessByIdAsync(userId, cancellationToken)
+            ?? throw new RbacException("用户不存在");
+
+        var roles = GetRoleCodes(user);
+        var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
+        return BuildProfile(user, roles, permissions);
+    }
+
+    public async Task<List<MenuDto>> GetCurrentUserMenusAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var user = await LoadUserWithAccessByIdAsync(userId, cancellationToken)
+            ?? throw new RbacException("用户不存在");
+
+        var roles = GetRoleCodes(user);
+        var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
+        var isSuperAdmin = IsSuperAdmin(roles);
+        var permissionSet = permissions.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var menus = await _menuRepository.GetListAsync(x => x.IsEnabled && x.IsVisible, cancellationToken);
+        var accessibleMenus = menus
+            .Where(menu =>
+                isSuperAdmin ||
+                string.IsNullOrWhiteSpace(menu.PermissionCode) ||
+                permissionSet.Contains(menu.PermissionCode))
+            .Select(RbacMapper.ToMenuDto)
+            .ToList();
+
+        if (!isSuperAdmin)
+        {
+            var roleMenuIds = user.UserRoles
+                .SelectMany(x => x.Role.RoleMenus)
+                .Select(x => x.MenuId)
+                .ToHashSet();
+
+            if (roleMenuIds.Count > 0)
+            {
+                accessibleMenus = accessibleMenus.Where(x => roleMenuIds.Contains(x.Id)).ToList();
+            }
+        }
+
+        return RbacQueryHelper.BuildMenuTree(accessibleMenus);
+    }
+
+    private async Task<User?> LoadUserWithAccessAsync(string userName, CancellationToken cancellationToken)
+    {
+        return await _userRepository.GetQueryable()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RolePermissions)
+            .ThenInclude(x => x.Permission)
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RoleMenus)
+            .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken);
+    }
+
+    private async Task<User?> LoadUserWithAccessByIdAsync(long userId, CancellationToken cancellationToken)
+    {
+        return await _userRepository.GetQueryable()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RolePermissions)
+            .ThenInclude(x => x.Permission)
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .ThenInclude(x => x.RoleMenus)
+            .FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+    }
+
+    private static List<string> GetRoleCodes(User user) =>
+        user.UserRoles
+            .Where(x => x.Role.IsEnabled)
+            .Select(x => x.Role.Code)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private async Task<List<string>> ResolvePermissionsAsync(
+        List<string> roles,
+        User user,
+        CancellationToken cancellationToken)
+    {
+        if (IsSuperAdmin(roles))
+        {
+            return await _permissionRepository.GetQueryable()
+                .Where(x => x.IsEnabled)
+                .Select(x => x.Code)
+                .ToListAsync(cancellationToken);
+        }
+
+        return user.UserRoles
+            .SelectMany(x => x.Role.RolePermissions)
+            .Where(x => x.Permission.IsEnabled)
+            .Select(x => x.Permission.Code)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static bool IsSuperAdmin(IEnumerable<string> roles) =>
+        roles.Contains(RbacPermissionCodes.SuperAdmin, StringComparer.OrdinalIgnoreCase);
+
+    private static UserProfileDto BuildProfile(User user, List<string> roles, List<string> permissions) => new()
+    {
+        Id = user.Id,
+        UserName = user.UserName,
+        NickName = user.NickName,
+        Email = user.Email,
+        Phone = user.Phone,
+        Avatar = user.Avatar,
+        Roles = roles,
+        Permissions = permissions
+    };
+}

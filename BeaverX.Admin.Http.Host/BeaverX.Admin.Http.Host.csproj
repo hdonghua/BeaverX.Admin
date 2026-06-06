@@ -7,6 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BeaverX.Admin.Application\BeaverX.Admin.Application.csproj" />
     <ProjectReference Include="..\BeaverX.Admin.EntityFrameworkCore\BeaverX.Admin.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\BeaverX.Admin.Http.Api\BeaverX.Admin.Http.Api.csproj" />

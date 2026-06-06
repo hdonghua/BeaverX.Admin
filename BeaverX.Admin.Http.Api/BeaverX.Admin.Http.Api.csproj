@@ -12,5 +12,6 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\BeaverX.Admin.Application.Contracts\BeaverX.Admin.Application.Contracts.csproj" />
+	  <ProjectReference Include="..\BeaverX.Admin.Domain.Shared\BeaverX.Admin.Domain.Shared.csproj" />
 	</ItemGroup>
 </Project>

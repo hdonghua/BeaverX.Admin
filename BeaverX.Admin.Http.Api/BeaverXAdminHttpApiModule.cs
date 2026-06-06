@@ -5,8 +5,9 @@ using BeaverX.WebMvc;
 namespace BeaverX.Admin.Http.Api;
 
 [DependsOn(
+    typeof(BeaverXAdminApplicationContractModule),
     typeof(BeaverXWebMvcModule)
-    )]
+)]
 public class BeaverXAdminHttpApiModule : BeaverXModule
 {
 }

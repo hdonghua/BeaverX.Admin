@@ -3,7 +3,10 @@ using BeaverX.Core.Modules;
 using BeaverX.EntityFrameworkCore;
 using BeaverX.EntityFrameworkCore.DependencyInjection;
 using BeaverX.EntityFrameworkCore.PostgreSql;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace BeaverX.Admin.EntityFrameworkCore
 {
@@ -19,6 +22,7 @@ namespace BeaverX.Admin.EntityFrameworkCore
             var services = context.Services;
             var configuration = context.Configuration;
 
+            services.Replace(ServiceDescriptor.Singleton<IDbDriverOptionsBuilder, AdminPostgreSqlDbDriverOptionsBuilder>());
             services.AddBeaverXDbContext<AdminDbContext>(configuration.GetConnectionString("Default")!);
         }
     }
