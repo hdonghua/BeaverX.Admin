@@ -15,6 +15,7 @@ public class MenuDto
     public int Sort { get; set; }
     public bool IsVisible { get; set; }
     public bool IsEnabled { get; set; }
+    public bool IsExternal { get; set; }
     public List<MenuDto> Children { get; set; } = [];
 }
 
@@ -30,6 +31,7 @@ public class CreateMenuDto
     public int Sort { get; set; }
     public bool IsVisible { get; set; } = true;
     public bool IsEnabled { get; set; } = true;
+    public bool IsExternal { get; set; }
 }
 
 public class UpdateMenuDto
@@ -44,4 +46,5 @@ public class UpdateMenuDto
     public int? Sort { get; set; }
     public bool? IsVisible { get; set; }
     public bool? IsEnabled { get; set; }
+    public bool? IsExternal { get; set; }
 }

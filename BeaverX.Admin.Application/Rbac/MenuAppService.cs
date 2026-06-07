@@ -42,6 +42,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         await ValidatePermsAsync(input.Perms, null, cancellationToken);
+        MenuInputValidator.Validate(input.MenuType, input.Path, input.Component, input.IsExternal);
 
         var menu = new Menu
         {
@@ -49,12 +50,13 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             Name = input.Name.Trim(),
             MenuType = input.MenuType,
             Perms = string.IsNullOrWhiteSpace(input.Perms) ? null : input.Perms.Trim(),
-            Path = input.Path,
-            Component = input.Component,
+            Path = MenuInputValidator.NormalizePath(input.Path, input.IsExternal),
+            Component = MenuInputValidator.NormalizeComponent(input.Component, input.IsExternal),
             Icon = input.Icon,
             Sort = input.Sort,
             IsVisible = input.IsVisible,
-            IsEnabled = input.IsEnabled
+            IsEnabled = input.IsEnabled,
+            IsExternal = input.IsExternal
         };
 
         await _menuRepository.InsertAsync(menu, cancellationToken: cancellationToken);
@@ -83,12 +85,27 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             menu.Perms = string.IsNullOrWhiteSpace(input.Perms) ? null : input.Perms.Trim();
             await ValidatePermsAsync(menu.Perms, id, cancellationToken);
         }
-        if (input.Path != null) menu.Path = input.Path;
-        if (input.Component != null) menu.Component = input.Component;
+        if (input.IsExternal.HasValue)
+        {
+            menu.IsExternal = input.IsExternal.Value;
+        }
+
+        if (input.Path != null)
+        {
+            menu.Path = MenuInputValidator.NormalizePath(input.Path, menu.IsExternal);
+        }
+
+        if (input.Component != null)
+        {
+            menu.Component = MenuInputValidator.NormalizeComponent(input.Component, menu.IsExternal);
+        }
+
         if (input.Icon != null) menu.Icon = input.Icon;
         if (input.Sort.HasValue) menu.Sort = input.Sort.Value;
         if (input.IsVisible.HasValue) menu.IsVisible = input.IsVisible.Value;
         if (input.IsEnabled.HasValue) menu.IsEnabled = input.IsEnabled.Value;
+
+        MenuInputValidator.Validate(menu.MenuType, menu.Path, menu.Component, menu.IsExternal);
 
         await _menuRepository.UpdateAsync(menu, cancellationToken: cancellationToken);
         return RbacMapper.ToMenuDto(menu);

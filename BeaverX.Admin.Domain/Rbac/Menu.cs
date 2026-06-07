@@ -16,6 +16,7 @@ public class Menu : FullAuditedEntity
     public int Sort { get; set; }
     public bool IsVisible { get; set; } = true;
     public bool IsEnabled { get; set; } = true;
+    public bool IsExternal { get; set; }
 
     public Menu? Parent { get; set; }
     public ICollection<Menu> Children { get; set; } = [];

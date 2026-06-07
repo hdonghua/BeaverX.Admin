@@ -58,6 +58,7 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.Property(x => x.Path).HasMaxLength(256);
             entity.Property(x => x.Component).HasMaxLength(256);
             entity.Property(x => x.Icon).HasMaxLength(64);
+            entity.Property(x => x.IsExternal).HasDefaultValue(false);
             entity.HasOne(x => x.Parent)
                 .WithMany(x => x.Children)
                 .HasForeignKey(x => x.ParentId)

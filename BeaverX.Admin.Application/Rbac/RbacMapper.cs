@@ -47,6 +47,7 @@ internal static class RbacMapper
         Icon = menu.Icon,
         Sort = menu.Sort,
         IsVisible = menu.IsVisible,
-        IsEnabled = menu.IsEnabled
+        IsEnabled = menu.IsEnabled,
+        IsExternal = menu.IsExternal
     };
 }
