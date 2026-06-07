@@ -9,22 +9,20 @@ public class RbacExceptionFilter : IExceptionFilter
 {
     public void OnException(ExceptionContext context)
     {
-        var message = context.Exception switch
+        switch (context.Exception)
         {
-            RbacException rbacException => rbacException.Message,
-            StorageException storageException => storageException.Message,
-            _ => null
-        };
-
-        if (message == null)
-        {
-            return;
+            case StorageNotFoundException storageNotFoundException:
+                context.Result = new NotFoundObjectResult(new { message = storageNotFoundException.Message });
+                context.ExceptionHandled = true;
+                return;
+            case RbacException rbacException:
+                context.Result = new BadRequestObjectResult(new { message = rbacException.Message });
+                context.ExceptionHandled = true;
+                return;
+            case StorageException storageException:
+                context.Result = new BadRequestObjectResult(new { message = storageException.Message });
+                context.ExceptionHandled = true;
+                return;
         }
-
-        context.Result = new BadRequestObjectResult(new
-        {
-            message
-        });
-        context.ExceptionHandled = true;
     }
 }

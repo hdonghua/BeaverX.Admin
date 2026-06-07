@@ -13,4 +13,8 @@ public interface IFileAppService
         CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default);
+
+    Task<BlobObjectResult> GetAsync(string objectKey, CancellationToken cancellationToken = default);
+
+    string BuildProxyUrl(string objectKey);
 }

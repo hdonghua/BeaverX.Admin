@@ -19,6 +19,11 @@ public interface IBlobStorage
         string objectKey,
         string? bucket = null,
         CancellationToken cancellationToken = default);
+
+    Task<BlobObjectResult> GetAsync(
+        string objectKey,
+        string? bucket = null,
+        CancellationToken cancellationToken = default);
 }
 
 public class BlobUploadResult

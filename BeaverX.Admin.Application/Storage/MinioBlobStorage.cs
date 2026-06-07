@@ -99,6 +99,56 @@ public class MinioBlobStorage : IBlobStorage, IScopedDependency
         }
     }
 
+    public async Task<BlobObjectResult> GetAsync(
+        string objectKey,
+        string? bucket = null,
+        CancellationToken cancellationToken = default)
+    {
+        var bucketName = ResolveBucket(bucket);
+
+        try
+        {
+            var statArgs = new StatObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject(objectKey);
+            var stat = await _minioClient.StatObjectAsync(statArgs, cancellationToken);
+
+            var buffer = new MemoryStream();
+            var getArgs = new GetObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject(objectKey)
+                .WithCallbackStream(async (stream, ct) =>
+                {
+                    await stream.CopyToAsync(buffer, ct);
+                });
+
+            await _minioClient.GetObjectAsync(getArgs, cancellationToken);
+            buffer.Position = 0;
+
+            return new BlobObjectResult
+            {
+                Content = buffer,
+                ContentType = string.IsNullOrWhiteSpace(stat.ContentType)
+                    ? "application/octet-stream"
+                    : stat.ContentType,
+                FileName = Path.GetFileName(objectKey),
+                Size = stat.Size
+            };
+        }
+        catch (MinioException ex) when (IsNotFound(ex))
+        {
+            throw new StorageNotFoundException("文件不存在");
+        }
+        catch (MinioException ex)
+        {
+            throw new StorageException($"文件读取失败: {ex.Message}");
+        }
+    }
+
+    private static bool IsNotFound(MinioException ex) =>
+        ex.Message.Contains("Not Found", StringComparison.OrdinalIgnoreCase) ||
+        ex.Message.Contains("NoSuchKey", StringComparison.OrdinalIgnoreCase);
+
     private string ResolveBucket(string? bucket) =>
         string.IsNullOrWhiteSpace(bucket) ? _options.Bucket : bucket.Trim();
 

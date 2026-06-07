@@ -67,10 +67,35 @@ public class FileAppService : IFileAppService, IScopedDependency
             Bucket = result.Bucket,
             ObjectKey = result.ObjectKey,
             Url = result.Url,
+            ProxyUrl = BuildProxyUrl(result.ObjectKey),
             FileName = safeFileName,
             Size = size,
             ContentType = contentType
         };
+    }
+
+    public Task<BlobObjectResult> GetAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(objectKey))
+        {
+            throw new StorageException("objectKey 不能为空");
+        }
+
+        return _blobStorage.GetAsync(NormalizeObjectKey(objectKey), cancellationToken: cancellationToken);
+    }
+
+    public string BuildProxyUrl(string objectKey)
+    {
+        if (string.IsNullOrWhiteSpace(objectKey))
+        {
+            throw new StorageException("objectKey 不能为空");
+        }
+
+        var segments = NormalizeObjectKey(objectKey)
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.EscapeDataString);
+
+        return $"/api/File/proxy/{string.Join('/', segments)}";
     }
 
     public Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
@@ -97,4 +122,7 @@ public class FileAppService : IFileAppService, IScopedDependency
         var normalizedFolder = folder.Trim().Trim('/').Replace('\\', '/');
         return $"{normalizedFolder}/{datePrefix}/{uniqueName}";
     }
+
+    private static string NormalizeObjectKey(string objectKey) =>
+        objectKey.Trim().TrimStart('/').Replace('\\', '/');
 }
