@@ -1,3 +1,4 @@
+using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Dict;
 
-public class DictDataSeeder : IScopedDependency
+public class DictDataSeeder : IScopedDependency, IDataSeeder
 {
     private readonly IRepository<DictType> _dictTypeRepository;
     private readonly IRepository<DictData> _dictDataRepository;

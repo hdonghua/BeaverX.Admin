@@ -1,3 +1,4 @@
+using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Dict;
 
-public class DictMenuSeeder : IScopedDependency
+public class DictMenuSeeder : IScopedDependency, IDataSeeder
 {
     private readonly IRepository<Menu> _menuRepository;
     private readonly IRepository<Role> _roleRepository;

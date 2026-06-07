@@ -1,3 +1,4 @@
+using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messages;
 
-public class MessageDataSeeder : IScopedDependency
+public class MessageDataSeeder : IScopedDependency, IDataSeeder
 {
     private readonly IRepository<UserMessage> _messageRepository;
     private readonly IRepository<User> _userRepository;

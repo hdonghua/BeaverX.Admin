@@ -1,3 +1,4 @@
+using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Rbac;
 
-public class RbacDataSeeder : IScopedDependency
+public class RbacDataSeeder : IScopedDependency, IDataSeeder
 {
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Role> _roleRepository;
