@@ -53,5 +53,13 @@ public static class RbacPermissionCodes
                 public const string Delete = "system:dict_data:delete";
             }
         }
+
+        public static class Config
+        {
+            public const string List = "system:config:list";
+            public const string Create = "system:config:create";
+            public const string Update = "system:config:update";
+            public const string Delete = "system:config:delete";
+        }
     }
 }

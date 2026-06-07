@@ -1,4 +1,5 @@
-﻿using BeaverX.Admin.Domain.Dict;
+﻿using BeaverX.Admin.Domain.Config;
+using BeaverX.Admin.Domain.Dict;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Domain.Users;
@@ -18,6 +19,7 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
     public DbSet<DictType> DictTypes => Set<DictType>();
     public DbSet<DictData> DictData => Set<DictData>();
+    public DbSet<SysConfig> SysConfigs => Set<SysConfig>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -128,6 +130,17 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
                 .WithMany(x => x.DictData)
                 .HasForeignKey(x => x.DictTypeId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SysConfig>(entity =>
+        {
+            entity.ToTable("sys_configs");
+            entity.HasIndex(x => x.Key).IsUnique();
+            entity.Property(x => x.Key).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Value).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Label).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Group).HasMaxLength(64);
+            entity.Property(x => x.Remark).HasMaxLength(256);
         });
 
         modelBuilder.Entity<UserMessage>(entity =>
