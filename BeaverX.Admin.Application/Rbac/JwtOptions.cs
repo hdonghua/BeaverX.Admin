@@ -8,4 +8,5 @@ public class JwtOptions
     public string Audience { get; set; } = "BeaverX.Admin";
     public string SecretKey { get; set; } = null!;
     public int ExpiresInMinutes { get; set; } = 120;
+    public int RefreshTokenExpiresInDays { get; set; } = 7;
 }

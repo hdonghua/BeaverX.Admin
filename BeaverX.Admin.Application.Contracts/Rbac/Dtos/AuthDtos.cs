@@ -9,8 +9,23 @@ public class LoginDto
 public class LoginResultDto
 {
     public string Token { get; set; } = null!;
+    public string RefreshToken { get; set; } = null!;
     public int ExpiresIn { get; set; }
+    public int RefreshExpiresIn { get; set; }
     public UserProfileDto User { get; set; } = null!;
+}
+
+public class RefreshTokenDto
+{
+    public string RefreshToken { get; set; } = null!;
+}
+
+public class TokenResultDto
+{
+    public string Token { get; set; } = null!;
+    public string RefreshToken { get; set; } = null!;
+    public int ExpiresIn { get; set; }
+    public int RefreshExpiresIn { get; set; }
 }
 
 public class UserProfileDto

@@ -14,6 +14,7 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
     public DbSet<UserMessage> UserMessages => Set<UserMessage>();
+    public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -85,6 +86,19 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.HasOne(x => x.Menu)
                 .WithMany(x => x.RoleMenus)
                 .HasForeignKey(x => x.MenuId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserRefreshToken>(entity =>
+        {
+            entity.ToTable("sys_user_refresh_tokens");
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.RevokedAt });
+            entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.ReplacedByTokenHash).HasMaxLength(128);
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

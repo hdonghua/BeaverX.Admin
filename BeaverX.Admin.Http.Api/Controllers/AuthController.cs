@@ -20,6 +20,18 @@ public class AuthController : BeaverXController
     public Task<LoginResultDto> LoginAsync([FromBody] LoginDto input, CancellationToken cancellationToken)
         => _authAppService.LoginAsync(input, cancellationToken);
 
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public Task<TokenResultDto> RefreshTokenAsync(
+        [FromBody] RefreshTokenDto input,
+        CancellationToken cancellationToken)
+        => _authAppService.RefreshTokenAsync(input, cancellationToken);
+
+    [Authorize]
+    [HttpPost("logout")]
+    public Task LogoutAsync([FromBody] RefreshTokenDto? input, CancellationToken cancellationToken)
+        => _authAppService.LogoutAsync(input, cancellationToken);
+
     [Authorize]
     [HttpGet("profile")]
     public Task<UserProfileDto> GetProfileAsync(CancellationToken cancellationToken)

@@ -4,6 +4,7 @@ using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
+using BeaverX.Domain.Uow;
 using BeaverX.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,17 +15,23 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Menu> _menuRepository;
     private readonly JwtTokenService _jwtTokenService;
+    private readonly RefreshTokenService _refreshTokenService;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
 
     public AuthAppService(
         IRepository<User> userRepository,
         IRepository<Menu> menuRepository,
         JwtTokenService jwtTokenService,
+        RefreshTokenService refreshTokenService,
+        IUnitOfWork unitOfWork,
         ICurrentUser currentUser)
     {
         _userRepository = userRepository;
         _menuRepository = menuRepository;
         _jwtTokenService = jwtTokenService;
+        _refreshTokenService = refreshTokenService;
+        _unitOfWork = unitOfWork;
         _currentUser = currentUser;
     }
 
@@ -39,14 +46,63 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
         var roles = GetRoleCodes(user);
         var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
-        var (token, expiresIn) = _jwtTokenService.CreateToken(user.Id, user.UserName, roles, permissions);
+        var tokenResult = await IssueTokensAsync(user, roles, permissions, cancellationToken);
 
         return new LoginResultDto
         {
-            Token = token,
-            ExpiresIn = expiresIn,
+            Token = tokenResult.Token,
+            RefreshToken = tokenResult.RefreshToken,
+            ExpiresIn = tokenResult.ExpiresIn,
+            RefreshExpiresIn = tokenResult.RefreshExpiresIn,
             User = BuildProfile(user, roles, permissions)
         };
+    }
+
+    public async Task<TokenResultDto> RefreshTokenAsync(
+        RefreshTokenDto input,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(input.RefreshToken))
+        {
+            throw new RbacException("刷新令牌不能为空");
+        }
+
+        TokenResultDto? result = null;
+        await _unitOfWork.ExecuteAsync(async ct =>
+        {
+            var plainToken = input.RefreshToken.Trim();
+            var userId = await _refreshTokenService.TryConsumeAsync(plainToken, cancellationToken: ct);
+            if (userId == null)
+            {
+                throw new RbacException("刷新令牌无效、已过期或已被使用");
+            }
+
+            var user = await LoadUserWithAccessByIdAsync(userId.Value, ct)
+                ?? throw new RbacException("用户不存在");
+
+            if (!user.IsEnabled)
+            {
+                throw new RbacException("用户已被禁用");
+            }
+
+            var roles = GetRoleCodes(user);
+            var permissions = await ResolvePermissionsAsync(roles, user, ct);
+            result = await IssueTokensAsync(user, roles, permissions, ct);
+        }, cancellationToken);
+
+        return result!;
+    }
+
+    public async Task LogoutAsync(RefreshTokenDto? input, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(input?.RefreshToken))
+        {
+            return;
+        }
+
+        await _refreshTokenService.TryConsumeAsync(
+            input.RefreshToken.Trim(),
+            cancellationToken: cancellationToken);
     }
 
     public async Task<UserProfileDto> GetProfileAsync(CancellationToken cancellationToken = default)
@@ -187,6 +243,32 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private static string? NormalizeOptionalString(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task<TokenResultDto> IssueTokensAsync(
+        User user,
+        List<string> roles,
+        List<string> permissions,
+        CancellationToken cancellationToken)
+    {
+        var (accessToken, expiresIn) = _jwtTokenService.CreateToken(
+            user.Id,
+            user.UserName,
+            roles,
+            permissions);
+        var (refreshToken, expiresAt) = await _refreshTokenService.CreateAsync(
+            user.Id,
+            cancellationToken);
+
+        return new TokenResultDto
+        {
+            Token = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = expiresIn,
+            RefreshExpiresIn = (int)Math.Max(
+                0,
+                (expiresAt - DateTime.UtcNow).TotalSeconds)
+        };
+    }
 
     private static UserProfileDto BuildProfile(User user, List<string> roles, List<string> permissions) => new()
     {
