@@ -1,12 +1,35 @@
 using BeaverX.Admin.Http.Host;
 using BeaverX.Core;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-builder.AddBeaverX<BeaverXAdminHttpHostModule>();
+try
+{
+    Log.Information("Starting BeaverX Admin host");
 
-var app = builder.Build();
+    var builder = WebApplication.CreateBuilder(args);
 
-app.InitializeBeaverX();
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext());
 
-app.Run();
+    builder.AddBeaverX<BeaverXAdminHttpHostModule>();
+
+    var app = builder.Build();
+
+    app.InitializeBeaverX();
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "BeaverX Admin host terminated unexpectedly");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}

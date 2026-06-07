@@ -8,6 +8,7 @@ using BeaverX.Admin.Http.Api.Filters;
 using BeaverX.Core.Modules;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 namespace BeaverX.Admin.Http.Host;
 
@@ -65,6 +66,7 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
     {
         var app = (WebApplication)context.App;
 
+        app.UseSerilogRequestLogging();
         app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();

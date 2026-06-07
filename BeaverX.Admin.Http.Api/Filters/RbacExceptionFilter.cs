@@ -1,5 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Storage;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -23,6 +24,13 @@ public class RbacExceptionFilter : IExceptionFilter
                 context.Result = new BadRequestObjectResult(new { message = storageException.Message });
                 context.ExceptionHandled = true;
                 return;
+            default:
+                context.Result = new ObjectResult(new { message = context.Exception.Message })
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                };
+                context.ExceptionHandled = true;
+                break;
         }
     }
 }
