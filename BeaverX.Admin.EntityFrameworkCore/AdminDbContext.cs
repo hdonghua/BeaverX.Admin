@@ -1,4 +1,5 @@
-﻿using BeaverX.Admin.Domain.Messages;
+﻿using BeaverX.Admin.Domain.Dict;
+using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Domain.Users;
 using BeaverX.EntityFrameworkCore.Contexts;
@@ -15,6 +16,8 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
     public DbSet<UserMessage> UserMessages => Set<UserMessage>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+    public DbSet<DictType> DictTypes => Set<DictType>();
+    public DbSet<DictData> DictData => Set<DictData>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -99,6 +102,30 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DictType>(entity =>
+        {
+            entity.ToTable("sys_dict_types");
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Remark).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<DictData>(entity =>
+        {
+            entity.ToTable("sys_dict_data");
+            entity.HasIndex(x => new { x.DictTypeId, x.Value }).IsUnique();
+            entity.Property(x => x.Label).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Value).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.CssClass).HasMaxLength(64);
+            entity.Property(x => x.ListClass).HasMaxLength(64);
+            entity.Property(x => x.Remark).HasMaxLength(256);
+            entity.HasOne(x => x.DictType)
+                .WithMany(x => x.DictData)
+                .HasForeignKey(x => x.DictTypeId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

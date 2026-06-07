@@ -34,5 +34,24 @@ public static class RbacPermissionCodes
             public const string Update = "system:menu:update";
             public const string Delete = "system:menu:delete";
         }
+
+        public static class Dict
+        {
+            public const string List = "system:dict:list";
+
+            public static class Type
+            {
+                public const string Create = "system:dict_type:create";
+                public const string Update = "system:dict_type:update";
+                public const string Delete = "system:dict_type:delete";
+            }
+
+            public static class Data
+            {
+                public const string Create = "system:dict_data:create";
+                public const string Update = "system:dict_data:update";
+                public const string Delete = "system:dict_data:delete";
+            }
+        }
     }
 }

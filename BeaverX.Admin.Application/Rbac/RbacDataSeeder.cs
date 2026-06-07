@@ -56,6 +56,7 @@ public class RbacDataSeeder : IScopedDependency
         allMenus.AddRange(await SeedUserMenusAsync(systemDir.Id, cancellationToken));
         allMenus.AddRange(await SeedRoleMenusAsync(systemDir.Id, cancellationToken));
         allMenus.AddRange(await SeedMenuMenusAsync(systemDir.Id, cancellationToken));
+        allMenus.AddRange(await SeedDictMenusAsync(systemDir.Id, cancellationToken));
 
         var adminRole = new Role
         {
@@ -160,6 +161,34 @@ public class RbacDataSeeder : IScopedDependency
             Btn(page.Id, "菜单新增", RbacPermissionCodes.System.Menu.Create, 1),
             Btn(page.Id, "菜单修改", RbacPermissionCodes.System.Menu.Update, 2),
             Btn(page.Id, "菜单删除", RbacPermissionCodes.System.Menu.Delete, 3),
+        ], cancellationToken);
+
+        var result = new List<Menu> { page };
+        result.AddRange(buttons);
+        return result;
+    }
+
+    private async Task<List<Menu>> SeedDictMenusAsync(long parentId, CancellationToken cancellationToken)
+    {
+        var page = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "字典管理",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.System.Dict.List,
+            Path = "/system/dict",
+            Component = "system/dict/index",
+            Icon = "book",
+            Sort = 4
+        }, cancellationToken);
+
+        var buttons = await InsertManyAsync([
+            Btn(page.Id, "字典类型新增", RbacPermissionCodes.System.Dict.Type.Create, 1),
+            Btn(page.Id, "字典类型修改", RbacPermissionCodes.System.Dict.Type.Update, 2),
+            Btn(page.Id, "字典类型删除", RbacPermissionCodes.System.Dict.Type.Delete, 3),
+            Btn(page.Id, "字典数据新增", RbacPermissionCodes.System.Dict.Data.Create, 4),
+            Btn(page.Id, "字典数据修改", RbacPermissionCodes.System.Dict.Data.Update, 5),
+            Btn(page.Id, "字典数据删除", RbacPermissionCodes.System.Dict.Data.Delete, 6),
         ], cancellationToken);
 
         var result = new List<Menu> { page };

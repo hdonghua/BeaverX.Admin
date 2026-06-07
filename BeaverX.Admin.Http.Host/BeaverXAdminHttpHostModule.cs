@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using BeaverX.Admin.Application;
+using BeaverX.Admin.Application.Dict;
 using BeaverX.Admin.Application.Messages;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.EntityFrameworkCore;
@@ -76,5 +77,9 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
         seeder.SeedAsync().GetAwaiter().GetResult();
         var messageSeeder = scope.ServiceProvider.GetRequiredService<MessageDataSeeder>();
         messageSeeder.SeedAsync().GetAwaiter().GetResult();
+        var dictMenuSeeder = scope.ServiceProvider.GetRequiredService<DictMenuSeeder>();
+        dictMenuSeeder.SeedAsync().GetAwaiter().GetResult();
+        var dictDataSeeder = scope.ServiceProvider.GetRequiredService<DictDataSeeder>();
+        dictDataSeeder.SeedAsync().GetAwaiter().GetResult();
     }
 }
