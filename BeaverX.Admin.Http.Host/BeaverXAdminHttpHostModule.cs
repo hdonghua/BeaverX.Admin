@@ -49,12 +49,23 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
 
         services.AddAuthorization();
         services.AddRbacPermissionAuthorization();
+
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.WithOrigins(configuration["CorsOrgins"]!.Split(','))
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
         var app = (WebApplication)context.App;
 
+        app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
