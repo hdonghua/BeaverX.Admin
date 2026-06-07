@@ -6,5 +6,7 @@ public interface IAuthAppService
 {
     Task<LoginResultDto> LoginAsync(LoginDto input, CancellationToken cancellationToken = default);
     Task<UserProfileDto> GetProfileAsync(CancellationToken cancellationToken = default);
+    Task<UserProfileDto> UpdateProfileAsync(UpdateProfileDto input, CancellationToken cancellationToken = default);
+    Task ChangePasswordAsync(ChangePasswordDto input, CancellationToken cancellationToken = default);
     Task<List<MenuDto>> GetCurrentUserMenusAsync(CancellationToken cancellationToken = default);
 }

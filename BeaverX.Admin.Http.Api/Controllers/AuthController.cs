@@ -26,6 +26,20 @@ public class AuthController : BeaverXController
         => _authAppService.GetProfileAsync(cancellationToken);
 
     [Authorize]
+    [HttpPut("profile")]
+    public Task<UserProfileDto> UpdateProfileAsync(
+        [FromBody] UpdateProfileDto input,
+        CancellationToken cancellationToken)
+        => _authAppService.UpdateProfileAsync(input, cancellationToken);
+
+    [Authorize]
+    [HttpPut("password")]
+    public Task ChangePasswordAsync(
+        [FromBody] ChangePasswordDto input,
+        CancellationToken cancellationToken)
+        => _authAppService.ChangePasswordAsync(input, cancellationToken);
+
+    [Authorize]
     [HttpGet("menus")]
     public Task<List<MenuDto>> GetMenusAsync(CancellationToken cancellationToken)
         => _authAppService.GetCurrentUserMenusAsync(cancellationToken);

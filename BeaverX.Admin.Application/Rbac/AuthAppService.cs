@@ -60,6 +60,59 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         return BuildProfile(user, roles, permissions);
     }
 
+    public async Task<UserProfileDto> UpdateProfileAsync(
+        UpdateProfileDto input,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var user = await _userRepository.GetAsync(userId, cancellationToken);
+
+        if (input.NickName != null)
+        {
+            user.NickName = input.NickName.Trim();
+        }
+
+        if (input.Email != null)
+        {
+            user.Email = NormalizeOptionalString(input.Email);
+        }
+
+        if (input.Phone != null)
+        {
+            user.Phone = NormalizeOptionalString(input.Phone);
+        }
+
+        if (input.Avatar != null)
+        {
+            user.Avatar = NormalizeOptionalString(input.Avatar);
+        }
+
+        await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
+        return await GetProfileAsync(cancellationToken);
+    }
+
+    public async Task ChangePasswordAsync(
+        ChangePasswordDto input,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(input.OldPassword) ||
+            string.IsNullOrWhiteSpace(input.NewPassword))
+        {
+            throw new RbacException("原密码和新密码不能为空");
+        }
+
+        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var user = await _userRepository.GetAsync(userId, cancellationToken);
+
+        if (!PasswordHasher.Verify(input.OldPassword, user.PasswordHash))
+        {
+            throw new RbacException("原密码错误");
+        }
+
+        user.PasswordHash = PasswordHasher.Hash(input.NewPassword);
+        await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
+    }
+
     public async Task<List<MenuDto>> GetCurrentUserMenusAsync(CancellationToken cancellationToken = default)
     {
         var userId = _currentUser.Id ?? throw new RbacException("未登录");
@@ -131,6 +184,9 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private static bool IsSuperAdmin(IEnumerable<string> roles) =>
         roles.Contains(RbacPermissionCodes.SuperAdmin, StringComparer.OrdinalIgnoreCase);
+
+    private static string? NormalizeOptionalString(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static UserProfileDto BuildProfile(User user, List<string> roles, List<string> permissions) => new()
     {

@@ -24,3 +24,17 @@ public class UserProfileDto
     public List<string> Roles { get; set; } = [];
     public List<string> Permissions { get; set; } = [];
 }
+
+public class UpdateProfileDto
+{
+    public string? NickName { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? Avatar { get; set; }
+}
+
+public class ChangePasswordDto
+{
+    public string OldPassword { get; set; } = null!;
+    public string NewPassword { get; set; } = null!;
+}

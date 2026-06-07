@@ -97,8 +97,8 @@ public class RbacDataSeeder : IScopedDependency
             Name = "用户管理",
             MenuType = MenuType.Menu,
             Perms = RbacPermissionCodes.System.User.List,
-            Path = "/system/users",
-            Component = "system/users/index",
+            Path = "/system/user",
+            Component = "system/user/index",
             Icon = "user",
             Sort = 1
         }, cancellationToken);
@@ -124,8 +124,8 @@ public class RbacDataSeeder : IScopedDependency
             Name = "角色管理",
             MenuType = MenuType.Menu,
             Perms = RbacPermissionCodes.System.Role.List,
-            Path = "/system/roles",
-            Component = "system/roles/index",
+            Path = "/system/role",
+            Component = "system/role/index",
             Icon = "team",
             Sort = 2
         }, cancellationToken);
@@ -150,8 +150,8 @@ public class RbacDataSeeder : IScopedDependency
             Name = "菜单管理",
             MenuType = MenuType.Menu,
             Perms = RbacPermissionCodes.System.Menu.List,
-            Path = "/system/menus",
-            Component = "system/menus/index",
+            Path = "/system/menu",
+            Component = "system/menu/index",
             Icon = "menu",
             Sort = 3
         }, cancellationToken);

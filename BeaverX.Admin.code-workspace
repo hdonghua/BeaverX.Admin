@@ -1,0 +1,21 @@
+{
+  "folders": [
+    {
+      "name": "ui", 
+      "path": "C:\\Users\\crack\\deve\\beaverx-vue-admin"
+    },
+    {
+      "name": "server",
+      "path": "C:\\Users\\crack\\deve\\BeaverX.Admin"
+    }
+  ],
+"settings": {
+    "files.exclude": {
+            "**/node_modules": true,
+            "frontend/**/dist": true,
+            "**/.git": true,
+            "**/*.log": true,
+            "**/*.tmp": true
+    }
+  }
+}
