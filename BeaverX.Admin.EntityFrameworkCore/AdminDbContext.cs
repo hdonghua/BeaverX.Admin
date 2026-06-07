@@ -1,4 +1,5 @@
-﻿using BeaverX.Admin.Domain.Rbac;
+﻿using BeaverX.Admin.Domain.Messages;
+using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Domain.Users;
 using BeaverX.EntityFrameworkCore.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<Menu> Menus => Set<Menu>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
+    public DbSet<UserMessage> UserMessages => Set<UserMessage>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -83,6 +85,22 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.HasOne(x => x.Menu)
                 .WithMany(x => x.RoleMenus)
                 .HasForeignKey(x => x.MenuId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserMessage>(entity =>
+        {
+            entity.ToTable("sys_user_messages");
+            entity.HasIndex(x => new { x.UserId, x.IsRead });
+            entity.HasIndex(x => new { x.UserId, x.Type });
+            entity.Property(x => x.Type).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.SubTitle).HasMaxLength(128);
+            entity.Property(x => x.Avatar).HasMaxLength(512);
+            entity.Property(x => x.Content).HasMaxLength(1024).IsRequired();
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }
