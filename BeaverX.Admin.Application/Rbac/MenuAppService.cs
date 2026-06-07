@@ -42,7 +42,6 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         await ValidatePermsAsync(input.Perms, null, cancellationToken);
-        MenuInputValidator.Validate(input.MenuType, input.Path, input.Component, input.IsExternal);
 
         var menu = new Menu
         {
@@ -52,12 +51,15 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             Perms = string.IsNullOrWhiteSpace(input.Perms) ? null : input.Perms.Trim(),
             Path = MenuInputValidator.NormalizePath(input.Path, input.IsExternal),
             Component = MenuInputValidator.NormalizeComponent(input.Component, input.IsExternal),
-            Icon = input.Icon,
+            Icon = string.IsNullOrWhiteSpace(input.Icon) ? null : input.Icon,
             Sort = input.Sort,
             IsVisible = input.IsVisible,
             IsEnabled = input.IsEnabled,
             IsExternal = input.IsExternal
         };
+
+        MenuInputValidator.Sanitize(menu);
+        MenuInputValidator.Validate(menu.MenuType, menu.Path, menu.Component, menu.IsExternal);
 
         await _menuRepository.InsertAsync(menu, cancellationToken: cancellationToken);
         return RbacMapper.ToMenuDto(menu);
@@ -100,11 +102,15 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             menu.Component = MenuInputValidator.NormalizeComponent(input.Component, menu.IsExternal);
         }
 
-        if (input.Icon != null) menu.Icon = input.Icon;
+        if (input.Icon != null)
+        {
+            menu.Icon = string.IsNullOrWhiteSpace(input.Icon) ? null : input.Icon;
+        }
         if (input.Sort.HasValue) menu.Sort = input.Sort.Value;
         if (input.IsVisible.HasValue) menu.IsVisible = input.IsVisible.Value;
         if (input.IsEnabled.HasValue) menu.IsEnabled = input.IsEnabled.Value;
 
+        MenuInputValidator.Sanitize(menu);
         MenuInputValidator.Validate(menu.MenuType, menu.Path, menu.Component, menu.IsExternal);
 
         await _menuRepository.UpdateAsync(menu, cancellationToken: cancellationToken);

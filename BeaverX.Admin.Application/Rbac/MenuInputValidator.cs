@@ -1,10 +1,42 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 internal static class MenuInputValidator
 {
+    public static void Sanitize(Menu menu)
+    {
+        switch (menu.MenuType)
+        {
+            case MenuType.Button:
+                menu.IsExternal = false;
+                menu.Path = null;
+                menu.Component = null;
+                menu.Icon = null;
+                return;
+            case MenuType.Directory:
+                menu.IsExternal = false;
+                menu.Component = null;
+                if (IsExternalUrl(menu.Path))
+                {
+                    menu.Path = null;
+                }
+                return;
+            default:
+                if (menu.IsExternal)
+                {
+                    menu.Component = null;
+                }
+                else if (IsExternalUrl(menu.Path))
+                {
+                    menu.Path = null;
+                }
+                break;
+        }
+    }
+
     public static void Validate(
         MenuType menuType,
         string? path,
