@@ -18,7 +18,7 @@ internal static class RbacMenuHelper
     public static List<Menu> FilterRouters(IEnumerable<Menu> menus, HashSet<long> roleMenuIds, bool isSuperAdmin)
     {
         var list = menus
-            .Where(m => m.IsEnabled && m.IsVisible)
+            .Where(m => m.IsEnabled)
             .Where(m => m.MenuType is MenuType.Directory or MenuType.Menu)
             .ToList();
 
