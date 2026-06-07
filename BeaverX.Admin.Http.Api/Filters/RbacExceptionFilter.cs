@@ -1,4 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Application.Contracts.Storage;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -8,14 +9,21 @@ public class RbacExceptionFilter : IExceptionFilter
 {
     public void OnException(ExceptionContext context)
     {
-        if (context.Exception is not RbacException rbacException)
+        var message = context.Exception switch
+        {
+            RbacException rbacException => rbacException.Message,
+            StorageException storageException => storageException.Message,
+            _ => null
+        };
+
+        if (message == null)
         {
             return;
         }
 
         context.Result = new BadRequestObjectResult(new
         {
-            message = rbacException.Message
+            message
         });
         context.ExceptionHandled = true;
     }
