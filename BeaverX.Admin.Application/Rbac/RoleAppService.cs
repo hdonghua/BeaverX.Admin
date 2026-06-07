@@ -53,17 +53,23 @@ public class RoleAppService : IRoleAppService, IScopedDependency
             .Take(take)
             .ToListAsync(cancellationToken);
 
+        var roleDtos = new List<RoleDto>();
+        foreach (var item in items)
+        {
+            roleDtos.Add(await ToRoleDtoAsync(item, cancellationToken));
+        }
+
         return new PagedResultDto<RoleDto>
         {
             Total = total,
-            Items = items.Select(RbacMapper.ToRoleDto).ToList()
+            Items = roleDtos
         };
     }
 
     public async Task<RoleDto> GetAsync(long id, CancellationToken cancellationToken = default)
     {
         var role = await FindRoleWithRelationsAsync(id, cancellationToken);
-        return RbacMapper.ToRoleDto(role);
+        return await ToRoleDtoAsync(role, cancellationToken);
     }
 
     public async Task<RoleDto> CreateAsync(CreateRoleDto input, CancellationToken cancellationToken = default)
@@ -111,10 +117,14 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
     public async Task AssignMenusAsync(long id, AssignRoleMenusDto input, CancellationToken cancellationToken = default)
     {
-        await _roleRepository.GetAsync(id, cancellationToken);
+        var role = await _roleRepository.GetAsync(id, cancellationToken);
+        var menuIds = RbacRoleHelper.IsSuperAdminRole(role.Code)
+            ? await GetAllMenuIdsAsync(cancellationToken)
+            : input.MenuIds;
+
         await _unitOfWork.ExecuteAsync(async ct =>
         {
-            await ReplaceRoleMenusAsync(id, input.MenuIds, ct);
+            await ReplaceRoleMenusAsync(id, menuIds, ct);
         }, cancellationToken);
     }
 
@@ -131,6 +141,22 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
         return role;
     }
+
+    private async Task<RoleDto> ToRoleDtoAsync(Role role, CancellationToken cancellationToken)
+    {
+        var dto = RbacMapper.ToRoleDto(role);
+        if (RbacRoleHelper.IsSuperAdminRole(role.Code))
+        {
+            dto.MenuIds = await GetAllMenuIdsAsync(cancellationToken);
+        }
+
+        return dto;
+    }
+
+    private async Task<List<long>> GetAllMenuIdsAsync(CancellationToken cancellationToken) =>
+        await _menuRepository.GetQueryable()
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
 
     private async Task ReplaceRoleMenusAsync(long roleId, IEnumerable<long> menuIds, CancellationToken cancellationToken)
     {
