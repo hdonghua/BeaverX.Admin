@@ -1,0 +1,225 @@
+# BeaverX.Admin（后端）
+
+基于 [BeaverX](https://www.nuget.org/packages/BeaverX.Core) 模块化框架的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。
+
+## 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 运行时 | .NET 10 |
+| Web | ASP.NET Core + BeaverX.WebMvc |
+| ORM | Entity Framework Core + PostgreSQL |
+| 认证 | JWT Bearer + Refresh Token |
+| 日志 | Serilog（控制台 + 本地文件） |
+| 对象存储 | MinIO（可选） |
+
+## 环境要求
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- PostgreSQL 14+（或兼容版本）
+- （可选）MinIO，用于文件上传
+- 前端项目：[beaverx-vue-admin](../beaverx-vue-admin/README.md)
+
+## 快速开始
+
+### 1. 配置数据库
+
+编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=postgres;..."
+  }
+}
+```
+
+### 2. 执行迁移
+
+```bash
+cd BeaverX.Admin
+
+dotnet ef database update \
+  --project BeaverX.Admin.EntityFrameworkCore \
+  --startup-project BeaverX.Admin.Http.Host
+```
+
+### 3. 启动 API
+
+```bash
+dotnet run --project BeaverX.Admin.Http.Host
+```
+
+默认地址：`http://localhost:5216`（见 `Properties/launchSettings.json`）
+
+### 4. 种子数据
+
+应用启动时 `DataSeederHostService` 会自动执行所有 `IDataSeeder` 实现，包括：
+
+- RBAC（用户、角色、菜单、超级管理员 `super_admin`）
+- 字典、配置、消息等演示数据
+- 各模块菜单与按钮权限
+
+默认管理员：**admin / admin123**
+
+## 解决方案结构
+
+```
+BeaverX.Admin/
+├── BeaverX.Admin.Http.Host/          # 启动入口、appsettings、Serilog
+├── BeaverX.Admin.Http.Api/            # Controller、鉴权 Filter
+├── BeaverX.Admin.Application/         # AppService、Seeder、业务逻辑
+├── BeaverX.Admin.Application.Contracts/ # DTO、IAppService 接口
+├── BeaverX.Admin.Domain/              # 实体、IDataSeeder
+├── BeaverX.Admin.Domain.Shared/       # 权限码、枚举等共享常量
+└── BeaverX.Admin.EntityFrameworkCore/ # DbContext、Migrations
+```
+
+### 分层职责
+
+| 层 | 职责 | 示例 |
+|----|------|------|
+| Domain | 实体、领域规则 | `SysConfig`、`Menu` |
+| Domain.Shared | 跨层常量 | `RbacPermissionCodes` |
+| Application.Contracts | 对外契约 | `IConfigAppService`、`ConfigDto` |
+| Application | 业务实现 | `ConfigAppService` |
+| Http.Api | HTTP 适配 | `ConfigController` |
+| EntityFrameworkCore | 持久化 | `AdminDbContext`、迁移 |
+| Http.Host | 组合根、中间件 | JWT、CORS、模块注册 |
+
+### 依赖注入约定
+
+实现 `IScopedDependency`（或 `ITransientDependency` / `ISingletonDependency`）的类会被 BeaverX 自动注册。AppService 同时实现业务接口即可被 Controller 注入。
+
+## API 约定
+
+- 路由前缀：`/api/[Controller]`（继承 `BeaverXController`）
+- 权限：Controller 方法标注 `[RequirePermission("system:xxx:yyy")]`
+- 权限码定义：`BeaverX.Admin.Domain.Shared/Rbac/RbacPermissionCodes.cs`
+- 业务异常：抛出 `RbacException`，由 `RbacExceptionFilter` 统一返回 JSON
+
+## 配置说明
+
+| 配置节 | 文件 | 说明 |
+|--------|------|------|
+| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL |
+| `Jwt` | appsettings.json | 签发与校验 |
+| `CorsOrgins` | appsettings.Development.json | 前端源，逗号分隔 |
+| `Minio` | appsettings.json | 文件服务（可不配） |
+| `Serilog` | appsettings.json | 日志级别与文件路径 `Logs/log-*.txt` |
+
+## 数据库迁移
+
+```bash
+# 新增迁移
+dotnet ef migrations add <MigrationName> \
+  --project BeaverX.Admin.EntityFrameworkCore \
+  --startup-project BeaverX.Admin.Http.Host
+
+# 更新数据库
+dotnet ef database update \
+  --project BeaverX.Admin.EntityFrameworkCore \
+  --startup-project BeaverX.Admin.Http.Host
+
+# 回滚到指定迁移
+dotnet ef database update <PreviousMigrationName> \
+  --project BeaverX.Admin.EntityFrameworkCore \
+  --startup-project BeaverX.Admin.Http.Host
+```
+
+新增实体后记得在 `AdminDbContext.OnModelCreating` 中配置表名、索引、字段长度。
+
+## 新增业务模块（标准流程）
+
+以「系统配置」为例，建议按以下顺序开发。
+
+### 1. 领域实体
+
+`BeaverX.Admin.Domain/Config/SysConfig.cs`，继承 `FullAuditedEntity`。
+
+### 2. DbContext
+
+`AdminDbContext` 增加 `DbSet<SysConfig>` 与 `OnModelCreating` 配置，然后执行迁移。
+
+### 3. 权限码
+
+`RbacPermissionCodes.cs` 增加：
+
+```csharp
+public static class Config
+{
+    public const string List = "system:config:list";
+    public const string Create = "system:config:create";
+    // ...
+}
+```
+
+### 4. 契约层
+
+- `Application.Contracts/Config/Dtos/ConfigDtos.cs`
+- `Application.Contracts/Config/IConfigAppService.cs`
+
+### 5. 应用服务
+
+`Application/Config/ConfigAppService.cs`：
+
+- 实现 `IConfigAppService` + `IScopedDependency`
+- 使用 `IRepository<T>` 访问数据
+- 校验失败抛 `RbacException`
+
+### 6. Controller
+
+`Http.Api/Controllers/ConfigController.cs`：
+
+```csharp
+public class ConfigController : BeaverXController
+{
+    [RequirePermission(RbacPermissionCodes.System.Config.List)]
+    [HttpGet("list")]
+    public Task<PagedResultDto<ConfigDto>> GetListAsync(...) => ...;
+}
+```
+
+### 7. 菜单与种子
+
+- `ConfigMenuSeeder`：写入菜单、`path`、`component`、按钮权限，并赋给 `super_admin`
+- `ConfigDataSeeder`（可选）：演示数据
+- 实现 `IDataSeeder` + `IScopedDependency` 即可被 `DataSeederHostService` 自动执行
+
+菜单字段需与前端约定一致：
+
+| 字段 | 示例 | 说明 |
+|------|------|------|
+| `Path` | `/system/config` | 前端路由 path |
+| `Component` | `system/config/index` | 对应 `views/system/config/index.vue` |
+| `Perms` | `system:config:list` | 页面访问权限 |
+
+### 8. 前端联调
+
+参考 [beaverx-vue-admin README](../beaverx-vue-admin/README.md) 配置路由与 `PATH_TO_ROUTE_NAME`。
+
+## RBAC 要点
+
+- 超级管理员角色编码：`super_admin`，拥有全部菜单权限（查询与分配时自动全量）
+- 菜单类型：目录 / 菜单 / 按钮；按钮 `IsVisible = false`，用于接口权限
+- 隐藏菜单：`IsVisible = false` 的菜单不在侧边栏显示，但授权后仍可访问路由
+
+## 日志
+
+- 控制台 + `BeaverX.Admin.Http.Host/Logs/log-YYYYMMDD.txt`
+- 开发环境可在 `appsettings.Development.json` 覆盖 `Serilog:MinimumLevel`
+- HTTP 请求日志：`UseSerilogRequestLogging()`
+
+## 常见问题
+
+| 现象 | 排查 |
+|------|------|
+| 迁移失败 | 连接串是否正确；是否指定 `--startup-project` |
+| 启动后无种子数据 | 检查 `IDataSeeder` 是否实现；表是否已有数据（种子幂等跳过） |
+| 前端 403 | 角色是否分配菜单；权限码是否与 Controller 一致 |
+| CORS 错误 | `CorsOrgins` 是否包含前端地址 |
+| MinIO 相关错误 | 可暂不启动 MinIO，不影响除上传外的功能 |
+
+## 相关仓库
+
+- 管理后台前端：[beaverx-vue-admin](../beaverx-vue-admin/README.md)
