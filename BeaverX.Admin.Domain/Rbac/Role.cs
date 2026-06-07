@@ -11,6 +11,5 @@ public class Role : FullAuditedEntity
     public bool IsEnabled { get; set; } = true;
 
     public ICollection<UserRole> UserRoles { get; set; } = [];
-    public ICollection<RolePermission> RolePermissions { get; set; } = [];
     public ICollection<RoleMenu> RoleMenus { get; set; } = [];
 }

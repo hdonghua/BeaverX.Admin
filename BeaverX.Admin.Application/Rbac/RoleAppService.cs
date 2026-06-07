@@ -11,24 +11,18 @@ namespace BeaverX.Admin.Application.Rbac;
 public class RoleAppService : IRoleAppService, IScopedDependency
 {
     private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<Permission> _permissionRepository;
     private readonly IRepository<Menu> _menuRepository;
-    private readonly IRepository<RolePermission> _rolePermissionRepository;
     private readonly IRepository<RoleMenu> _roleMenuRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public RoleAppService(
         IRepository<Role> roleRepository,
-        IRepository<Permission> permissionRepository,
         IRepository<Menu> menuRepository,
-        IRepository<RolePermission> rolePermissionRepository,
         IRepository<RoleMenu> roleMenuRepository,
         IUnitOfWork unitOfWork)
     {
         _roleRepository = roleRepository;
-        _permissionRepository = permissionRepository;
         _menuRepository = menuRepository;
-        _rolePermissionRepository = rolePermissionRepository;
         _roleMenuRepository = roleMenuRepository;
         _unitOfWork = unitOfWork;
     }
@@ -36,7 +30,6 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     public async Task<PagedResultDto<RoleDto>> GetListAsync(RoleQueryDto input, CancellationToken cancellationToken = default)
     {
         var query = _roleRepository.GetQueryable()
-            .Include(x => x.RolePermissions)
             .Include(x => x.RoleMenus)
             .AsQueryable();
 
@@ -116,15 +109,6 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         await _roleRepository.DeleteAsync(id, cancellationToken: cancellationToken);
     }
 
-    public async Task AssignPermissionsAsync(long id, AssignRolePermissionsDto input, CancellationToken cancellationToken = default)
-    {
-        await _roleRepository.GetAsync(id, cancellationToken);
-        await _unitOfWork.ExecuteAsync(async ct =>
-        {
-            await ReplaceRolePermissionsAsync(id, input.PermissionIds, ct);
-        }, cancellationToken);
-    }
-
     public async Task AssignMenusAsync(long id, AssignRoleMenusDto input, CancellationToken cancellationToken = default)
     {
         await _roleRepository.GetAsync(id, cancellationToken);
@@ -137,7 +121,6 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     private async Task<Role> FindRoleWithRelationsAsync(long id, CancellationToken cancellationToken)
     {
         var role = await _roleRepository.GetQueryable()
-            .Include(x => x.RolePermissions)
             .Include(x => x.RoleMenus)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
@@ -147,34 +130,6 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         }
 
         return role;
-    }
-
-    private async Task ReplaceRolePermissionsAsync(long roleId, IEnumerable<long> permissionIds, CancellationToken cancellationToken)
-    {
-        var distinctIds = permissionIds.Distinct().ToList();
-        if (distinctIds.Count > 0)
-        {
-            var count = await _permissionRepository.GetCountAsync(x => distinctIds.Contains(x.Id), cancellationToken);
-            if (count != distinctIds.Count)
-            {
-                throw new RbacException("存在无效的权限 ID");
-            }
-        }
-
-        await _rolePermissionRepository.DeleteManyAsync(x => x.RoleId == roleId, cancellationToken);
-
-        if (distinctIds.Count == 0)
-        {
-            return;
-        }
-
-        var items = distinctIds.Select(permissionId => new RolePermission
-        {
-            RoleId = roleId,
-            PermissionId = permissionId
-        });
-
-        await _rolePermissionRepository.InsertManyAsync(items, autoSave: true, cancellationToken: cancellationToken);
     }
 
     private async Task ReplaceRoleMenusAsync(long roleId, IEnumerable<long> menuIds, CancellationToken cancellationToken)

@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialRbac : Migration
+    public partial class InitCreated : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,10 +20,11 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ParentId = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    MenuType = table.Column<int>(type: "integer", nullable: false),
+                    Perms = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     Path = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Component = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Icon = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    PermissionCode = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     Sort = table.Column<int>(type: "integer", nullable: false),
                     IsVisible = table.Column<bool>(type: "boolean", nullable: false),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
@@ -42,39 +43,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         name: "FK_sys_menus_sys_menus_ParentId",
                         column: x => x.ParentId,
                         principalTable: "sys_menus",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "sys_permissions",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ParentId = table.Column<long>(type: "bigint", nullable: true),
-                    Code = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Type = table.Column<int>(type: "integer", nullable: false),
-                    Path = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Method = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
-                    Sort = table.Column<int>(type: "integer", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_sys_permissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_sys_permissions_sys_permissions_ParentId",
-                        column: x => x.ParentId,
-                        principalTable: "sys_permissions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -156,32 +124,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "sys_role_permissions",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RoleId = table.Column<long>(type: "bigint", nullable: false),
-                    PermissionId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_sys_role_permissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_sys_role_permissions_sys_permissions_PermissionId",
-                        column: x => x.PermissionId,
-                        principalTable: "sys_permissions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_sys_role_permissions_sys_roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "sys_roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "sys_user_roles",
                 columns: table => new
                 {
@@ -213,15 +155,11 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 column: "ParentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_sys_permissions_Code",
-                table: "sys_permissions",
-                column: "Code",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_sys_permissions_ParentId",
-                table: "sys_permissions",
-                column: "ParentId");
+                name: "IX_sys_menus_Perms",
+                table: "sys_menus",
+                column: "Perms",
+                unique: true,
+                filter: "\"Perms\" IS NOT NULL AND \"Perms\" <> ''");
 
             migrationBuilder.CreateIndex(
                 name: "IX_sys_role_menus_MenuId",
@@ -232,17 +170,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "IX_sys_role_menus_RoleId_MenuId",
                 table: "sys_role_menus",
                 columns: new[] { "RoleId", "MenuId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_sys_role_permissions_PermissionId",
-                table: "sys_role_permissions",
-                column: "PermissionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_sys_role_permissions_RoleId_PermissionId",
-                table: "sys_role_permissions",
-                columns: new[] { "RoleId", "PermissionId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -276,16 +203,10 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_role_menus");
 
             migrationBuilder.DropTable(
-                name: "sys_role_permissions");
-
-            migrationBuilder.DropTable(
                 name: "sys_user_roles");
 
             migrationBuilder.DropTable(
                 name: "sys_menus");
-
-            migrationBuilder.DropTable(
-                name: "sys_permissions");
 
             migrationBuilder.DropTable(
                 name: "sys_roles");

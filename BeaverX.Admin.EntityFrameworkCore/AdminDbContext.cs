@@ -9,10 +9,8 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
-    public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<Menu> Menus => Set<Menu>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
-    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
@@ -45,28 +43,15 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.Property(x => x.Description).HasMaxLength(256);
         });
 
-        modelBuilder.Entity<Permission>(entity =>
-        {
-            entity.ToTable("sys_permissions");
-            entity.HasIndex(x => x.Code).IsUnique();
-            entity.Property(x => x.Code).HasMaxLength(128).IsRequired();
-            entity.Property(x => x.Name).HasMaxLength(64).IsRequired();
-            entity.Property(x => x.Path).HasMaxLength(256);
-            entity.Property(x => x.Method).HasMaxLength(16);
-            entity.HasOne(x => x.Parent)
-                .WithMany(x => x.Children)
-                .HasForeignKey(x => x.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
         modelBuilder.Entity<Menu>(entity =>
         {
             entity.ToTable("sys_menus");
+            entity.HasIndex(x => x.Perms).IsUnique().HasFilter("\"Perms\" IS NOT NULL AND \"Perms\" <> ''");
             entity.Property(x => x.Name).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Perms).HasMaxLength(128);
             entity.Property(x => x.Path).HasMaxLength(256);
             entity.Property(x => x.Component).HasMaxLength(256);
             entity.Property(x => x.Icon).HasMaxLength(64);
-            entity.Property(x => x.PermissionCode).HasMaxLength(128);
             entity.HasOne(x => x.Parent)
                 .WithMany(x => x.Children)
                 .HasForeignKey(x => x.ParentId)
@@ -84,20 +69,6 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.HasOne(x => x.Role)
                 .WithMany(x => x.UserRoles)
                 .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<RolePermission>(entity =>
-        {
-            entity.ToTable("sys_role_permissions");
-            entity.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
-            entity.HasOne(x => x.Role)
-                .WithMany(x => x.RolePermissions)
-                .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(x => x.Permission)
-                .WithMany(x => x.RolePermissions)
-                .HasForeignKey(x => x.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

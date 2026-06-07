@@ -65,6 +65,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<long?>("LastModifierId")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("MenuType")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -77,7 +80,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("PermissionCode")
+                    b.Property<string>("Perms")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
@@ -87,77 +90,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("Perms")
+                        .IsUnique()
+                        .HasFilter("\"Perms\" IS NOT NULL AND \"Perms\" <> ''");
 
                     b.ToTable("sys_menus", (string)null);
-                });
-
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Permission", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Method")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<long?>("ParentId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Path")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<int>("Sort")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("ParentId");
-
-                    b.ToTable("sys_permissions", (string)null);
                 });
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Role", b =>
@@ -239,30 +177,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .IsUnique();
 
                     b.ToTable("sys_role_menus", (string)null);
-                });
-
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.RolePermission", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long>("PermissionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("RoleId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PermissionId");
-
-                    b.HasIndex("RoleId", "PermissionId")
-                        .IsUnique();
-
-                    b.ToTable("sys_role_permissions", (string)null);
                 });
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.User", b =>
@@ -365,16 +279,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Permission", b =>
-                {
-                    b.HasOne("BeaverX.Admin.Domain.Rbac.Permission", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.RoleMenu", b =>
                 {
                     b.HasOne("BeaverX.Admin.Domain.Rbac.Menu", "Menu")
@@ -390,25 +294,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .IsRequired();
 
                     b.Navigation("Menu");
-
-                    b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.RolePermission", b =>
-                {
-                    b.HasOne("BeaverX.Admin.Domain.Rbac.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BeaverX.Admin.Domain.Rbac.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
 
                     b.Navigation("Role");
                 });
@@ -439,18 +324,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Navigation("RoleMenus");
                 });
 
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Permission", b =>
-                {
-                    b.Navigation("Children");
-
-                    b.Navigation("RolePermissions");
-                });
-
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Role", b =>
                 {
                     b.Navigation("RoleMenus");
-
-                    b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
                 });

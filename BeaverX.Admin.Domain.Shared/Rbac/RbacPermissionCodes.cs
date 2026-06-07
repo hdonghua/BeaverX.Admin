@@ -24,16 +24,7 @@ public static class RbacPermissionCodes
             public const string Create = "system:role:create";
             public const string Update = "system:role:update";
             public const string Delete = "system:role:delete";
-            public const string AssignPermissions = "system:role:assign_permissions";
             public const string AssignMenus = "system:role:assign_menus";
-        }
-
-        public static class Permission
-        {
-            public const string List = "system:permission:list";
-            public const string Create = "system:permission:create";
-            public const string Update = "system:permission:update";
-            public const string Delete = "system:permission:delete";
         }
 
         public static class Menu

@@ -23,33 +23,16 @@ internal static class RbacMapper
         };
     }
 
-    public static RoleDto ToRoleDto(Role role)
+    public static RoleDto ToRoleDto(Role role) => new()
     {
-        return new RoleDto
-        {
-            Id = role.Id,
-            Code = role.Code,
-            Name = role.Name,
-            Description = role.Description,
-            Sort = role.Sort,
-            IsEnabled = role.IsEnabled,
-            CreationTime = role.CreationTime,
-            PermissionIds = role.RolePermissions.Select(x => x.PermissionId).ToList(),
-            MenuIds = role.RoleMenus.Select(x => x.MenuId).ToList()
-        };
-    }
-
-    public static PermissionDto ToPermissionDto(Permission permission) => new()
-    {
-        Id = permission.Id,
-        ParentId = permission.ParentId,
-        Code = permission.Code,
-        Name = permission.Name,
-        Type = permission.Type,
-        Path = permission.Path,
-        Method = permission.Method,
-        Sort = permission.Sort,
-        IsEnabled = permission.IsEnabled
+        Id = role.Id,
+        Code = role.Code,
+        Name = role.Name,
+        Description = role.Description,
+        Sort = role.Sort,
+        IsEnabled = role.IsEnabled,
+        CreationTime = role.CreationTime,
+        MenuIds = role.RoleMenus.Select(x => x.MenuId).ToList()
     };
 
     public static MenuDto ToMenuDto(Menu menu) => new()
@@ -57,10 +40,11 @@ internal static class RbacMapper
         Id = menu.Id,
         ParentId = menu.ParentId,
         Name = menu.Name,
+        MenuType = menu.MenuType,
+        Perms = menu.Perms,
         Path = menu.Path,
         Component = menu.Component,
         Icon = menu.Icon,
-        PermissionCode = menu.PermissionCode,
         Sort = menu.Sort,
         IsVisible = menu.IsVisible,
         IsEnabled = menu.IsEnabled

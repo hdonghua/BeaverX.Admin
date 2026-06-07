@@ -11,19 +11,6 @@ internal static class RbacQueryHelper
         return ((page - 1) * pageSize, pageSize);
     }
 
-    public static List<PermissionDto> BuildPermissionTree(IEnumerable<PermissionDto> items, long? parentId = null)
-    {
-        return items
-            .Where(x => x.ParentId == parentId)
-            .OrderBy(x => x.Sort)
-            .Select(x =>
-            {
-                x.Children = BuildPermissionTree(items, x.Id);
-                return x;
-            })
-            .ToList();
-    }
-
     public static List<MenuDto> BuildMenuTree(IEnumerable<MenuDto> items, long? parentId = null)
     {
         return items

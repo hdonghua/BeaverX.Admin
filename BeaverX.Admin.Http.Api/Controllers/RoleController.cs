@@ -41,11 +41,6 @@ public class RoleController : BeaverXController
     public Task DeleteAsync(long id, CancellationToken cancellationToken)
         => _roleAppService.DeleteAsync(id, cancellationToken);
 
-    [RequirePermission(RbacPermissionCodes.System.Role.AssignPermissions)]
-    [HttpPut("{id:long}/permissions")]
-    public Task AssignPermissionsAsync(long id, [FromBody] AssignRolePermissionsDto input, CancellationToken cancellationToken)
-        => _roleAppService.AssignPermissionsAsync(id, input, cancellationToken);
-
     [RequirePermission(RbacPermissionCodes.System.Role.AssignMenus)]
     [HttpPut("{id:long}/menus")]
     public Task AssignMenusAsync(long id, [FromBody] AssignRoleMenusDto input, CancellationToken cancellationToken)

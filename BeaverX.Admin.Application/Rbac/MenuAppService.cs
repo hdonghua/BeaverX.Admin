@@ -1,6 +1,7 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
+using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 
@@ -40,14 +41,17 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             await _menuRepository.GetAsync(input.ParentId.Value, cancellationToken);
         }
 
+        await ValidatePermsAsync(input.Perms, null, cancellationToken);
+
         var menu = new Menu
         {
             ParentId = input.ParentId,
             Name = input.Name.Trim(),
+            MenuType = input.MenuType,
+            Perms = string.IsNullOrWhiteSpace(input.Perms) ? null : input.Perms.Trim(),
             Path = input.Path,
             Component = input.Component,
             Icon = input.Icon,
-            PermissionCode = input.PermissionCode,
             Sort = input.Sort,
             IsVisible = input.IsVisible,
             IsEnabled = input.IsEnabled
@@ -73,10 +77,15 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         if (input.Name != null) menu.Name = input.Name;
+        if (input.MenuType.HasValue) menu.MenuType = input.MenuType.Value;
+        if (input.Perms != null)
+        {
+            menu.Perms = string.IsNullOrWhiteSpace(input.Perms) ? null : input.Perms.Trim();
+            await ValidatePermsAsync(menu.Perms, id, cancellationToken);
+        }
         if (input.Path != null) menu.Path = input.Path;
         if (input.Component != null) menu.Component = input.Component;
         if (input.Icon != null) menu.Icon = input.Icon;
-        if (input.PermissionCode != null) menu.PermissionCode = input.PermissionCode;
         if (input.Sort.HasValue) menu.Sort = input.Sort.Value;
         if (input.IsVisible.HasValue) menu.IsVisible = input.IsVisible.Value;
         if (input.IsEnabled.HasValue) menu.IsEnabled = input.IsEnabled.Value;
@@ -94,5 +103,22 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         await _menuRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+    }
+
+    private async Task ValidatePermsAsync(string? perms, long? excludeId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(perms))
+        {
+            return;
+        }
+
+        var exists = await _menuRepository.AnyAsync(
+            x => x.Perms == perms && (!excludeId.HasValue || x.Id != excludeId.Value),
+            cancellationToken);
+
+        if (exists)
+        {
+            throw new RbacException($"权限标识已存在: {perms}");
+        }
     }
 }

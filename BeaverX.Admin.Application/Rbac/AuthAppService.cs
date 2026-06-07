@@ -12,20 +12,17 @@ namespace BeaverX.Admin.Application.Rbac;
 public class AuthAppService : IAuthAppService, IScopedDependency
 {
     private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Permission> _permissionRepository;
     private readonly IRepository<Menu> _menuRepository;
     private readonly JwtTokenService _jwtTokenService;
     private readonly ICurrentUser _currentUser;
 
     public AuthAppService(
         IRepository<User> userRepository,
-        IRepository<Permission> permissionRepository,
         IRepository<Menu> menuRepository,
         JwtTokenService jwtTokenService,
         ICurrentUser currentUser)
     {
         _userRepository = userRepository;
-        _permissionRepository = permissionRepository;
         _menuRepository = menuRepository;
         _jwtTokenService = jwtTokenService;
         _currentUser = currentUser;
@@ -70,42 +67,21 @@ public class AuthAppService : IAuthAppService, IScopedDependency
             ?? throw new RbacException("用户不存在");
 
         var roles = GetRoleCodes(user);
-        var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
         var isSuperAdmin = IsSuperAdmin(roles);
-        var permissionSet = permissions.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var allMenus = await _menuRepository.GetListAsync(cancellationToken);
+        var roleMenuIds = user.UserRoles
+            .SelectMany(x => x.Role.RoleMenus)
+            .Select(x => x.MenuId)
+            .ToHashSet();
 
-        var menus = await _menuRepository.GetListAsync(x => x.IsEnabled && x.IsVisible, cancellationToken);
-        var accessibleMenus = menus
-            .Where(menu =>
-                isSuperAdmin ||
-                string.IsNullOrWhiteSpace(menu.PermissionCode) ||
-                permissionSet.Contains(menu.PermissionCode))
-            .Select(RbacMapper.ToMenuDto)
-            .ToList();
-
-        if (!isSuperAdmin)
-        {
-            var roleMenuIds = user.UserRoles
-                .SelectMany(x => x.Role.RoleMenus)
-                .Select(x => x.MenuId)
-                .ToHashSet();
-
-            if (roleMenuIds.Count > 0)
-            {
-                accessibleMenus = accessibleMenus.Where(x => roleMenuIds.Contains(x.Id)).ToList();
-            }
-        }
-
-        return RbacQueryHelper.BuildMenuTree(accessibleMenus);
+        var routerMenus = RbacMenuHelper.FilterRouters(allMenus, roleMenuIds, isSuperAdmin);
+        var dtos = routerMenus.Select(RbacMapper.ToMenuDto).ToList();
+        return RbacMenuHelper.ToRouterTree(dtos);
     }
 
     private async Task<User?> LoadUserWithAccessAsync(string userName, CancellationToken cancellationToken)
     {
         return await _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .ThenInclude(x => x.RolePermissions)
-            .ThenInclude(x => x.Permission)
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .ThenInclude(x => x.RoleMenus)
@@ -115,10 +91,6 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private async Task<User?> LoadUserWithAccessByIdAsync(long userId, CancellationToken cancellationToken)
     {
         return await _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .ThenInclude(x => x.RolePermissions)
-            .ThenInclude(x => x.Permission)
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .ThenInclude(x => x.RoleMenus)
@@ -139,18 +111,22 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     {
         if (IsSuperAdmin(roles))
         {
-            return await _permissionRepository.GetQueryable()
-                .Where(x => x.IsEnabled)
-                .Select(x => x.Code)
-                .ToListAsync(cancellationToken);
+            var allMenus = await _menuRepository.GetListAsync(cancellationToken);
+            return RbacMenuHelper.CollectPerms(allMenus);
         }
 
-        return user.UserRoles
-            .SelectMany(x => x.Role.RolePermissions)
-            .Where(x => x.Permission.IsEnabled)
-            .Select(x => x.Permission.Code)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var roleMenuIds = user.UserRoles
+            .SelectMany(x => x.Role.RoleMenus)
+            .Select(x => x.MenuId)
+            .ToHashSet();
+
+        if (roleMenuIds.Count == 0)
+        {
+            return [];
+        }
+
+        var menus = await _menuRepository.GetListAsync(x => roleMenuIds.Contains(x.Id), cancellationToken);
+        return RbacMenuHelper.CollectPerms(menus);
     }
 
     private static bool IsSuperAdmin(IEnumerable<string> roles) =>

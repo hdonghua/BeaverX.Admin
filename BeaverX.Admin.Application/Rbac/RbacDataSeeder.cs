@@ -10,29 +10,23 @@ public class RbacDataSeeder : IScopedDependency
 {
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<Permission> _permissionRepository;
     private readonly IRepository<Menu> _menuRepository;
     private readonly IRepository<UserRole> _userRoleRepository;
-    private readonly IRepository<RolePermission> _rolePermissionRepository;
     private readonly IRepository<RoleMenu> _roleMenuRepository;
     private readonly ILogger<RbacDataSeeder> _logger;
 
     public RbacDataSeeder(
         IRepository<User> userRepository,
         IRepository<Role> roleRepository,
-        IRepository<Permission> permissionRepository,
         IRepository<Menu> menuRepository,
         IRepository<UserRole> userRoleRepository,
-        IRepository<RolePermission> rolePermissionRepository,
         IRepository<RoleMenu> roleMenuRepository,
         ILogger<RbacDataSeeder> logger)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
-        _permissionRepository = permissionRepository;
         _menuRepository = menuRepository;
         _userRoleRepository = userRoleRepository;
-        _rolePermissionRepository = rolePermissionRepository;
         _roleMenuRepository = roleMenuRepository;
         _logger = logger;
     }
@@ -46,30 +40,22 @@ public class RbacDataSeeder : IScopedDependency
 
         _logger.LogInformation("Seeding RBAC initial data...");
 
-        var permissions = CreateDefaultPermissions();
-        await _permissionRepository.InsertManyAsync(permissions, cancellationToken: cancellationToken);
+        var allMenus = new List<Menu>();
 
-        var systemMenu = new Menu
+        var systemDir = await InsertMenuAsync(new Menu
         {
             Name = "系统管理",
+            MenuType = MenuType.Directory,
             Path = "/system",
             Icon = "setting",
             Sort = 1,
             IsVisible = true
-        };
-        await _menuRepository.InsertAsync(systemMenu, cancellationToken: cancellationToken);
+        }, cancellationToken);
+        allMenus.Add(systemDir);
 
-        var childMenus = new List<Menu>
-        {
-            new() { ParentId = systemMenu.Id, Name = "用户管理", Path = "/system/users", Component = "system/users/index", Icon = "user", PermissionCode = RbacPermissionCodes.System.User.List, Sort = 1 },
-            new() { ParentId = systemMenu.Id, Name = "角色管理", Path = "/system/roles", Component = "system/roles/index", Icon = "team", PermissionCode = RbacPermissionCodes.System.Role.List, Sort = 2 },
-            new() { ParentId = systemMenu.Id, Name = "权限管理", Path = "/system/permissions", Component = "system/permissions/index", Icon = "lock", PermissionCode = RbacPermissionCodes.System.Permission.List, Sort = 3 },
-            new() { ParentId = systemMenu.Id, Name = "菜单管理", Path = "/system/menus", Component = "system/menus/index", Icon = "menu", PermissionCode = RbacPermissionCodes.System.Menu.List, Sort = 4 }
-        };
-        await _menuRepository.InsertManyAsync(childMenus, cancellationToken: cancellationToken);
-
-        var allMenus = new List<Menu> { systemMenu };
-        allMenus.AddRange(childMenus);
+        allMenus.AddRange(await SeedUserMenusAsync(systemDir.Id, cancellationToken));
+        allMenus.AddRange(await SeedRoleMenusAsync(systemDir.Id, cancellationToken));
+        allMenus.AddRange(await SeedMenuMenusAsync(systemDir.Id, cancellationToken));
 
         var adminRole = new Role
         {
@@ -81,20 +67,8 @@ public class RbacDataSeeder : IScopedDependency
         };
         await _roleRepository.InsertAsync(adminRole, cancellationToken: cancellationToken);
 
-        await _rolePermissionRepository.InsertManyAsync(
-            permissions.Select(permission => new RolePermission
-            {
-                RoleId = adminRole.Id,
-                PermissionId = permission.Id
-            }),
-            cancellationToken: cancellationToken);
-
         await _roleMenuRepository.InsertManyAsync(
-            allMenus.Select(menu => new RoleMenu
-            {
-                RoleId = adminRole.Id,
-                MenuId = menu.Id
-            }),
+            allMenus.Select(menu => new RoleMenu { RoleId = adminRole.Id, MenuId = menu.Id }),
             cancellationToken: cancellationToken);
 
         var adminUser = new User
@@ -115,27 +89,104 @@ public class RbacDataSeeder : IScopedDependency
         _logger.LogInformation("RBAC initial data seeded. Default account: admin / admin123");
     }
 
-    private static List<Permission> CreateDefaultPermissions() =>
-    [
-        new Permission { Code = RbacPermissionCodes.System.User.List, Name = "用户列表", Type = PermissionType.Api, Path = "/api/User/list", Method = "GET", Sort = 1 },
-        new Permission { Code = RbacPermissionCodes.System.User.Create, Name = "创建用户", Type = PermissionType.Api, Path = "/api/User", Method = "POST", Sort = 2 },
-        new Permission { Code = RbacPermissionCodes.System.User.Update, Name = "更新用户", Type = PermissionType.Api, Path = "/api/User/{id}", Method = "PUT", Sort = 3 },
-        new Permission { Code = RbacPermissionCodes.System.User.Delete, Name = "删除用户", Type = PermissionType.Api, Path = "/api/User/{id}", Method = "DELETE", Sort = 4 },
-        new Permission { Code = RbacPermissionCodes.System.User.AssignRoles, Name = "分配角色", Type = PermissionType.Api, Path = "/api/User/{id}/roles", Method = "PUT", Sort = 5 },
-        new Permission { Code = RbacPermissionCodes.System.User.ResetPassword, Name = "重置密码", Type = PermissionType.Api, Path = "/api/User/{id}/password", Method = "PUT", Sort = 6 },
-        new Permission { Code = RbacPermissionCodes.System.Role.List, Name = "角色列表", Type = PermissionType.Api, Path = "/api/Role/list", Method = "GET", Sort = 10 },
-        new Permission { Code = RbacPermissionCodes.System.Role.Create, Name = "创建角色", Type = PermissionType.Api, Path = "/api/Role", Method = "POST", Sort = 11 },
-        new Permission { Code = RbacPermissionCodes.System.Role.Update, Name = "更新角色", Type = PermissionType.Api, Path = "/api/Role/{id}", Method = "PUT", Sort = 12 },
-        new Permission { Code = RbacPermissionCodes.System.Role.Delete, Name = "删除角色", Type = PermissionType.Api, Path = "/api/Role/{id}", Method = "DELETE", Sort = 13 },
-        new Permission { Code = RbacPermissionCodes.System.Role.AssignPermissions, Name = "分配权限", Type = PermissionType.Api, Path = "/api/Role/{id}/permissions", Method = "PUT", Sort = 14 },
-        new Permission { Code = RbacPermissionCodes.System.Role.AssignMenus, Name = "分配菜单", Type = PermissionType.Api, Path = "/api/Role/{id}/menus", Method = "PUT", Sort = 15 },
-        new Permission { Code = RbacPermissionCodes.System.Permission.List, Name = "权限树", Type = PermissionType.Api, Path = "/api/Permission/tree", Method = "GET", Sort = 20 },
-        new Permission { Code = RbacPermissionCodes.System.Permission.Create, Name = "创建权限", Type = PermissionType.Api, Path = "/api/Permission", Method = "POST", Sort = 21 },
-        new Permission { Code = RbacPermissionCodes.System.Permission.Update, Name = "更新权限", Type = PermissionType.Api, Path = "/api/Permission/{id}", Method = "PUT", Sort = 22 },
-        new Permission { Code = RbacPermissionCodes.System.Permission.Delete, Name = "删除权限", Type = PermissionType.Api, Path = "/api/Permission/{id}", Method = "DELETE", Sort = 23 },
-        new Permission { Code = RbacPermissionCodes.System.Menu.List, Name = "菜单树", Type = PermissionType.Api, Path = "/api/Menu/tree", Method = "GET", Sort = 30 },
-        new Permission { Code = RbacPermissionCodes.System.Menu.Create, Name = "创建菜单", Type = PermissionType.Api, Path = "/api/Menu", Method = "POST", Sort = 31 },
-        new Permission { Code = RbacPermissionCodes.System.Menu.Update, Name = "更新菜单", Type = PermissionType.Api, Path = "/api/Menu/{id}", Method = "PUT", Sort = 32 },
-        new Permission { Code = RbacPermissionCodes.System.Menu.Delete, Name = "删除菜单", Type = PermissionType.Api, Path = "/api/Menu/{id}", Method = "DELETE", Sort = 33 }
-    ];
+    private async Task<List<Menu>> SeedUserMenusAsync(long parentId, CancellationToken cancellationToken)
+    {
+        var page = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "用户管理",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.System.User.List,
+            Path = "/system/users",
+            Component = "system/users/index",
+            Icon = "user",
+            Sort = 1
+        }, cancellationToken);
+
+        var buttons = await InsertManyAsync([
+            Btn(page.Id, "用户新增", RbacPermissionCodes.System.User.Create, 1),
+            Btn(page.Id, "用户修改", RbacPermissionCodes.System.User.Update, 2),
+            Btn(page.Id, "用户删除", RbacPermissionCodes.System.User.Delete, 3),
+            Btn(page.Id, "分配角色", RbacPermissionCodes.System.User.AssignRoles, 4),
+            Btn(page.Id, "重置密码", RbacPermissionCodes.System.User.ResetPassword, 5),
+        ], cancellationToken);
+
+        var result = new List<Menu> { page };
+        result.AddRange(buttons);
+        return result;
+    }
+
+    private async Task<List<Menu>> SeedRoleMenusAsync(long parentId, CancellationToken cancellationToken)
+    {
+        var page = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "角色管理",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.System.Role.List,
+            Path = "/system/roles",
+            Component = "system/roles/index",
+            Icon = "team",
+            Sort = 2
+        }, cancellationToken);
+
+        var buttons = await InsertManyAsync([
+            Btn(page.Id, "角色新增", RbacPermissionCodes.System.Role.Create, 1),
+            Btn(page.Id, "角色修改", RbacPermissionCodes.System.Role.Update, 2),
+            Btn(page.Id, "角色删除", RbacPermissionCodes.System.Role.Delete, 3),
+            Btn(page.Id, "分配菜单", RbacPermissionCodes.System.Role.AssignMenus, 4),
+        ], cancellationToken);
+
+        var result = new List<Menu> { page };
+        result.AddRange(buttons);
+        return result;
+    }
+
+    private async Task<List<Menu>> SeedMenuMenusAsync(long parentId, CancellationToken cancellationToken)
+    {
+        var page = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "菜单管理",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.System.Menu.List,
+            Path = "/system/menus",
+            Component = "system/menus/index",
+            Icon = "menu",
+            Sort = 3
+        }, cancellationToken);
+
+        var buttons = await InsertManyAsync([
+            Btn(page.Id, "菜单新增", RbacPermissionCodes.System.Menu.Create, 1),
+            Btn(page.Id, "菜单修改", RbacPermissionCodes.System.Menu.Update, 2),
+            Btn(page.Id, "菜单删除", RbacPermissionCodes.System.Menu.Delete, 3),
+        ], cancellationToken);
+
+        var result = new List<Menu> { page };
+        result.AddRange(buttons);
+        return result;
+    }
+
+    private static Menu Btn(long parentId, string name, string perms, int sort) => new()
+    {
+        ParentId = parentId,
+        Name = name,
+        MenuType = MenuType.Button,
+        Perms = perms,
+        Sort = sort,
+        IsVisible = false
+    };
+
+    private async Task<Menu> InsertMenuAsync(Menu menu, CancellationToken cancellationToken)
+    {
+        await _menuRepository.InsertAsync(menu, cancellationToken: cancellationToken);
+        return menu;
+    }
+
+    private async Task<List<Menu>> InsertManyAsync(IEnumerable<Menu> menus, CancellationToken cancellationToken)
+    {
+        var list = menus.ToList();
+        await _menuRepository.InsertManyAsync(list, cancellationToken: cancellationToken);
+        return list;
+    }
 }

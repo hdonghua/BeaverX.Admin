@@ -9,7 +9,6 @@ public class RoleDto
     public int Sort { get; set; }
     public bool IsEnabled { get; set; }
     public DateTime CreationTime { get; set; }
-    public List<long> PermissionIds { get; set; } = [];
     public List<long> MenuIds { get; set; } = [];
 }
 
@@ -36,11 +35,6 @@ public class UpdateRoleDto
     public string? Description { get; set; }
     public int? Sort { get; set; }
     public bool? IsEnabled { get; set; }
-}
-
-public class AssignRolePermissionsDto
-{
-    public List<long> PermissionIds { get; set; } = [];
 }
 
 public class AssignRoleMenusDto
