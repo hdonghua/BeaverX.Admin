@@ -227,6 +227,43 @@ public class ConfigController : BeaverXController
 
 客户端连接时携带 JWT（`accessTokenFactory` 或 query `access_token`），服务端按 `ClaimTypes.NameIdentifier` 定向推送到用户。
 
+## 消息发送（多渠道）
+
+站内信读取/已读 API 由 `IMessageAppService` 提供；**发送**统一走 `IMessageSender`，便于后续扩展钉钉、企微等渠道。
+
+| 组件 | 说明 |
+|------|------|
+| `IMessageSender` | 通用发送门面（Contracts） |
+| `IMessageChannelSender` | 单渠道发送器接口 |
+| `MessageSender` | 按渠道分发（Application） |
+| `MessageChannelRegistry` | 渠道注册表 |
+| `SiteMessageChannelSender` | 站内信：写 `user_messages` + 推送未读数 |
+
+### 渠道常量
+
+`MessageChannels`：`site`（站内信）、`dingtalk`、`wecom`（预留）。
+
+### 使用示例
+
+业务代码注入 `IMessageSender`：
+
+```csharp
+await _messageSender.SendAsync(new SendMessageRequest
+{
+    UserId = userId,
+    Type = UserMessageTypes.Notice,
+    Title = "导出完成",
+    Content = "您的导出任务已完成，请前往下载。",
+    Channels = [MessageChannels.Site]  // 省略则发送到全部已注册渠道
+}, cancellationToken);
+```
+
+### 扩展新渠道
+
+1. 在 `Infrastructure`（或独立包）实现 `IMessageChannelSender`，声明 `Channel` 常量
+2. 实现 `IScopedDependency` 即可被 DI 自动注册
+3. 调用方通过 `Channels` 指定渠道，或默认广播到全部已注册渠道
+
 ## 异步导出（DotNetCap）
 
 导出任务采用 **CAP + PostgreSQL 消息存储 + 内存队列 + MinIO 文件**：
