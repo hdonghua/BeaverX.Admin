@@ -108,6 +108,7 @@ BeaverX.Admin/
 | `Jwt` | appsettings.json | 签发与校验 |
 | `CorsOrgins` | appsettings.Development.json | 前端源，逗号分隔 |
 | `Minio` | appsettings.json | 文件服务（可不配） |
+| `Cache` | appsettings.json | 缓存驱动（Memory/Redis）、键前缀、默认 TTL |
 | `Serilog` | appsettings.json | 日志级别与文件路径 `Logs/log-*.txt` |
 
 ## 数据库迁移
@@ -239,6 +240,44 @@ public class ConfigController : BeaverXController
 ### 生产部署
 
 当前使用 `Savorboard.CAP.InMemoryMessageQueue`（单实例）。多实例部署请改用 Redis / RabbitMQ 等 CAP 传输。
+
+## 缓存
+
+通用缓存通过 `ICacheService`（Contracts）+ `CacheService`（Infrastructure）提供，支持 **Memory** / **Redis** 驱动切换。
+
+### 配置
+
+```json
+{
+  "Cache": {
+    "Driver": "Memory",
+    "KeyPrefix": "beaverx:admin:",
+    "RedisConnectionString": "localhost:6379",
+    "DefaultExpirationSeconds": 3600
+  }
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `Driver` | `Memory`（默认，单实例）或 `Redis`（多实例共享） |
+| `KeyPrefix` | 全局键前缀，如 `beaverx:admin:` |
+| `RedisConnectionString` | Redis 连接串；未配置时回退 `ConnectionStrings:Redis` |
+| `DefaultExpirationSeconds` | `SetAsync` 未指定过期时间时的默认 TTL |
+
+### 使用
+
+在 AppService 中注入 `ICacheService`：
+
+```csharp
+var user = await _cache.GetOrSetAsync(
+    $"user:{id}",
+    ct => LoadUserFromDbAsync(id, ct),
+    TimeSpan.FromMinutes(10),
+    cancellationToken);
+```
+
+业务代码只写逻辑键（如 `user:1`），前缀由配置统一拼接。
 
 ## 日志
 

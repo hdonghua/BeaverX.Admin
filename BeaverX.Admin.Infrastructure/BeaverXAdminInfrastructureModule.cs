@@ -2,9 +2,9 @@ using BeaverX.Admin.Application;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.EntityFrameworkCore;
+using BeaverX.Admin.Infrastructure.Caching;
 using BeaverX.Admin.Infrastructure.Storage;
 using BeaverX.Core.Modules;
-using DotNetCore.CAP;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Minio;
@@ -26,6 +26,7 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
 
+        services.AddBeaverXCache(configuration);
         ConfigureMinio(services, configuration);
         ConfigureCap(services, configuration);
 
