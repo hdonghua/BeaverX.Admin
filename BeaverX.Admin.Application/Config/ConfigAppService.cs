@@ -34,17 +34,10 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
                 x.Value.Contains(keyword));
         }
 
-        if (input.Group != null)
+        if (!string.IsNullOrWhiteSpace(input.Group))
         {
-            if (string.IsNullOrWhiteSpace(input.Group))
-            {
-                query = query.Where(x => x.Group == null || x.Group == string.Empty);
-            }
-            else
-            {
-                var group = input.Group.Trim();
-                query = query.Where(x => x.Group == group);
-            }
+            var group = input.Group.Trim();
+            query = query.Where(x => x.Group == group);
         }
 
         if (input.IsEnabled.HasValue)
