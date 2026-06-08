@@ -18,7 +18,7 @@
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - PostgreSQL 14+（或兼容版本）
 - （可选）MinIO，用于文件上传
-- 前端项目：[beaverx-vue-admin](../beaverx-vue-admin/README.md)
+- 前端项目：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
 ## 快速开始
 
@@ -196,7 +196,7 @@ public class ConfigController : BeaverXController
 
 ### 8. 前端联调
 
-参考 [beaverx-vue-admin README](../beaverx-vue-admin/README.md) 配置路由与 `PATH_TO_ROUTE_NAME`。
+参考 [beaverx-vue-admin README](https://github.com/hdonghua/beaverx-vue-admin) 配置路由与 `PATH_TO_ROUTE_NAME`。
 
 ## RBAC 要点
 
@@ -257,4 +257,4 @@ public class ConfigController : BeaverXController
 
 ## 相关仓库
 
-- 管理后台前端：[beaverx-vue-admin](../beaverx-vue-admin/README.md)
+- 管理后台前端：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
