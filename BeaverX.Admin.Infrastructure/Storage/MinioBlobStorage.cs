@@ -1,11 +1,11 @@
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Core.Dependency;
+using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
-using Microsoft.Extensions.Options;
 
-namespace BeaverX.Admin.Application.Storage;
+namespace BeaverX.Admin.Infrastructure.Storage;
 
 public class MinioBlobStorage : IBlobStorage, IScopedDependency
 {

@@ -1,11 +1,12 @@
 using BeaverX.Admin.Application.Contracts.Exports;
+using BeaverX.Admin.Application.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
 using DotNetCore.CAP;
 using DotNetCore.CAP.Messages;
 using Microsoft.Extensions.Logging;
 
-namespace BeaverX.Admin.Application.Exports;
+namespace BeaverX.Admin.Infrastructure.Exports;
 
 public class ExportTaskCapSubscriber : IScopedDependency, ICapSubscribe
 {

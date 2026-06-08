@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;

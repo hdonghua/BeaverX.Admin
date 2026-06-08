@@ -66,13 +66,14 @@ dotnet run --project BeaverX.Admin.Http.Host
 
 ```
 BeaverX.Admin/
-├── BeaverX.Admin.Http.Host/          # 启动入口、appsettings、Serilog
-├── BeaverX.Admin.Http.Api/            # Controller、鉴权 Filter
-├── BeaverX.Admin.Application/         # AppService、Seeder、业务逻辑
-├── BeaverX.Admin.Application.Contracts/ # DTO、IAppService 接口
-├── BeaverX.Admin.Domain/              # 实体、IDataSeeder
-├── BeaverX.Admin.Domain.Shared/       # 权限码、枚举等共享常量
-└── BeaverX.Admin.EntityFrameworkCore/ # DbContext、Migrations
+├── BeaverX.Admin.Http.Host/             # 启动入口、appsettings、Serilog、JWT/CORS
+├── BeaverX.Admin.Http.Api/              # Controller、鉴权 Filter
+├── BeaverX.Admin.Infrastructure/        # MinIO、CAP、JWT 签发、密码哈希等技术实现
+├── BeaverX.Admin.Application/           # AppService、Seeder、业务编排
+├── BeaverX.Admin.Application.Contracts/ # DTO、IAppService、基础设施接口
+├── BeaverX.Admin.Domain/                # 实体、IDataSeeder
+├── BeaverX.Admin.Domain.Shared/         # 权限码、枚举等共享常量
+└── BeaverX.Admin.EntityFrameworkCore/   # DbContext、Migrations
 ```
 
 ### 分层职责
@@ -81,11 +82,12 @@ BeaverX.Admin/
 |----|------|------|
 | Domain | 实体、领域规则 | `SysConfig`、`Menu` |
 | Domain.Shared | 跨层常量 | `RbacPermissionCodes` |
-| Application.Contracts | 对外契约 | `IConfigAppService`、`ConfigDto` |
-| Application | 业务实现 | `ConfigAppService` |
-| Http.Api | HTTP 适配 | `ConfigController` |
+| Application.Contracts | 对外契约 | `IConfigAppService`、`IBlobStorage`、`IJwtTokenService` |
+| Application | 业务实现 | `ConfigAppService`、`ExportTaskMessageService` |
+| Infrastructure | 技术细节实现 | `MinioBlobStorage`、`JwtTokenService`、`ExportTaskCapSubscriber` |
 | EntityFrameworkCore | 持久化 | `AdminDbContext`、迁移 |
-| Http.Host | 组合根、中间件 | JWT、CORS、模块注册 |
+| Http.Api | HTTP 适配 | `ConfigController` |
+| Http.Host | 组合根、中间件 | JWT Bearer 校验、CORS、模块注册 |
 
 ### 依赖注入约定
 
@@ -213,7 +215,7 @@ public class ConfigController : BeaverXController
 | `export_tasks` | 业务任务表（状态、参数、文件链接） |
 | `local_message_outbox` | **通用本地消息表**，发布/消费幂等（不限于导出） |
 | `cap` schema | CAP 自带的 published / received 消息表 |
-| `ExportTaskCapSubscriber` | CAP 消费者，生成 Excel（内存流）后上传 MinIO |
+| `ExportTaskCapSubscriber`（Infrastructure） | CAP 消费者，生成 Excel（内存流）后上传 MinIO |
 
 ### 流程
 

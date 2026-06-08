@@ -1,4 +1,4 @@
-namespace BeaverX.Admin.Application.Rbac;
+namespace BeaverX.Admin.Application.Contracts.Rbac;
 
 public class JwtOptions
 {

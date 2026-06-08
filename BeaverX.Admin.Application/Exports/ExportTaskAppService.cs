@@ -22,7 +22,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
 
     private readonly IRepository<ExportTask> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
-    private readonly ExportTaskPublisher _exportTaskPublisher;
+    private readonly IExportTaskPublisher _exportTaskPublisher;
     private readonly ExportTaskMessageService _messageService;
     private readonly IBlobStorage _blobStorage;
     private readonly ICurrentUser _currentUser;
@@ -30,7 +30,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     public ExportTaskAppService(
         IRepository<ExportTask> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
-        ExportTaskPublisher exportTaskPublisher,
+        IExportTaskPublisher exportTaskPublisher,
         ExportTaskMessageService messageService,
         IBlobStorage blobStorage,
         ICurrentUser currentUser)

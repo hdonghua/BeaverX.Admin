@@ -14,7 +14,8 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 {
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Menu> _menuRepository;
-    private readonly JwtTokenService _jwtTokenService;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly RefreshTokenService _refreshTokenService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
@@ -22,7 +23,8 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     public AuthAppService(
         IRepository<User> userRepository,
         IRepository<Menu> menuRepository,
-        JwtTokenService jwtTokenService,
+        IJwtTokenService jwtTokenService,
+        IPasswordHasher passwordHasher,
         RefreshTokenService refreshTokenService,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser)
@@ -30,6 +32,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         _userRepository = userRepository;
         _menuRepository = menuRepository;
         _jwtTokenService = jwtTokenService;
+        _passwordHasher = passwordHasher;
         _refreshTokenService = refreshTokenService;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
@@ -39,7 +42,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     {
         var user = await LoadUserWithAccessAsync(input.UserName.Trim(), cancellationToken);
 
-        if (user == null || !user.IsEnabled || !PasswordHasher.Verify(input.Password, user.PasswordHash))
+        if (user == null || !user.IsEnabled || !_passwordHasher.Verify(input.Password, user.PasswordHash))
         {
             throw new RbacException("用户名或密码错误");
         }
@@ -160,12 +163,12 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         var userId = _currentUser.Id ?? throw new RbacException("未登录");
         var user = await _userRepository.GetAsync(userId, cancellationToken);
 
-        if (!PasswordHasher.Verify(input.OldPassword, user.PasswordHash))
+        if (!_passwordHasher.Verify(input.OldPassword, user.PasswordHash))
         {
             throw new RbacException("原密码错误");
         }
 
-        user.PasswordHash = PasswordHasher.Hash(input.NewPassword);
+        user.PasswordHash = _passwordHasher.Hash(input.NewPassword);
         await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
     }
 

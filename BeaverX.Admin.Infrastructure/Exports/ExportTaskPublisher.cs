@@ -1,11 +1,12 @@
 using BeaverX.Admin.Application.Contracts.Exports;
+using BeaverX.Admin.Application.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
 using DotNetCore.CAP;
 
-namespace BeaverX.Admin.Application.Exports;
+namespace BeaverX.Admin.Infrastructure.Exports;
 
-public class ExportTaskPublisher : IScopedDependency
+public class ExportTaskPublisher : IExportTaskPublisher, IScopedDependency
 {
     private readonly ICapPublisher _capPublisher;
     private readonly ExportTaskMessageService _messageService;

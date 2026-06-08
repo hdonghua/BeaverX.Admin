@@ -1,14 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace BeaverX.Admin.Application.Rbac;
+namespace BeaverX.Admin.Infrastructure.Auth;
 
-public class JwtTokenService : IScopedDependency
+public class JwtTokenService : IJwtTokenService, IScopedDependency
 {
     private readonly JwtOptions _options;
 
@@ -17,7 +18,11 @@ public class JwtTokenService : IScopedDependency
         _options = options.Value;
     }
 
-    public (string Token, int ExpiresIn) CreateToken(long userId, string userName, IEnumerable<string> roles, IEnumerable<string> permissions)
+    public (string Token, int ExpiresIn) CreateToken(
+        long userId,
+        string userName,
+        IEnumerable<string> roles,
+        IEnumerable<string> permissions)
     {
         var expiresIn = _options.ExpiresInMinutes * 60;
         var claims = new List<Claim>

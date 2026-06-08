@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
@@ -14,6 +15,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     private readonly IRepository<Menu> _menuRepository;
     private readonly IRepository<UserRole> _userRoleRepository;
     private readonly IRepository<RoleMenu> _roleMenuRepository;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly ILogger<RbacDataSeeder> _logger;
 
     public RbacDataSeeder(
@@ -22,6 +24,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         IRepository<Menu> menuRepository,
         IRepository<UserRole> userRoleRepository,
         IRepository<RoleMenu> roleMenuRepository,
+        IPasswordHasher passwordHasher,
         ILogger<RbacDataSeeder> logger)
     {
         _userRepository = userRepository;
@@ -29,6 +32,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         _menuRepository = menuRepository;
         _userRoleRepository = userRoleRepository;
         _roleMenuRepository = roleMenuRepository;
+        _passwordHasher = passwordHasher;
         _logger = logger;
     }
 
@@ -76,7 +80,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         var adminUser = new User
         {
             UserName = "admin",
-            PasswordHash = PasswordHasher.Hash("admin123"),
+            PasswordHash = _passwordHasher.Hash("admin123"),
             NickName = "系统管理员",
             IsEnabled = true
         };

@@ -8,10 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
-    <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue" Version="10.0.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="DotNetCore.CAP.PostgreSql" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,8 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BeaverX.Admin.Application\BeaverX.Admin.Application.csproj" />
-    <ProjectReference Include="..\BeaverX.Admin.EntityFrameworkCore\BeaverX.Admin.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\BeaverX.Admin.Infrastructure\BeaverX.Admin.Infrastructure.csproj" />
     <ProjectReference Include="..\BeaverX.Admin.Http.Api\BeaverX.Admin.Http.Api.csproj" />
   </ItemGroup>
 

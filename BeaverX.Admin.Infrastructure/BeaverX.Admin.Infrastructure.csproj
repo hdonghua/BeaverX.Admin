@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="DotNetCore.CAP" Version="10.0.0" />
+    <PackageReference Include="DotNetCore.CAP.PostgreSql" Version="10.0.0" />
+    <PackageReference Include="Minio" Version="7.0.0" />
+    <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue" Version="10.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BeaverX.Admin.Application\BeaverX.Admin.Application.csproj" />
+    <ProjectReference Include="..\BeaverX.Admin.EntityFrameworkCore\BeaverX.Admin.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+
+</Project>

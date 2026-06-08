@@ -6,4 +6,5 @@
   <Project Path="BeaverX.Admin.EntityFrameworkCore/BeaverX.Admin.EntityFrameworkCore.csproj" />
   <Project Path="BeaverX.Admin.Http.Api/BeaverX.Admin.Http.Api.csproj" />
   <Project Path="BeaverX.Admin.Http.Host/BeaverX.Admin.Http.Host.csproj" />
+  <Project Path="BeaverX.Admin.Infrastructure/BeaverX.Admin.Infrastructure.csproj" />
 </Solution>

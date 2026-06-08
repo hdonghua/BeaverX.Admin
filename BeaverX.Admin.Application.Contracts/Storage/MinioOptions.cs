@@ -1,4 +1,4 @@
-namespace BeaverX.Admin.Application.Storage;
+namespace BeaverX.Admin.Application.Contracts.Storage;
 
 public class MinioOptions
 {

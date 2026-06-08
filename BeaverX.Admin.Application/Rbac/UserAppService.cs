@@ -14,17 +14,20 @@ public class UserAppService : IUserAppService, IScopedDependency
     private readonly IRepository<Role> _roleRepository;
     private readonly IRepository<UserRole> _userRoleRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordHasher _passwordHasher;
 
     public UserAppService(
         IRepository<User> userRepository,
         IRepository<Role> roleRepository,
         IRepository<UserRole> userRoleRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IPasswordHasher passwordHasher)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
         _userRoleRepository = userRoleRepository;
         _unitOfWork = unitOfWork;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<PagedResultDto<UserDto>> GetListAsync(UserQueryDto input, CancellationToken cancellationToken = default)
@@ -84,7 +87,7 @@ public class UserAppService : IUserAppService, IScopedDependency
         var user = new User
         {
             UserName = input.UserName.Trim(),
-            PasswordHash = PasswordHasher.Hash(input.Password),
+            PasswordHash = _passwordHasher.Hash(input.Password),
             NickName = input.NickName,
             Email = input.Email,
             Phone = input.Phone,
@@ -134,7 +137,7 @@ public class UserAppService : IUserAppService, IScopedDependency
         }
 
         var user = await _userRepository.GetAsync(id, cancellationToken);
-        user.PasswordHash = PasswordHasher.Hash(input.NewPassword);
+        user.PasswordHash = _passwordHasher.Hash(input.NewPassword);
         await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
     }
 

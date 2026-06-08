@@ -1,4 +1,4 @@
-namespace BeaverX.Admin.Application.Storage;
+namespace BeaverX.Admin.Infrastructure.Storage;
 
 internal static class MinioEndpointHelper
 {
