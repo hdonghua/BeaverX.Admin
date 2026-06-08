@@ -1,7 +1,7 @@
+using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 
@@ -10,18 +10,21 @@ namespace BeaverX.Admin.Application.Rbac;
 public class MenuAppService : IMenuAppService, IScopedDependency
 {
     private readonly IRepository<Menu> _menuRepository;
+    private readonly MenuCacheService _menuCacheService;
+    private readonly AppCacheInvalidator _cacheInvalidator;
 
-    public MenuAppService(IRepository<Menu> menuRepository)
+    public MenuAppService(
+        IRepository<Menu> menuRepository,
+        MenuCacheService menuCacheService,
+        AppCacheInvalidator cacheInvalidator)
     {
         _menuRepository = menuRepository;
+        _menuCacheService = menuCacheService;
+        _cacheInvalidator = cacheInvalidator;
     }
 
-    public async Task<List<MenuDto>> GetTreeAsync(CancellationToken cancellationToken = default)
-    {
-        var menus = await _menuRepository.GetListAsync(cancellationToken);
-        var dtos = menus.Select(RbacMapper.ToMenuDto).ToList();
-        return RbacQueryHelper.BuildMenuTree(dtos);
-    }
+    public Task<List<MenuDto>> GetTreeAsync(CancellationToken cancellationToken = default) =>
+        _menuCacheService.GetMenuTreeAsync(cancellationToken);
 
     public async Task<MenuDto> GetAsync(long id, CancellationToken cancellationToken = default)
     {
@@ -62,6 +65,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         MenuInputValidator.Validate(menu.MenuType, menu.Path, menu.Component, menu.IsExternal);
 
         await _menuRepository.InsertAsync(menu, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateMenusAsync(cancellationToken);
         return RbacMapper.ToMenuDto(menu);
     }
 
@@ -114,6 +118,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         MenuInputValidator.Validate(menu.MenuType, menu.Path, menu.Component, menu.IsExternal);
 
         await _menuRepository.UpdateAsync(menu, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateMenusAsync(cancellationToken);
         return RbacMapper.ToMenuDto(menu);
     }
 
@@ -126,6 +131,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         await _menuRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateMenusAsync(cancellationToken);
     }
 
     private async Task ValidatePermsAsync(string? perms, long? excludeId, CancellationToken cancellationToken)

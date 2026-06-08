@@ -1,3 +1,5 @@
+using BeaverX.Admin.Application.Caching;
+using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Dict;
 using BeaverX.Admin.Application.Contracts.Dict.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac;
@@ -12,13 +14,19 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
 {
     private readonly IRepository<DictType> _dictTypeRepository;
     private readonly IRepository<DictData> _dictDataRepository;
+    private readonly ICacheService _cache;
+    private readonly AppCacheInvalidator _cacheInvalidator;
 
     public DictDataAppService(
         IRepository<DictType> dictTypeRepository,
-        IRepository<DictData> dictDataRepository)
+        IRepository<DictData> dictDataRepository,
+        ICacheService cache,
+        AppCacheInvalidator cacheInvalidator)
     {
         _dictTypeRepository = dictTypeRepository;
         _dictDataRepository = dictDataRepository;
+        _cache = cache;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<List<DictDataDto>> GetListAsync(
@@ -61,7 +69,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         return items.Select(DictMapper.ToDictDataDto).ToList();
     }
 
-    public async Task<List<DictOptionDto>> GetOptionsByTypeCodeAsync(
+    public Task<List<DictOptionDto>> GetOptionsByTypeCodeAsync(
         string typeCode,
         CancellationToken cancellationToken = default)
     {
@@ -71,20 +79,22 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         }
 
         var code = typeCode.Trim();
-        var items = await _dictDataRepository.GetQueryable()
-            .Include(x => x.DictType)
-            .Where(x => x.DictType.Code == code && x.IsEnabled && x.DictType.IsEnabled)
-            .OrderBy(x => x.Sort)
-            .ThenBy(x => x.Id)
-            .Select(x => new DictOptionDto
-            {
-                Label = x.Label,
-                Value = x.Value,
-                ListClass = x.ListClass
-            })
-            .ToListAsync(cancellationToken);
-
-        return items;
+        return _cache.GetOrSetAsync(
+            CacheKeys.DictOptions(code),
+            async ct => await _dictDataRepository.GetQueryable()
+                .Include(x => x.DictType)
+                .Where(x => x.DictType.Code == code && x.IsEnabled && x.DictType.IsEnabled)
+                .OrderBy(x => x.Sort)
+                .ThenBy(x => x.Id)
+                .Select(x => new DictOptionDto
+                {
+                    Label = x.Label,
+                    Value = x.Value,
+                    ListClass = x.ListClass
+                })
+                .ToListAsync(ct),
+            CacheDurations.Dict,
+            cancellationToken);
     }
 
     public async Task<DictDataDto> GetAsync(long id, CancellationToken cancellationToken = default)
@@ -125,7 +135,9 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         };
 
         await _dictDataRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-        return DictMapper.ToDictDataDto(await FindWithTypeAsync(entity.Id, cancellationToken));
+        var result = DictMapper.ToDictDataDto(await FindWithTypeAsync(entity.Id, cancellationToken));
+        await _cacheInvalidator.InvalidateDictOptionsAsync(result.DictTypeCode, cancellationToken);
+        return result;
     }
 
     public async Task<DictDataDto> UpdateAsync(
@@ -134,6 +146,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         CancellationToken cancellationToken = default)
     {
         var entity = await FindWithTypeAsync(id, cancellationToken);
+        var typeCode = entity.DictType.Code;
 
         if (input.Label != null)
         {
@@ -179,12 +192,16 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         }
 
         await _dictDataRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateDictOptionsAsync(typeCode, cancellationToken);
         return DictMapper.ToDictDataDto(entity);
     }
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
+        var entity = await FindWithTypeAsync(id, cancellationToken);
+        var typeCode = entity.DictType.Code;
         await _dictDataRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateDictOptionsAsync(typeCode, cancellationToken);
     }
 
     private async Task EnsureDictTypeExistsAsync(long dictTypeId, CancellationToken cancellationToken)

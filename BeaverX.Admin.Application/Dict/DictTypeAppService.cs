@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Dict;
 using BeaverX.Admin.Application.Contracts.Dict.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac;
@@ -14,13 +15,16 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
 {
     private readonly IRepository<DictType> _dictTypeRepository;
     private readonly IRepository<DictData> _dictDataRepository;
+    private readonly AppCacheInvalidator _cacheInvalidator;
 
     public DictTypeAppService(
         IRepository<DictType> dictTypeRepository,
-        IRepository<DictData> dictDataRepository)
+        IRepository<DictData> dictDataRepository,
+        AppCacheInvalidator cacheInvalidator)
     {
         _dictTypeRepository = dictTypeRepository;
         _dictDataRepository = dictDataRepository;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<PagedResultDto<DictTypeDto>> GetListAsync(
@@ -113,16 +117,20 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
         }
 
         await _dictTypeRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateDictOptionsAsync(entity.Code, cancellationToken);
         return DictMapper.ToDictTypeDto(entity);
     }
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
+        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken);
+
         if (await _dictDataRepository.AnyAsync(x => x.DictTypeId == id, cancellationToken))
         {
             throw new RbacException("请先删除该字典类型下的字典数据");
         }
 
         await _dictTypeRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateDictOptionsAsync(entity.Code, cancellationToken);
     }
 }

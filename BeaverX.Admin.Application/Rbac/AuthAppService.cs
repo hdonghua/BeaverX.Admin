@@ -1,3 +1,5 @@
+using BeaverX.Admin.Application.Caching;
+using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
@@ -17,6 +19,9 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly RefreshTokenService _refreshTokenService;
+    private readonly MenuCacheService _menuCacheService;
+    private readonly ICacheService _cache;
+    private readonly AppCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
 
@@ -26,6 +31,9 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         IJwtTokenService jwtTokenService,
         IPasswordHasher passwordHasher,
         RefreshTokenService refreshTokenService,
+        MenuCacheService menuCacheService,
+        ICacheService cache,
+        AppCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser)
     {
@@ -34,6 +42,9 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         _jwtTokenService = jwtTokenService;
         _passwordHasher = passwordHasher;
         _refreshTokenService = refreshTokenService;
+        _menuCacheService = menuCacheService;
+        _cache = cache;
+        _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
     }
@@ -178,9 +189,26 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         var user = await LoadUserWithAccessByIdAsync(userId, cancellationToken)
             ?? throw new RbacException("用户不存在");
 
+        if (!user.IsEnabled)
+        {
+            throw new RbacException("用户已被禁用");
+        }
+
+        var accessVersion = await _cacheInvalidator.GetAccessVersionAsync(cancellationToken);
+        var cacheKey = CacheKeys.UserMenus(userId, accessVersion);
+
+        return await _cache.GetOrSetAsync(
+            cacheKey,
+            async ct => await BuildCurrentUserMenusAsync(user, ct),
+            CacheDurations.UserAccess,
+            cancellationToken);
+    }
+
+    private async Task<List<MenuDto>> BuildCurrentUserMenusAsync(User user, CancellationToken cancellationToken)
+    {
         var roles = GetRoleCodes(user);
         var isSuperAdmin = IsSuperAdmin(roles);
-        var allMenus = await _menuRepository.GetListAsync(cancellationToken);
+        var allMenus = await _menuCacheService.GetAllMenusAsync(cancellationToken);
         var roleMenuIds = user.UserRoles
             .SelectMany(x => x.Role.RoleMenus)
             .Select(x => x.MenuId)
@@ -221,9 +249,24 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         User user,
         CancellationToken cancellationToken)
     {
+        var accessVersion = await _cacheInvalidator.GetAccessVersionAsync(cancellationToken);
+        var cacheKey = CacheKeys.UserPermissions(user.Id, accessVersion);
+
+        return await _cache.GetOrSetAsync(
+            cacheKey,
+            async ct => await ResolvePermissionsCoreAsync(roles, user, ct),
+            CacheDurations.UserAccess,
+            cancellationToken);
+    }
+
+    private async Task<List<string>> ResolvePermissionsCoreAsync(
+        List<string> roles,
+        User user,
+        CancellationToken cancellationToken)
+    {
         if (IsSuperAdmin(roles))
         {
-            var allMenus = await _menuRepository.GetListAsync(cancellationToken);
+            var allMenus = await _menuCacheService.GetAllMenusAsync(cancellationToken);
             return RbacMenuHelper.CollectPerms(allMenus);
         }
 

@@ -1,3 +1,5 @@
+using BeaverX.Admin.Application.Caching;
+using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Config;
 using BeaverX.Admin.Application.Contracts.Config.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac;
@@ -13,10 +15,17 @@ namespace BeaverX.Admin.Application.Config;
 public class ConfigAppService : IConfigAppService, IScopedDependency
 {
     private readonly IRepository<SysConfig> _configRepository;
+    private readonly ICacheService _cache;
+    private readonly AppCacheInvalidator _cacheInvalidator;
 
-    public ConfigAppService(IRepository<SysConfig> configRepository)
+    public ConfigAppService(
+        IRepository<SysConfig> configRepository,
+        ICacheService cache,
+        AppCacheInvalidator cacheInvalidator)
     {
         _configRepository = configRepository;
+        _cache = cache;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<PagedResultDto<ConfigDto>> GetListAsync(
@@ -62,15 +71,17 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         };
     }
 
-    public async Task<List<string>> GetGroupsAsync(CancellationToken cancellationToken = default)
-    {
-        return await _configRepository.GetQueryable()
-            .Where(x => x.Group != null && x.Group != string.Empty)
-            .Select(x => x.Group!)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync(cancellationToken);
-    }
+    public Task<List<string>> GetGroupsAsync(CancellationToken cancellationToken = default) =>
+        _cache.GetOrSetAsync(
+            CacheKeys.ConfigGroups,
+            async ct => await _configRepository.GetQueryable()
+                .Where(x => x.Group != null && x.Group != string.Empty)
+                .Select(x => x.Group!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync(ct),
+            CacheDurations.Config,
+            cancellationToken);
 
     public async Task<ConfigDto> GetAsync(long id, CancellationToken cancellationToken = default)
     {
@@ -85,10 +96,18 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
             throw new RbacException("配置键不能为空");
         }
 
-        var entity = await _configRepository.GetQueryable()
-            .FirstOrDefaultAsync(x => x.Key == key.Trim(), cancellationToken);
+        var normalizedKey = key.Trim();
+        return await _cache.GetOrSetAsync(
+            CacheKeys.ConfigByKey(normalizedKey),
+            async ct =>
+            {
+                var entity = await _configRepository.GetQueryable()
+                    .FirstOrDefaultAsync(x => x.Key == normalizedKey, ct);
 
-        return entity == null ? null : ToDto(entity);
+                return entity == null ? null : ToDto(entity);
+            },
+            CacheDurations.Config,
+            cancellationToken);
     }
 
     public async Task<ConfigDto> CreateAsync(
@@ -120,6 +139,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         };
 
         await _configRepository.InsertAsync(entity, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateConfigAsync(key, cancellationToken);
         return ToDto(entity);
     }
 
@@ -161,12 +181,15 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         }
 
         await _configRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateConfigAsync(entity.Key, cancellationToken);
         return ToDto(entity);
     }
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
+        var entity = await FindAsync(id, cancellationToken);
         await _configRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateConfigAsync(entity.Key, cancellationToken);
     }
 
     private async Task<SysConfig> FindAsync(long id, CancellationToken cancellationToken)

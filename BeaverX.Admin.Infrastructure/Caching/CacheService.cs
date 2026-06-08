@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Core.Dependency;
 using Microsoft.Extensions.Caching.Distributed;
@@ -11,7 +12,8 @@ public class CacheService : ICacheService, ISingletonDependency
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
+        WriteIndented = false,
+        ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
     private readonly IDistributedCache _cache;

@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
@@ -15,19 +16,22 @@ public class UserAppService : IUserAppService, IScopedDependency
     private readonly IRepository<UserRole> _userRoleRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly AppCacheInvalidator _cacheInvalidator;
 
     public UserAppService(
         IRepository<User> userRepository,
         IRepository<Role> roleRepository,
         IRepository<UserRole> userRoleRepository,
         IUnitOfWork unitOfWork,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        AppCacheInvalidator cacheInvalidator)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
         _userRoleRepository = userRoleRepository;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<PagedResultDto<UserDto>> GetListAsync(UserQueryDto input, CancellationToken cancellationToken = default)
@@ -112,6 +116,11 @@ public class UserAppService : IUserAppService, IScopedDependency
         if (input.IsEnabled.HasValue) user.IsEnabled = input.IsEnabled.Value;
 
         await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
+        if (input.IsEnabled.HasValue)
+        {
+            await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
+        }
+
         return await GetAsync(id, cancellationToken);
     }
 
@@ -127,6 +136,8 @@ public class UserAppService : IUserAppService, IScopedDependency
         {
             await ReplaceUserRolesAsync(id, input.RoleIds, ct);
         }, cancellationToken);
+
+        await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
 
     public async Task ResetPasswordAsync(long id, ResetPasswordDto input, CancellationToken cancellationToken = default)

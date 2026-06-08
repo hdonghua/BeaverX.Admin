@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
@@ -14,17 +15,20 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     private readonly IRepository<Menu> _menuRepository;
     private readonly IRepository<RoleMenu> _roleMenuRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly AppCacheInvalidator _cacheInvalidator;
 
     public RoleAppService(
         IRepository<Role> roleRepository,
         IRepository<Menu> menuRepository,
         IRepository<RoleMenu> roleMenuRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        AppCacheInvalidator cacheInvalidator)
     {
         _roleRepository = roleRepository;
         _menuRepository = menuRepository;
         _roleMenuRepository = roleMenuRepository;
         _unitOfWork = unitOfWork;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<PagedResultDto<RoleDto>> GetListAsync(RoleQueryDto input, CancellationToken cancellationToken = default)
@@ -107,12 +111,18 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         if (input.IsEnabled.HasValue) role.IsEnabled = input.IsEnabled.Value;
 
         await _roleRepository.UpdateAsync(role, cancellationToken: cancellationToken);
+        if (input.IsEnabled.HasValue)
+        {
+            await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
+        }
+
         return await GetAsync(id, cancellationToken);
     }
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
         await _roleRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+        await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
 
     public async Task AssignMenusAsync(long id, AssignRoleMenusDto input, CancellationToken cancellationToken = default)
@@ -126,6 +136,8 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         {
             await ReplaceRoleMenusAsync(id, menuIds, ct);
         }, cancellationToken);
+
+        await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
 
     private async Task<Role> FindRoleWithRelationsAsync(long id, CancellationToken cancellationToken)
