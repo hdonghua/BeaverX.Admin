@@ -61,5 +61,10 @@ public static class RbacPermissionCodes
             public const string Update = "system:config:update";
             public const string Delete = "system:config:delete";
         }
+
+        public static class Message
+        {
+            public const string Send = "system:message:send";
+        }
     }
 }

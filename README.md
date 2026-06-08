@@ -207,6 +207,16 @@ public class ConfigController : BeaverXController
 - 菜单类型：目录 / 菜单 / 按钮；按钮 `IsVisible = false`，用于接口权限
 - 隐藏菜单：`IsVisible = false` 的菜单不在侧边栏显示，但授权后仍可访问路由
 
+## 站内信（管理端发送）
+
+| API | 权限 | 说明 |
+|-----|------|------|
+| `POST /api/SiteMessageAdmin/send` | `system:message:send` | 向指定用户或全部启用用户发送站内信 |
+
+发送走通用 `IMessageSender` → `site` 渠道（`SiteMessageChannelSender`），写入 `user_messages` 并通过 SignalR 推送 `message.unread.changed`。
+
+前端页面：`/system/message`（发送站内信），菜单由 `MessageMenuSeeder` 在启动时种子写入。
+
 ## 实时通知（SignalR）
 
 导出任务与未读消息通过 SignalR 推送，替代前端轮询。
