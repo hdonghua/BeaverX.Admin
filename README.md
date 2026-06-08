@@ -204,6 +204,40 @@ public class ConfigController : BeaverXController
 - 菜单类型：目录 / 菜单 / 按钮；按钮 `IsVisible = false`，用于接口权限
 - 隐藏菜单：`IsVisible = false` 的菜单不在侧边栏显示，但授权后仍可访问路由
 
+## 异步导出（DotNetCap）
+
+导出任务采用 **CAP + PostgreSQL 消息存储 + 内存队列 + MinIO 文件**：
+
+| 组件 | 说明 |
+|------|------|
+| `export_tasks` | 业务任务表（状态、参数、文件链接） |
+| `local_message_outbox` | **通用本地消息表**，发布/消费幂等（不限于导出） |
+| `cap` schema | CAP 自带的 published / received 消息表 |
+| `ExportTaskCapSubscriber` | CAP 消费者，生成 Excel（内存流）后上传 MinIO |
+
+### 流程
+
+1. `POST /api/ExportTask` 写入 `export_tasks` + `local_message_outbox`
+2. `ICapPublisher` 发布 `export.task.execute` 消息
+3. 消费者认领任务（`Pending → Processing`，幂等校验）→ 导出 → 上传 MinIO → `Completed`
+4. 启动时 `ExportTaskRecoveryHostedService` 恢复中断的 Pending 任务
+
+### 幂等策略
+
+- **通用层**（`LocalMessageOutboxService`）：`IdempotencyKey` = `{MessageType}:{BusinessKey}`，维护 `IsPublished` / `IsConsumed` / `CapConsumeMessageId`
+- **业务层**（如 `ExportTaskMessageService`）：在通用幂等之上处理 `export_tasks.Status` 原子认领
+- **重试**：失败时任务回滚为 `Pending`，由 CAP 自动重试（最多 5 次）
+
+新增异步场景时：在 `LocalMessageTypes` 增加类型常量，调用 `LocalMessageOutboxService.CreateAsync`，再为业务编写对应的 MessageService 编排层即可。
+
+### 扩展导出类型
+
+实现 `IExportHandler` 并注册 `ExportType` 常量，前端传对应 `exportType` 与 `parameters` 即可。
+
+### 生产部署
+
+当前使用 `Savorboard.CAP.InMemoryMessageQueue`（单实例）。多实例部署请改用 Redis / RabbitMQ 等 CAP 传输。
+
 ## 日志
 
 - 控制台 + `BeaverX.Admin.Http.Host/Logs/log-YYYYMMDD.txt`
@@ -218,7 +252,8 @@ public class ConfigController : BeaverXController
 | 启动后无种子数据 | 检查 `IDataSeeder` 是否实现；表是否已有数据（种子幂等跳过） |
 | 前端 403 | 角色是否分配菜单；权限码是否与 Controller 一致 |
 | CORS 错误 | `CorsOrgins` 是否包含前端地址 |
-| MinIO 相关错误 | 可暂不启动 MinIO，不影响除上传外的功能 |
+| MinIO 相关错误 | 导出/上传依赖 MinIO，请确认服务与配置 |
+| 导出一直 Pending | 检查 CAP 是否启动；查看 `cap` schema 与 `Logs/` |
 
 ## 相关仓库
 

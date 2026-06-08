@@ -3,6 +3,7 @@ using System;
 using BeaverX.Admin.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    partial class AdminDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608121238_AddExportTaskOutbox")]
+    partial class AddExportTaskOutbox
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,6 +286,53 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.ToTable("export_tasks", (string)null);
                 });
 
+            modelBuilder.Entity("BeaverX.Admin.Domain.Exports.ExportTaskOutbox", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CapConsumeMessageId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("ConsumedTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ExportTaskId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("IsConsumed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PublishedTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CapConsumeMessageId")
+                        .IsUnique()
+                        .HasFilter("\"CapConsumeMessageId\" IS NOT NULL AND \"CapConsumeMessageId\" <> ''");
+
+                    b.HasIndex("ExportTaskId")
+                        .IsUnique();
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("export_task_outbox", (string)null);
+                });
+
             modelBuilder.Entity("BeaverX.Admin.Domain.Messages.UserMessage", b =>
                 {
                     b.Property<long>("Id")
@@ -351,64 +401,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.HasIndex("UserId", "Type");
 
                     b.ToTable("sys_user_messages", (string)null);
-                });
-
-            modelBuilder.Entity("BeaverX.Admin.Domain.Messaging.LocalMessageOutbox", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("BusinessKey")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("CapConsumeMessageId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTime?>("ConsumedTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("IsConsumed")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPublished")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("MessageType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Payload")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<DateTime?>("PublishedTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CapConsumeMessageId")
-                        .IsUnique()
-                        .HasFilter("\"CapConsumeMessageId\" IS NOT NULL AND \"CapConsumeMessageId\" <> ''");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique();
-
-                    b.HasIndex("MessageType", "BusinessKey")
-                        .IsUnique();
-
-                    b.ToTable("local_message_outbox", (string)null);
                 });
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Menu", b =>
@@ -729,6 +721,17 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .IsRequired();
 
                     b.Navigation("DictType");
+                });
+
+            modelBuilder.Entity("BeaverX.Admin.Domain.Exports.ExportTaskOutbox", b =>
+                {
+                    b.HasOne("BeaverX.Admin.Domain.Exports.ExportTask", "ExportTask")
+                        .WithMany()
+                        .HasForeignKey("ExportTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExportTask");
                 });
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Messages.UserMessage", b =>

@@ -1,4 +1,5 @@
 ﻿using BeaverX.Admin.Application.Contracts;
+using BeaverX.Admin.Application.Exports;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Application.Storage;
 using BeaverX.Admin.Domain;
@@ -19,6 +20,8 @@ namespace BeaverX.Admin.Application
         {
             var services = context.Services;
             var configuration = context.Configuration;
+
+            services.AddHostedService<ExportTaskRecoveryHostedService>();
 
             services.Configure<JwtOptions>(
                 configuration.GetSection(JwtOptions.SectionName));

@@ -1,5 +1,7 @@
 ﻿using BeaverX.Admin.Domain.Config;
 using BeaverX.Admin.Domain.Dict;
+using BeaverX.Admin.Domain.Exports;
+using BeaverX.Admin.Domain.Messaging;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Domain.Users;
@@ -20,6 +22,8 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<DictType> DictTypes => Set<DictType>();
     public DbSet<DictData> DictData => Set<DictData>();
     public DbSet<SysConfig> SysConfigs => Set<SysConfig>();
+    public DbSet<ExportTask> ExportTasks => Set<ExportTask>();
+    public DbSet<LocalMessageOutbox> LocalMessageOutboxes => Set<LocalMessageOutbox>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -130,6 +134,34 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
                 .WithMany(x => x.DictData)
                 .HasForeignKey(x => x.DictTypeId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExportTask>(entity =>
+        {
+            entity.ToTable("export_tasks");
+            entity.HasIndex(x => new { x.UserId, x.Status });
+            entity.HasIndex(x => x.CreationTime);
+            entity.Property(x => x.ExportType).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Parameters).HasMaxLength(4000);
+            entity.Property(x => x.FileName).HasMaxLength(256).IsRequired();
+            entity.Property(x => x.ObjectKey).HasMaxLength(512);
+            entity.Property(x => x.FileUrl).HasMaxLength(2048);
+            entity.Property(x => x.ErrorMessage).HasMaxLength(1024);
+        });
+
+        modelBuilder.Entity<LocalMessageOutbox>(entity =>
+        {
+            entity.ToTable("local_message_outbox");
+            entity.HasIndex(x => x.IdempotencyKey).IsUnique();
+            entity.HasIndex(x => new { x.MessageType, x.BusinessKey }).IsUnique();
+            entity.HasIndex(x => x.CapConsumeMessageId)
+                .IsUnique()
+                .HasFilter("\"CapConsumeMessageId\" IS NOT NULL AND \"CapConsumeMessageId\" <> ''");
+            entity.Property(x => x.MessageType).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.BusinessKey).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.IdempotencyKey).HasMaxLength(256).IsRequired();
+            entity.Property(x => x.Payload).HasMaxLength(4000);
+            entity.Property(x => x.CapConsumeMessageId).HasMaxLength(128);
         });
 
         modelBuilder.Entity<SysConfig>(entity =>

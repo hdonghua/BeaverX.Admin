@@ -6,7 +6,9 @@ using BeaverX.Admin.Http.Api;
 using BeaverX.Admin.Http.Api.Authorization;
 using BeaverX.Admin.Http.Api.Filters;
 using BeaverX.Core.Modules;
+using DotNetCore.CAP;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Savorboard.CAP.InMemoryMessageQueue;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
@@ -59,6 +61,23 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             });
+        });
+
+        var connectionString = configuration.GetConnectionString("Default")
+            ?? throw new InvalidOperationException("Connection string 'Default' is required.");
+
+        services.AddCap(options =>
+        {
+            options.UsePostgreSql(postgresOptions =>
+            {
+                postgresOptions.ConnectionString = connectionString;
+                postgresOptions.Schema = "cap";
+            });
+            options.UseInMemoryMessageQueue();
+            options.FailedRetryCount = 5;
+            options.FailedRetryInterval = 60;
+            options.CollectorCleaningInterval = 3600;
+            options.SucceedMessageExpiredAfter = 24 * 3600;
         });
     }
 
