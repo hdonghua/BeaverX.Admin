@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Application.Contracts.Exports.Dtos;
+using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Domain.Exports;
@@ -25,6 +26,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     private readonly IExportTaskPublisher _exportTaskPublisher;
     private readonly ExportTaskMessageService _messageService;
     private readonly IBlobStorage _blobStorage;
+    private readonly RealtimePublisher _realtimePublisher;
     private readonly ICurrentUser _currentUser;
 
     public ExportTaskAppService(
@@ -33,6 +35,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         IExportTaskPublisher exportTaskPublisher,
         ExportTaskMessageService messageService,
         IBlobStorage blobStorage,
+        RealtimePublisher realtimePublisher,
         ICurrentUser currentUser)
     {
         _exportTaskRepository = exportTaskRepository;
@@ -40,6 +43,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         _exportTaskPublisher = exportTaskPublisher;
         _messageService = messageService;
         _blobStorage = blobStorage;
+        _realtimePublisher = realtimePublisher;
         _currentUser = currentUser;
     }
 
@@ -71,6 +75,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         await _exportTaskRepository.InsertAsync(entity, cancellationToken: cancellationToken);
         await _messageService.CreateOutboxAsync(entity.Id, parametersJson, cancellationToken);
         await _exportTaskPublisher.PublishExecuteAsync(entity.Id, cancellationToken);
+        await _realtimePublisher.NotifyExportTaskChangedAsync(entity, cancellationToken);
 
         return ToDto(entity);
     }

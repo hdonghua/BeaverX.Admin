@@ -1,5 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Application.Exports;
+using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
 using DotNetCore.CAP;
@@ -12,15 +13,18 @@ public class ExportTaskCapSubscriber : IScopedDependency, ICapSubscribe
 {
     private readonly ExportTaskMessageService _messageService;
     private readonly ExportTaskExecutor _executor;
+    private readonly RealtimePublisher _realtimePublisher;
     private readonly ILogger<ExportTaskCapSubscriber> _logger;
 
     public ExportTaskCapSubscriber(
         ExportTaskMessageService messageService,
         ExportTaskExecutor executor,
+        RealtimePublisher realtimePublisher,
         ILogger<ExportTaskCapSubscriber> logger)
     {
         _messageService = messageService;
         _executor = executor;
+        _realtimePublisher = realtimePublisher;
         _logger = logger;
     }
 
@@ -40,6 +44,8 @@ public class ExportTaskCapSubscriber : IScopedDependency, ICapSubscribe
         {
             return;
         }
+
+        await _realtimePublisher.NotifyExportTaskChangedByIdAsync(message.TaskId);
 
         try
         {

@@ -207,6 +207,26 @@ public class ConfigController : BeaverXController
 - 菜单类型：目录 / 菜单 / 按钮；按钮 `IsVisible = false`，用于接口权限
 - 隐藏菜单：`IsVisible = false` 的菜单不在侧边栏显示，但授权后仍可访问路由
 
+## 实时通知（SignalR）
+
+导出任务与未读消息通过 SignalR 推送，替代前端轮询。
+
+| 组件 | 说明 |
+|------|------|
+| `IRealtimeNotifier` | 通用推送接口（Contracts） |
+| `SignalRRealtimeNotifier` | SignalR 实现（Infrastructure） |
+| `RealtimePublisher` | 业务编排：组装 payload 并推送 |
+| `AdminNotificationHub` | Hub 地址 `/hubs/notifications` |
+
+### 事件
+
+| 事件名 | 触发时机 | Payload |
+|--------|----------|---------|
+| `export.task.changed` | 创建/认领/完成/失败 | `{ task, activeCount }` |
+| `message.unread.changed` | 标为已读等 | `{ unreadCount }` |
+
+客户端连接时携带 JWT（`accessTokenFactory` 或 query `access_token`），服务端按 `ClaimTypes.NameIdentifier` 定向推送到用户。
+
 ## 异步导出（DotNetCap）
 
 导出任务采用 **CAP + PostgreSQL 消息存储 + 内存队列 + MinIO 文件**：

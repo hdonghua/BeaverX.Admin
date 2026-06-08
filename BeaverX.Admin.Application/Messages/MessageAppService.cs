@@ -1,6 +1,7 @@
 using BeaverX.Admin.Application.Contracts.Messages;
 using BeaverX.Admin.Application.Contracts.Messages.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
@@ -11,13 +12,16 @@ namespace BeaverX.Admin.Application.Messages;
 public class MessageAppService : IMessageAppService, IScopedDependency
 {
     private readonly IRepository<UserMessage> _messageRepository;
+    private readonly RealtimePublisher _realtimePublisher;
     private readonly ICurrentUser _currentUser;
 
     public MessageAppService(
         IRepository<UserMessage> messageRepository,
+        RealtimePublisher realtimePublisher,
         ICurrentUser currentUser)
     {
         _messageRepository = messageRepository;
+        _realtimePublisher = realtimePublisher;
         _currentUser = currentUser;
     }
 
@@ -67,6 +71,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
         }
 
         await _messageRepository.UpdateManyAsync(messages, cancellationToken: cancellationToken);
+        await _realtimePublisher.NotifyMessageUnreadChangedAsync(userId, cancellationToken);
     }
 
     public async Task MarkAllReadAsync(MarkAllReadDto input, CancellationToken cancellationToken = default)
@@ -88,6 +93,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
         }
 
         await _messageRepository.UpdateManyAsync(messages, cancellationToken: cancellationToken);
+        await _realtimePublisher.NotifyMessageUnreadChangedAsync(userId, cancellationToken);
     }
 
     private long GetCurrentUserId()

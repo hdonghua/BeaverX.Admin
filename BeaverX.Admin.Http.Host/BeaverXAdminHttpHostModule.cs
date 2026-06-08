@@ -4,6 +4,7 @@ using BeaverX.Admin.Http.Api;
 using BeaverX.Admin.Http.Api.Authorization;
 using BeaverX.Admin.Http.Api.Filters;
 using BeaverX.Admin.Infrastructure;
+using BeaverX.Admin.Infrastructure.Realtime;
 using BeaverX.Core.Modules;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -44,6 +45,22 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         services.AddAuthorization();
@@ -55,7 +72,8 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
             {
                 policy.WithOrigins(configuration["CorsOrgins"]!.Split(','))
                     .AllowAnyHeader()
-                    .AllowAnyMethod();
+                    .AllowAnyMethod()
+                    .AllowCredentials();
             });
         });
     }
@@ -69,5 +87,6 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapHub<AdminNotificationHub>("/hubs/notifications");
     }
 }

@@ -3,8 +3,10 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.EntityFrameworkCore;
 using BeaverX.Admin.Infrastructure.Caching;
+using BeaverX.Admin.Infrastructure.Realtime;
 using BeaverX.Admin.Infrastructure.Storage;
 using BeaverX.Core.Modules;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Minio;
@@ -27,6 +29,8 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
 
         services.AddBeaverXCache(configuration);
+        services.AddSignalR();
+        services.AddSingleton<IUserIdProvider, UserIdHubConnectionProvider>();
         ConfigureMinio(services, configuration);
         ConfigureCap(services, configuration);
 

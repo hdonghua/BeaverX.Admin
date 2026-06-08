@@ -1,5 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Application.Contracts.Storage;
+using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
@@ -13,17 +14,20 @@ public class ExportTaskExecutor : IScopedDependency
     private readonly IRepository<ExportTask> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
     private readonly IBlobStorage _blobStorage;
+    private readonly RealtimePublisher _realtimePublisher;
     private readonly ILogger<ExportTaskExecutor> _logger;
 
     public ExportTaskExecutor(
         IRepository<ExportTask> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
         IBlobStorage blobStorage,
+        RealtimePublisher realtimePublisher,
         ILogger<ExportTaskExecutor> logger)
     {
         _exportTaskRepository = exportTaskRepository;
         _handlerRegistry = handlerRegistry;
         _blobStorage = blobStorage;
+        _realtimePublisher = realtimePublisher;
         _logger = logger;
     }
 
@@ -74,10 +78,12 @@ public class ExportTaskExecutor : IScopedDependency
             task.Status = ExportTaskStatus.Pending;
             task.ErrorMessage = ex.Message;
             await _exportTaskRepository.UpdateAsync(task, cancellationToken: cancellationToken);
+            await _realtimePublisher.NotifyExportTaskChangedAsync(task, cancellationToken);
             throw;
         }
 
         await _exportTaskRepository.UpdateAsync(task, cancellationToken: cancellationToken);
+        await _realtimePublisher.NotifyExportTaskChangedAsync(task, cancellationToken);
     }
 
     private static string BuildObjectKey(ExportTask task)
