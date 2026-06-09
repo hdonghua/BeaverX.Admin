@@ -33,9 +33,9 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
 
         var userSex = new DictType
         {
-            Code = "sys_user_sex",
-            Name = "用户性别",
-            Remark = "用户性别列表",
+            Code = "sys_menu_type",
+            Name = "菜单类型",
+            Remark = "菜单类型列表",
             IsEnabled = true
         };
         await _dictTypeRepository.InsertAsync(userSex, cancellationToken: cancellationToken);
@@ -44,58 +44,28 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
             new DictData
             {
                 DictTypeId = userSex.Id,
-                Label = "男",
-                Value = "1",
+                Label = "目录",
+                Value = "0",
                 Sort = 1,
-                ListClass = "blue",
+                ListClass = "",
                 IsEnabled = true
             },
             new DictData
             {
                 DictTypeId = userSex.Id,
-                Label = "女",
+                Label = "菜单",
+                Value = "1",
+                Sort = 2,
+                ListClass = "",
+                IsEnabled = true
+            },
+            new DictData
+            {
+                DictTypeId = userSex.Id,
+                Label = "按钮",
                 Value = "2",
-                Sort = 2,
-                ListClass = "pink",
-                IsEnabled = true
-            },
-            new DictData
-            {
-                DictTypeId = userSex.Id,
-                Label = "未知",
-                Value = "0",
                 Sort = 3,
-                ListClass = "gray",
-                IsEnabled = true
-            }
-        ], cancellationToken: cancellationToken);
-
-        var commonStatus = new DictType
-        {
-            Code = "sys_common_status",
-            Name = "通用状态",
-            Remark = "启用/禁用",
-            IsEnabled = true
-        };
-        await _dictTypeRepository.InsertAsync(commonStatus, cancellationToken: cancellationToken);
-
-        await _dictDataRepository.InsertManyAsync([
-            new DictData
-            {
-                DictTypeId = commonStatus.Id,
-                Label = "启用",
-                Value = "1",
-                Sort = 1,
-                ListClass = "green",
-                IsEnabled = true
-            },
-            new DictData
-            {
-                DictTypeId = commonStatus.Id,
-                Label = "禁用",
-                Value = "0",
-                Sort = 2,
-                ListClass = "red",
+                ListClass = "",
                 IsEnabled = true
             }
         ], cancellationToken: cancellationToken);
