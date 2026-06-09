@@ -31,41 +31,41 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
 
         _logger.LogInformation("Seeding dictionary demo data...");
 
-        var userSex = new DictType
+        var menuTypeDict = new DictType
         {
             Code = "sys_menu_type",
             Name = "菜单类型",
-            Remark = "菜单类型列表",
+            Remark = "系统菜单类型：目录、菜单、按钮",
             IsEnabled = true
         };
-        await _dictTypeRepository.InsertAsync(userSex, cancellationToken: cancellationToken);
+        await _dictTypeRepository.InsertAsync(menuTypeDict, cancellationToken: cancellationToken);
 
         await _dictDataRepository.InsertManyAsync([
             new DictData
             {
-                DictTypeId = userSex.Id,
+                DictTypeId = menuTypeDict.Id,
                 Label = "目录",
                 Value = "0",
                 Sort = 1,
-                ListClass = "",
+                ListClass = "arcoblue",
                 IsEnabled = true
             },
             new DictData
             {
-                DictTypeId = userSex.Id,
+                DictTypeId = menuTypeDict.Id,
                 Label = "菜单",
                 Value = "1",
                 Sort = 2,
-                ListClass = "",
+                ListClass = "green",
                 IsEnabled = true
             },
             new DictData
             {
-                DictTypeId = userSex.Id,
+                DictTypeId = menuTypeDict.Id,
                 Label = "按钮",
                 Value = "2",
                 Sort = 3,
-                ListClass = "",
+                ListClass = "orange",
                 IsEnabled = true
             }
         ], cancellationToken: cancellationToken);
