@@ -85,4 +85,17 @@ public class RefreshTokenService : IScopedDependency
 
         return affected > 0 ? token.UserId : null;
     }
+
+    public async Task RevokeAllForUserAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        await _refreshTokenRepository.GetQueryable()
+            .Where(x => x.UserId == userId && x.RevokedAt == null && !x.IsDeleted)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(x => x.RevokedAt, now)
+                    .SetProperty(x => x.IsDeleted, true)
+                    .SetProperty(x => x.DeletionTime, now),
+                cancellationToken);
+    }
 }

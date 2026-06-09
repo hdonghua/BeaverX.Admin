@@ -73,6 +73,15 @@ public class RealtimePublisher : IScopedDependency
             cancellationToken);
     }
 
+    public Task NotifyUserDisabledAsync(
+        long userId,
+        CancellationToken cancellationToken = default) =>
+        _notifier.SendToUserAsync(
+            userId,
+            RealtimeEvents.UserDisabled,
+            new UserDisabledPayload(),
+            cancellationToken);
+
     private async Task<int> GetActiveExportCountAsync(long userId, CancellationToken cancellationToken)
     {
         var count = await _exportTaskRepository.GetQueryable()

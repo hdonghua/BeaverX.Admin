@@ -1,6 +1,7 @@
 using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
+using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
@@ -17,6 +18,8 @@ public class UserAppService : IUserAppService, IScopedDependency
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly AppCacheInvalidator _cacheInvalidator;
+    private readonly RefreshTokenService _refreshTokenService;
+    private readonly RealtimePublisher _realtimePublisher;
 
     public UserAppService(
         IRepository<User> userRepository,
@@ -24,7 +27,9 @@ public class UserAppService : IUserAppService, IScopedDependency
         IRepository<UserRole> userRoleRepository,
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
-        AppCacheInvalidator cacheInvalidator)
+        AppCacheInvalidator cacheInvalidator,
+        RefreshTokenService refreshTokenService,
+        RealtimePublisher realtimePublisher)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
@@ -32,6 +37,8 @@ public class UserAppService : IUserAppService, IScopedDependency
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _cacheInvalidator = cacheInvalidator;
+        _refreshTokenService = refreshTokenService;
+        _realtimePublisher = realtimePublisher;
     }
 
     public async Task<PagedResultDto<UserDto>> GetListAsync(UserQueryDto input, CancellationToken cancellationToken = default)
@@ -108,6 +115,7 @@ public class UserAppService : IUserAppService, IScopedDependency
     public async Task<UserDto> UpdateAsync(long id, UpdateUserDto input, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetAsync(id, cancellationToken);
+        var wasEnabled = user.IsEnabled;
 
         if (input.NickName != null) user.NickName = input.NickName;
         if (input.Email != null) user.Email = input.Email;
@@ -119,6 +127,12 @@ public class UserAppService : IUserAppService, IScopedDependency
         if (input.IsEnabled.HasValue)
         {
             await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
+
+            if (wasEnabled && !user.IsEnabled)
+            {
+                await _refreshTokenService.RevokeAllForUserAsync(id, cancellationToken);
+                await _realtimePublisher.NotifyUserDisabledAsync(id, cancellationToken);
+            }
         }
 
         return await GetAsync(id, cancellationToken);
