@@ -46,36 +46,6 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
             new()
             {
                 UserId = adminUser.Id,
-                Type = "message",
-                Title = "系统管理员",
-                SubTitle = "的私信",
-                Content = "欢迎使用 BeaverX Admin",
-                IsRead = false,
-                CreationTime = now.AddMinutes(-30)
-            },
-            new()
-            {
-                UserId = adminUser.Id,
-                Type = "message",
-                Title = "运维通知",
-                SubTitle = "的回复",
-                Content = "系统已完成初始化配置",
-                IsRead = false,
-                CreationTime = now.AddHours(-2)
-            },
-            new()
-            {
-                UserId = adminUser.Id,
-                Type = "message",
-                Title = "安全提醒",
-                SubTitle = "",
-                Content = "请及时修改默认密码",
-                IsRead = true,
-                CreationTime = now.AddDays(-1)
-            },
-            new()
-            {
-                UserId = adminUser.Id,
                 Type = "notice",
                 Title = "续费通知",
                 SubTitle = "",
@@ -98,7 +68,7 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
             new()
             {
                 UserId = adminUser.Id,
-                Type = "todo",
+                Type = "notice",
                 Title = "质检队列变更",
                 SubTitle = "",
                 Content = "内容质检队列已变更，请重新确认处理规则",

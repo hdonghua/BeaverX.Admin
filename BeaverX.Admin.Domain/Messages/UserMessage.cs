@@ -3,9 +3,13 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Messages;
 
-public class UserMessage : FullAuditedEntity
+public class UserMessage : CreationAuditedEntity
 {
     public long UserId { get; set; }
+
+    /// <summary>
+    /// notice
+    /// </summary>
     public string Type { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string? SubTitle { get; set; }

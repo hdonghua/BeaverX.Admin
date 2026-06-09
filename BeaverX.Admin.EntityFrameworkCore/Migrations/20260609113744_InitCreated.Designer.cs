@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260608113025_AddExportTasks")]
-    partial class AddExportTasks
+    [Migration("20260609113744_InitCreated")]
+    partial class InitCreated
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -309,23 +309,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<long?>("CreatorId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
 
                     b.Property<int?>("MessageType")
                         .HasColumnType("integer");
@@ -354,6 +339,30 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.HasIndex("UserId", "Type");
 
                     b.ToTable("sys_user_messages", (string)null);
+                });
+
+            modelBuilder.Entity("BeaverX.Admin.Domain.Messaging.LocalMessageOutbox", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CapMessageId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("ConsumedTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CapMessageId")
+                        .IsUnique();
+
+                    b.ToTable("local_message_outbox", (string)null);
                 });
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Menu", b =>
@@ -456,18 +465,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<long?>("CreatorId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Description")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");

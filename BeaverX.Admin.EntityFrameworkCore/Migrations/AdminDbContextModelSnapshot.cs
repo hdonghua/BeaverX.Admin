@@ -306,23 +306,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<long?>("CreatorId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
 
                     b.Property<int?>("MessageType")
                         .HasColumnType("integer");
@@ -477,18 +462,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<long?>("CreatorId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Description")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");

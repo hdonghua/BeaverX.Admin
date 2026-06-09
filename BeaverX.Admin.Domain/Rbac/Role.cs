@@ -2,7 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
-public class Role : FullAuditedEntity
+public class Role : AuditedEntity
 {
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
