@@ -24,7 +24,6 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     private readonly IRepository<ExportTask> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
     private readonly IExportTaskPublisher _exportTaskPublisher;
-    private readonly ExportTaskMessageService _messageService;
     private readonly IBlobStorage _blobStorage;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ICurrentUser _currentUser;
@@ -33,7 +32,6 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         IRepository<ExportTask> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
         IExportTaskPublisher exportTaskPublisher,
-        ExportTaskMessageService messageService,
         IBlobStorage blobStorage,
         RealtimePublisher realtimePublisher,
         ICurrentUser currentUser)
@@ -41,7 +39,6 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         _exportTaskRepository = exportTaskRepository;
         _handlerRegistry = handlerRegistry;
         _exportTaskPublisher = exportTaskPublisher;
-        _messageService = messageService;
         _blobStorage = blobStorage;
         _realtimePublisher = realtimePublisher;
         _currentUser = currentUser;
@@ -73,7 +70,6 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         };
 
         await _exportTaskRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-        await _messageService.CreateOutboxAsync(entity.Id, parametersJson, cancellationToken);
         await _exportTaskPublisher.PublishExecuteAsync(entity.Id, cancellationToken);
         await _realtimePublisher.NotifyExportTaskChangedAsync(entity, cancellationToken);
 

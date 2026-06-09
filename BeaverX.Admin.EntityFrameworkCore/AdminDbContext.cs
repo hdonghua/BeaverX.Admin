@@ -152,16 +152,8 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
         modelBuilder.Entity<LocalMessageOutbox>(entity =>
         {
             entity.ToTable("local_message_outbox");
-            entity.HasIndex(x => x.IdempotencyKey).IsUnique();
-            entity.HasIndex(x => new { x.MessageType, x.BusinessKey }).IsUnique();
-            entity.HasIndex(x => x.CapConsumeMessageId)
-                .IsUnique()
-                .HasFilter("\"CapConsumeMessageId\" IS NOT NULL AND \"CapConsumeMessageId\" <> ''");
-            entity.Property(x => x.MessageType).HasMaxLength(64).IsRequired();
-            entity.Property(x => x.BusinessKey).HasMaxLength(128).IsRequired();
-            entity.Property(x => x.IdempotencyKey).HasMaxLength(256).IsRequired();
-            entity.Property(x => x.Payload).HasMaxLength(4000);
-            entity.Property(x => x.CapConsumeMessageId).HasMaxLength(128);
+            entity.HasIndex(x => x.CapMessageId).IsUnique();
+            entity.Property(x => x.CapMessageId).HasMaxLength(128).IsRequired();
         });
 
         modelBuilder.Entity<SysConfig>(entity =>

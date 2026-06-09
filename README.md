@@ -281,24 +281,24 @@ await _messageSender.SendAsync(new SendMessageRequest
 | 组件 | 说明 |
 |------|------|
 | `export_tasks` | 业务任务表（状态、参数、文件链接） |
-| `local_message_outbox` | **通用本地消息表**，发布/消费幂等（不限于导出） |
+| `local_message_outbox` | CAP 消息消费去重，仅记录 `cap_message_id`（同一消息只成功消费一次） |
 | `cap` schema | CAP 自带的 published / received 消息表 |
 | `ExportTaskCapSubscriber`（Infrastructure） | CAP 消费者，生成 Excel（内存流）后上传 MinIO |
 
 ### 流程
 
-1. `POST /api/ExportTask` 写入 `export_tasks` + `local_message_outbox`
+1. `POST /api/ExportTask` 写入 `export_tasks`，发布 CAP 消息
 2. `ICapPublisher` 发布 `export.task.execute` 消息
-3. 消费者认领任务（`Pending → Processing`，幂等校验）→ 导出 → 上传 MinIO → `Completed`
+3. 消费者校验 `cap_message_id` 未消费 → 认领任务（`Pending → Processing`）→ 导出 → 上传 MinIO → `Completed` → 记录 `cap_message_id`
 4. 启动时 `ExportTaskRecoveryHostedService` 恢复中断的 Pending 任务
 
 ### 幂等策略
 
-- **通用层**（`LocalMessageOutboxService`）：`IdempotencyKey` = `{MessageType}:{BusinessKey}`，维护 `IsPublished` / `IsConsumed` / `CapConsumeMessageId`
-- **业务层**（如 `ExportTaskMessageService`）：在通用幂等之上处理 `export_tasks.Status` 原子认领
-- **重试**：失败时任务回滚为 `Pending`，由 CAP 自动重试（最多 5 次）
+- **CAP 消费层**（`CapMessageConsumeService`）：成功后写入 `local_message_outbox.cap_message_id`，CAP 重投同一消息时直接跳过
+- **业务层**（如 `ExportTaskMessageService`）：`export_tasks.Status` 原子认领（`Pending → Processing`），已完成/进行中任务不再处理
+- **重试**：失败时任务回滚为 `Pending`，由 CAP 自动重试（最多 5 次）；`cap_message_id` 仅在成功后才写入
 
-新增异步场景时：在 `LocalMessageTypes` 增加类型常量，调用 `LocalMessageOutboxService.CreateAsync`，再为业务编写对应的 MessageService 编排层即可。
+新增异步 CAP 消费者时：业务自行保证幂等，成功后调用 `CapMessageConsumeService.MarkConsumedAsync(capMessageId)` 即可。
 
 ### 扩展导出类型
 
