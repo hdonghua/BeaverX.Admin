@@ -1,8 +1,9 @@
-﻿using BeaverX.Admin.Domain.Config;
+using BeaverX.Admin.Domain.Config;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Messaging;
 using BeaverX.Admin.Domain.Messages;
+using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Domain.Users;
 using BeaverX.EntityFrameworkCore.Contexts;
@@ -24,6 +25,10 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<SysConfig> SysConfigs => Set<SysConfig>();
     public DbSet<ExportTask> ExportTasks => Set<ExportTask>();
     public DbSet<LocalMessageOutbox> LocalMessageOutboxes => Set<LocalMessageOutbox>();
+    public DbSet<PaymentChannel> PaymentChannels => Set<PaymentChannel>();
+    public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
+    public DbSet<PaymentRefund> PaymentRefunds => Set<PaymentRefund>();
+    public DbSet<PaymentNotifyLog> PaymentNotifyLogs => Set<PaymentNotifyLog>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -165,6 +170,70 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.Property(x => x.Label).HasMaxLength(128).IsRequired();
             entity.Property(x => x.Group).HasMaxLength(64);
             entity.Property(x => x.Remark).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<PaymentChannel>(entity =>
+        {
+            entity.ToTable("pay_channels");
+            entity.HasIndex(x => x.ChannelCode).IsUnique();
+            entity.Property(x => x.ChannelCode).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.ChannelName).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.ConfigJson).HasMaxLength(8000).IsRequired();
+            entity.Property(x => x.NotifyUrl).HasMaxLength(512);
+            entity.Property(x => x.Remark).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<PaymentOrder>(entity =>
+        {
+            entity.ToTable("pay_orders");
+            entity.HasIndex(x => x.OrderNo).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.CreationTime });
+            entity.HasIndex(x => x.ChannelCode);
+            entity.Property(x => x.OrderNo).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.ChannelCode).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Subject).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(256);
+            entity.Property(x => x.Currency).HasMaxLength(8).IsRequired();
+            entity.Property(x => x.ClientIp).HasMaxLength(64);
+            entity.Property(x => x.Attach).HasMaxLength(512);
+            entity.Property(x => x.BusinessType).HasMaxLength(64);
+            entity.Property(x => x.BusinessId).HasMaxLength(64);
+            entity.Property(x => x.ChannelOrderNo).HasMaxLength(128);
+            entity.Property(x => x.ChannelUserId).HasMaxLength(128);
+            entity.Property(x => x.QrCodeUrl).HasMaxLength(1024);
+            entity.Property(x => x.ErrorCode).HasMaxLength(64);
+            entity.Property(x => x.ErrorMessage).HasMaxLength(512);
+        });
+
+        modelBuilder.Entity<PaymentRefund>(entity =>
+        {
+            entity.ToTable("pay_refunds");
+            entity.HasIndex(x => x.RefundNo).IsUnique();
+            entity.HasIndex(x => x.OrderNo);
+            entity.Property(x => x.RefundNo).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.OrderNo).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.ChannelCode).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.ChannelRefundNo).HasMaxLength(128);
+            entity.Property(x => x.ChannelOrderNo).HasMaxLength(128);
+            entity.Property(x => x.Reason).HasMaxLength(256);
+            entity.Property(x => x.ErrorCode).HasMaxLength(64);
+            entity.Property(x => x.ErrorMessage).HasMaxLength(512);
+            entity.HasOne(x => x.PaymentOrder)
+                .WithMany()
+                .HasForeignKey(x => x.PaymentOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PaymentNotifyLog>(entity =>
+        {
+            entity.ToTable("pay_notify_logs");
+            entity.HasIndex(x => x.CreatedTime);
+            entity.Property(x => x.NotifyType).HasMaxLength(16).IsRequired();
+            entity.Property(x => x.ChannelCode).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.OrderNo).HasMaxLength(64);
+            entity.Property(x => x.RefundNo).HasMaxLength(64);
+            entity.Property(x => x.RawBody).HasMaxLength(8000).IsRequired();
+            entity.Property(x => x.ProcessMessage).HasMaxLength(512);
         });
 
         modelBuilder.Entity<UserMessage>(entity =>

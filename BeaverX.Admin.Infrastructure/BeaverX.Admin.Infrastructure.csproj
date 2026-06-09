@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AlipaySDKNet.Standard" Version="4.9.448" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="DotNetCore.CAP" Version="10.0.0" />
     <PackageReference Include="DotNetCore.CAP.PostgreSql" Version="10.0.0" />

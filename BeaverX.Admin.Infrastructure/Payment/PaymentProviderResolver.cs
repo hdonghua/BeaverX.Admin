@@ -1,0 +1,28 @@
+using BeaverX.Admin.Application.Contracts.Payment;
+using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Core.Dependency;
+
+namespace BeaverX.Admin.Infrastructure.Payment;
+
+public class PaymentProviderResolver : IPaymentProviderResolver, IScopedDependency
+{
+  private readonly IEnumerable<IPaymentProvider> _providers;
+
+  public PaymentProviderResolver(IEnumerable<IPaymentProvider> providers)
+  {
+    _providers = providers;
+  }
+
+  public IPaymentProvider Resolve(string channelCode)
+  {
+    var provider = _providers.FirstOrDefault(x =>
+      string.Equals(x.ChannelCode, channelCode, StringComparison.OrdinalIgnoreCase));
+
+    if (provider == null)
+    {
+      throw new RbacException($"未注册的支付渠道: {channelCode}");
+    }
+
+    return provider;
+  }
+}

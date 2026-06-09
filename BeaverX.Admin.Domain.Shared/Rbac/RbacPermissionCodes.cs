@@ -67,4 +67,30 @@ public static class RbacPermissionCodes
             public const string Send = "system:message:send";
         }
     }
+
+    public static class Payment
+    {
+        public static class Channel
+        {
+            public const string List = "payment:channel:list";
+            public const string Create = "payment:channel:create";
+            public const string Update = "payment:channel:update";
+            public const string Delete = "payment:channel:delete";
+        }
+
+        public static class Order
+        {
+            public const string List = "payment:order:list";
+            public const string Create = "payment:order:create";
+            public const string Query = "payment:order:query";
+            public const string Close = "payment:order:close";
+            public const string Refund = "payment:order:refund";
+            public const string SandboxPay = "payment:order:sandbox_pay";
+        }
+
+        public static class Refund
+        {
+            public const string List = "payment:refund:list";
+        }
+    }
 }

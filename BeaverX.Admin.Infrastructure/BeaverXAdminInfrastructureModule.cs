@@ -1,6 +1,9 @@
 using BeaverX.Admin.Application;
+using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Storage;
+using BeaverX.Admin.Infrastructure.Payment;
+using BeaverX.Admin.Infrastructure.Payment.WeChat;
 using BeaverX.Admin.EntityFrameworkCore;
 using BeaverX.Admin.Infrastructure.Caching;
 using BeaverX.Admin.Infrastructure.Realtime;
@@ -27,6 +30,9 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
+        services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
+
+        services.AddHttpClient(nameof(WeChatNativePaymentProvider));
 
         services.AddBeaverXCache(configuration);
         services.AddSignalR();
