@@ -11,7 +11,8 @@ public class FileAppService : IFileAppService, IScopedDependency
     {
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp",
         ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-        ".txt", ".csv", ".zip", ".rar", ".7z"
+        ".txt", ".csv", ".zip", ".rar", ".7z",
+        ".crt", ".cer", ".pem"
     };
 
     private readonly IBlobStorage _blobStorage;

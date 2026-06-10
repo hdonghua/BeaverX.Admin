@@ -20,6 +20,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
   private readonly IPaymentProviderResolver _providerResolver;
   private readonly PaymentNotifyUrlBuilder _notifyUrlBuilder;
   private readonly PaymentOptions _paymentOptions;
+  private readonly IPaymentChannelContextBuilder _channelContextBuilder;
 
   public PaymentOrderAppService(
     IRepository<PaymentOrder> orderRepository,
@@ -27,7 +28,8 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     IRepository<PaymentRefund> refundRepository,
     IPaymentProviderResolver providerResolver,
     PaymentNotifyUrlBuilder notifyUrlBuilder,
-    IOptions<PaymentOptions> paymentOptions)
+    IOptions<PaymentOptions> paymentOptions,
+    IPaymentChannelContextBuilder channelContextBuilder)
   {
     _orderRepository = orderRepository;
     _channelRepository = channelRepository;
@@ -35,6 +37,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     _providerResolver = providerResolver;
     _notifyUrlBuilder = notifyUrlBuilder;
     _paymentOptions = paymentOptions.Value;
+    _channelContextBuilder = channelContextBuilder;
   }
 
   public async Task<PagedResultDto<PaymentOrderDto>> GetListAsync(
@@ -164,7 +167,12 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     var provider = _providerResolver.Resolve(channelCode);
     var notifyUrl = _notifyUrlBuilder.BuildPayNotifyUrl(channelCode, channel.NotifyUrl);
-    var providerChannel = PaymentMapper.ToProviderChannel(channel);
+    var providerChannel = await _channelContextBuilder.BuildAsync(
+      channel.Id,
+      channel.ChannelCode,
+      channel.ProviderType,
+      channel.ConfigJson,
+      cancellationToken);
     var providerOrder = PaymentMapper.ToProviderOrder(order);
 
     string? qrCodeUrl = null;
@@ -240,8 +248,14 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     var channel = await FindChannelByCodeAsync(order.ChannelCode, cancellationToken);
     var provider = _providerResolver.Resolve(order.ChannelCode);
+    var providerChannel = await _channelContextBuilder.BuildAsync(
+      channel.Id,
+      channel.ChannelCode,
+      channel.ProviderType,
+      channel.ConfigJson,
+      cancellationToken);
     var queryResult = await provider.QueryPayAsync(
-      PaymentMapper.ToProviderChannel(channel),
+      providerChannel,
       PaymentMapper.ToProviderOrder(order),
       cancellationToken);
 
@@ -308,8 +322,14 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     var provider = _providerResolver.Resolve(order.ChannelCode);
     var notifyUrl = _notifyUrlBuilder.BuildRefundNotifyUrl(order.ChannelCode, channel.NotifyUrl);
+    var providerChannel = await _channelContextBuilder.BuildAsync(
+      channel.Id,
+      channel.ChannelCode,
+      channel.ProviderType,
+      channel.ConfigJson,
+      cancellationToken);
     var refundResult = await provider.RefundAsync(
-      PaymentMapper.ToProviderChannel(channel),
+      providerChannel,
       PaymentMapper.ToProviderOrder(order),
       PaymentMapper.ToProviderRefund(refund),
       notifyUrl,

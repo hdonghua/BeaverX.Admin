@@ -61,11 +61,14 @@ internal static class PaymentMapper
     CreationTime = entity.CreationTime,
   };
 
-  public static PaymentProviderChannelContext ToProviderChannel(PaymentChannel entity) => new()
+  public static PaymentProviderChannelContext ToProviderChannel(
+    PaymentChannel entity,
+    string? configJson = null) => new()
   {
+    ChannelId = entity.Id,
     ChannelCode = entity.ChannelCode,
     ProviderType = entity.ProviderType,
-    ConfigJson = entity.ConfigJson,
+    ConfigJson = configJson ?? entity.ConfigJson,
   };
 
   public static PaymentProviderOrderContext ToProviderOrder(PaymentOrder entity) => new()

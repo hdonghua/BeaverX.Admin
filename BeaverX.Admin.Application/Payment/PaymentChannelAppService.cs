@@ -100,6 +100,10 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
     };
 
     await _channelRepository.InsertAsync(entity, cancellationToken: cancellationToken);
+    entity.ConfigJson = AlipayChannelConfigNormalizer.Normalize(entity.Id, entity.ConfigJson);
+    PaymentChannelConfigValidator.Validate(entity.ProviderType, entity.ConfigJson);
+    await _channelRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
+
     return PaymentMapper.ToChannelDto(entity);
   }
 
@@ -122,7 +126,10 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
 
     if (input.ConfigJson != null)
     {
-      entity.ConfigJson = input.ConfigJson.Trim();
+      entity.ConfigJson = AlipayChannelConfigNormalizer.Normalize(
+        entity.Id,
+        input.ConfigJson.Trim());
+      PaymentChannelConfigValidator.Validate(entity.ProviderType, entity.ConfigJson);
     }
 
     if (input.NotifyUrl != null)

@@ -8,6 +8,9 @@ public class PaymentProviderChannelContext
   /// <summary>渠道编码，见 <see cref="PaymentChannelCodes"/></summary>
   public string ChannelCode { get; set; } = null!;
 
+  /// <summary>渠道主键，用于证书本地缓存目录命名</summary>
+  public long ChannelId { get; set; }
+
   /// <summary>提供商类型</summary>
   public PaymentProviderType ProviderType { get; set; }
 

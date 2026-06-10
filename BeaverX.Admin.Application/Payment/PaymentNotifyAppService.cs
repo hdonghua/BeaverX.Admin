@@ -15,6 +15,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
   private readonly IRepository<PaymentNotifyLog> _notifyLogRepository;
   private readonly IPaymentProviderResolver _providerResolver;
   private readonly PaymentOrderAppService _orderAppService;
+  private readonly IPaymentChannelContextBuilder _channelContextBuilder;
 
   public PaymentNotifyAppService(
     IRepository<PaymentChannel> channelRepository,
@@ -22,7 +23,8 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
     IRepository<PaymentRefund> refundRepository,
     IRepository<PaymentNotifyLog> notifyLogRepository,
     IPaymentProviderResolver providerResolver,
-    PaymentOrderAppService orderAppService)
+    PaymentOrderAppService orderAppService,
+    IPaymentChannelContextBuilder channelContextBuilder)
   {
     _channelRepository = channelRepository;
     _orderRepository = orderRepository;
@@ -30,6 +32,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
     _notifyLogRepository = notifyLogRepository;
     _providerResolver = providerResolver;
     _orderAppService = orderAppService;
+    _channelContextBuilder = channelContextBuilder;
   }
 
   public Task<(string Body, int StatusCode)> HandleWeChatPayNotifyAsync(
@@ -104,8 +107,14 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
   {
     var channel = await FindChannelAsync(channelCode, cancellationToken);
     var provider = _providerResolver.Resolve(channelCode);
+    var providerChannel = await _channelContextBuilder.BuildAsync(
+      channel.Id,
+      channel.ChannelCode,
+      channel.ProviderType,
+      channel.ConfigJson,
+      cancellationToken);
     var result = await provider.HandlePayNotifyAsync(
-      PaymentMapper.ToProviderChannel(channel),
+      providerChannel,
       context,
       cancellationToken);
 
@@ -146,8 +155,14 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
   {
     var channel = await FindChannelAsync(channelCode, cancellationToken);
     var provider = _providerResolver.Resolve(channelCode);
+    var providerChannel = await _channelContextBuilder.BuildAsync(
+      channel.Id,
+      channel.ChannelCode,
+      channel.ProviderType,
+      channel.ConfigJson,
+      cancellationToken);
     var result = await provider.HandleRefundNotifyAsync(
-      PaymentMapper.ToProviderChannel(channel),
+      providerChannel,
       context,
       cancellationToken);
 

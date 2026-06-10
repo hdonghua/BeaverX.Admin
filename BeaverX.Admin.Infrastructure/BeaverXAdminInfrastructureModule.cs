@@ -12,6 +12,7 @@ using BeaverX.Core.Modules;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Minio;
 using Savorboard.CAP.InMemoryMessageQueue;
 
@@ -31,6 +32,7 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
         services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
+        services.AddSingleton<IConfigureOptions<PaymentOptions>, PaymentOptionsPostConfigure>();
 
         services.AddHttpClient(nameof(WeChatQrcodePaymentProvider));
 

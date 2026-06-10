@@ -1,4 +1,5 @@
 using Aop.Api;
+using BeaverX.Admin.Domain.Shared.Payment;
 
 namespace BeaverX.Admin.Infrastructure.Payment.Alipay;
 
@@ -6,11 +7,9 @@ internal static class AlipaySdkClientFactory
 {
   public static IAopClient Create(AlipayChannelConfig config)
   {
-    var gateway = string.IsNullOrWhiteSpace(config.Gateway)
-      ? "https://openapi.alipay.com/gateway.do"
-      : config.Gateway.Trim();
+    var gateway = AlipayPaymentConstants.NormalizeGateway(config.Gateway);
 
-    var signType = string.IsNullOrWhiteSpace(config.SignType) ? "RSA2" : config.SignType.Trim();
+    var signType = AlipayPaymentConstants.NormalizeSignType(config.SignType);
     var privateKey = NormalizeKey(config.PrivateKey);
 
     if (UsesCertificateMode(config))

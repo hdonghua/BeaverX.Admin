@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260610124010_InitCreated")]
+    [Migration("20260610141434_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />

@@ -21,4 +21,8 @@
     <ProjectReference Include="..\BeaverX.Admin.Http.Api\BeaverX.Admin.Http.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="payment-certs\" />
+  </ItemGroup>
+
 </Project>
