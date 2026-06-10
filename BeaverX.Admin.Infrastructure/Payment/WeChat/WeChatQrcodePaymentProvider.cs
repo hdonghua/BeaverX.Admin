@@ -9,22 +9,26 @@ using BeaverX.Core.Dependency;
 
 namespace BeaverX.Admin.Infrastructure.Payment.WeChat;
 
-public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
+/// <summary>
+/// 微信二维码支付 Provider（API: POST /v3/pay/transactions/native，返回 code_url）。
+/// </summary>
+public class WeChatQrcodePaymentProvider : PaymentProviderBase, IScopedDependency
 {
-  private const string NativeUrl = "https://api.mch.weixin.qq.com/v3/pay/transactions/native";
+  /// <summary>微信 Native 下单接口（官方路径含 native，业务侧称二维码支付）</summary>
+  private const string QrcodePayApiUrl = "https://api.mch.weixin.qq.com/v3/pay/transactions/native";
   private const string QueryUrlTemplate = "https://api.mch.weixin.qq.com/v3/pay/transactions/out-trade-no/{0}?mchid={1}";
   private const string RefundUrl = "https://api.mch.weixin.qq.com/v3/refund/domestic/refunds";
 
   private readonly IHttpClientFactory _httpClientFactory;
 
-  public WeChatNativePaymentProvider(IHttpClientFactory httpClientFactory)
+  public WeChatQrcodePaymentProvider(IHttpClientFactory httpClientFactory)
   {
     _httpClientFactory = httpClientFactory;
   }
 
-  public string ChannelCode => PaymentChannelCodes.WeChatNative;
+  public override string ChannelCode => PaymentChannelCodes.WeChatQrcode;
 
-  public async Task<NativePayResult> CreateNativePayAsync(
+  public override async Task<QrcodePayResult> CreateQrcodePayAsync(
     PaymentProviderChannelContext channel,
     PaymentProviderOrderContext order,
     string notifyUrl,
@@ -33,7 +37,7 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     var config = PaymentConfigHelper.ParseConfig<WeChatChannelConfig>(channel.ConfigJson);
     if (!ValidateConfig(config, out var error))
     {
-      return FailNative("CONFIG", error);
+      return QrcodePayResult.Fail("CONFIG", error);
     }
 
     var payload = new
@@ -49,19 +53,19 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     };
 
     var body = JsonSerializer.Serialize(payload);
-    var response = await SendAsync(config, NativeUrl, "POST", body, cancellationToken);
+    var response = await SendAsync(config, QrcodePayApiUrl, "POST", body, cancellationToken);
     if (!response.Success)
     {
-      return FailNative(response.ErrorCode, response.ErrorMessage);
+      return QrcodePayResult.Fail(response.ErrorCode, response.ErrorMessage);
     }
 
     var codeUrl = response.GetString("code_url");
     if (string.IsNullOrWhiteSpace(codeUrl))
     {
-      return FailNative("NO_QR", "微信未返回二维码链接");
+      return QrcodePayResult.Fail("NO_QR", "微信未返回二维码链接");
     }
 
-    return new NativePayResult
+    return new QrcodePayResult
     {
       Success = true,
       QrCodeUrl = codeUrl,
@@ -69,7 +73,7 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     };
   }
 
-  public async Task<QueryPayResult> QueryPayAsync(
+  public override async Task<QueryPayResult> QueryPayAsync(
     PaymentProviderChannelContext channel,
     PaymentProviderOrderContext order,
     CancellationToken cancellationToken = default)
@@ -124,7 +128,7 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     };
   }
 
-  public async Task<RefundProviderResult> RefundAsync(
+  public override async Task<RefundProviderResult> RefundAsync(
     PaymentProviderChannelContext channel,
     PaymentProviderOrderContext order,
     PaymentProviderRefundContext refund,
@@ -183,7 +187,7 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     };
   }
 
-  public Task<NotifyHandleResult> HandlePayNotifyAsync(
+  public override Task<NotifyHandleResult> HandlePayNotifyAsync(
     PaymentProviderChannelContext channel,
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
@@ -236,7 +240,7 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     }
   }
 
-  public Task<NotifyHandleResult> HandleRefundNotifyAsync(
+  public override Task<NotifyHandleResult> HandleRefundNotifyAsync(
     PaymentProviderChannelContext channel,
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
@@ -296,7 +300,7 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
     string? body,
     CancellationToken cancellationToken)
   {
-    var client = _httpClientFactory.CreateClient(nameof(WeChatNativePaymentProvider));
+    var client = _httpClientFactory.CreateClient(nameof(WeChatQrcodePaymentProvider));
     using var request = new HttpRequestMessage(new HttpMethod(method), url);
     if (!string.IsNullOrEmpty(body))
     {
@@ -430,13 +434,6 @@ public class WeChatNativePaymentProvider : IPaymentProvider, IScopedDependency
 
     return $"-----BEGIN {label}-----\n{key}\n-----END {label}-----";
   }
-
-  private static NativePayResult FailNative(string? code, string? message) => new()
-  {
-    Success = false,
-    ErrorCode = code,
-    ErrorMessage = message,
-  };
 
   private sealed class WeChatApiResponse
   {

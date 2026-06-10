@@ -6,75 +6,21 @@ using Aop.Api.Response;
 using Aop.Api.Util;
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Core.Dependency;
 
 namespace BeaverX.Admin.Infrastructure.Payment.Alipay;
 
-public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
+/// <summary>支付宝 Provider 基类，封装查询、退款与回调验签的公共逻辑</summary>
+public abstract class AlipayPaymentProviderBase : PaymentProviderBase
 {
-  public string ChannelCode => PaymentChannelCodes.AlipayNative;
+  public abstract override string ChannelCode { get; }
 
-  public Task<NativePayResult> CreateNativePayAsync(
-    PaymentProviderChannelContext channel,
-    PaymentProviderOrderContext order,
-    string notifyUrl,
-    CancellationToken cancellationToken = default)
-  {
-    var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    if (!ValidateConfig(config, out var error))
-    {
-      return Task.FromResult(FailNative("CONFIG", error));
-    }
-
-    try
-    {
-      var client = AlipaySdkClientFactory.Create(config);
-      var request = new AlipayTradePrecreateRequest();
-      request.SetNotifyUrl(notifyUrl);
-      request.SetBizModel(new AlipayTradePrecreateModel
-      {
-        OutTradeNo = order.OrderNo,
-        TotalAmount = FormatAmountYuan(order.Amount),
-        Subject = order.Subject,
-        Body = order.Description,
-        ProductCode = "QR_CODE_OFFLINE",
-        TimeoutExpress = "30m",
-      });
-
-      var certMode = AlipaySdkClientFactory.UsesCertificateMode(config);
-      var response = certMode
-        ? client.CertificateExecute(request)
-        : client.Execute(request);
-      if (response.IsError)
-      {
-        return Task.FromResult(FailNative(response.SubCode ?? response.Code, response.SubMsg ?? response.Msg));
-      }
-
-      if (string.IsNullOrWhiteSpace(response.QrCode))
-      {
-        return Task.FromResult(FailNative("NO_QR", "支付宝未返回二维码"));
-      }
-
-      return Task.FromResult(new NativePayResult
-      {
-        Success = true,
-        QrCodeUrl = response.QrCode,
-        ChannelOrderNo = order.OrderNo,
-      });
-    }
-    catch (Exception ex)
-    {
-      return Task.FromResult(FailNative("SDK", ex.Message));
-    }
-  }
-
-  public Task<QueryPayResult> QueryPayAsync(
+  public override Task<QueryPayResult> QueryPayAsync(
     PaymentProviderChannelContext channel,
     PaymentProviderOrderContext order,
     CancellationToken cancellationToken = default)
   {
     var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    if (!ValidateConfig(config, out var error))
+    if (!AlipayPayHelper.ValidateConfig(config, out var error))
     {
       return Task.FromResult(new QueryPayResult
       {
@@ -136,7 +82,7 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
     }
   }
 
-  public Task<RefundProviderResult> RefundAsync(
+  public override Task<RefundProviderResult> RefundAsync(
     PaymentProviderChannelContext channel,
     PaymentProviderOrderContext order,
     PaymentProviderRefundContext refund,
@@ -144,7 +90,7 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
     CancellationToken cancellationToken = default)
   {
     var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    if (!ValidateConfig(config, out var error))
+    if (!AlipayPayHelper.ValidateConfig(config, out var error))
     {
       return Task.FromResult(new RefundProviderResult
       {
@@ -162,7 +108,7 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
       request.SetBizModel(new AlipayTradeRefundModel
       {
         OutTradeNo = order.OrderNo,
-        RefundAmount = FormatAmountYuan(refund.Amount),
+        RefundAmount = AlipayPayHelper.FormatAmountYuan(refund.Amount),
         OutRequestNo = refund.RefundNo,
         RefundReason = refund.Reason,
       });
@@ -201,7 +147,7 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
     }
   }
 
-  public Task<NotifyHandleResult> HandlePayNotifyAsync(
+  public override Task<NotifyHandleResult> HandlePayNotifyAsync(
     PaymentProviderChannelContext channel,
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
@@ -238,7 +184,7 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
     });
   }
 
-  public Task<NotifyHandleResult> HandleRefundNotifyAsync(
+  public override Task<NotifyHandleResult> HandleRefundNotifyAsync(
     PaymentProviderChannelContext channel,
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
@@ -316,31 +262,6 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
     }
   }
 
-  private static bool ValidateConfig(AlipayChannelConfig config, out string error)
-  {
-    if (string.IsNullOrWhiteSpace(config.AppId) ||
-        string.IsNullOrWhiteSpace(config.PrivateKey))
-    {
-      error = "支付宝 AppId 或应用私钥未配置";
-      return false;
-    }
-
-    if (AlipaySdkClientFactory.UsesCertificateMode(config))
-    {
-      error = string.Empty;
-      return true;
-    }
-
-    if (string.IsNullOrWhiteSpace(config.AlipayPublicKey))
-    {
-      error = "支付宝公钥未配置（公钥模式需填写 alipayPublicKey）";
-      return false;
-    }
-
-    error = string.Empty;
-    return true;
-  }
-
   private static Dictionary<string, string> ParseNotifyParameters(string rawBody)
   {
     var result = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -355,14 +276,4 @@ public class AlipayNativePaymentProvider : IPaymentProvider, IScopedDependency
 
     return result;
   }
-
-  private static string FormatAmountYuan(long amountCents) =>
-    (amountCents / 100m).ToString("0.##", CultureInfo.InvariantCulture);
-
-  private static NativePayResult FailNative(string? code, string? message) => new()
-  {
-    Success = false,
-    ErrorCode = code,
-    ErrorMessage = message,
-  };
 }

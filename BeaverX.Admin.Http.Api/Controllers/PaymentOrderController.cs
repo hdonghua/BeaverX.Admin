@@ -35,14 +35,14 @@ public class PaymentOrderController : BeaverXController
     => _orderAppService.GetByOrderNoAsync(orderNo, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.Create)]
-  [HttpPost("native")]
-  public Task<CreatePaymentOrderResultDto> CreateNativeOrderAsync(
+  [HttpPost("pay")]
+  public Task<CreatePaymentOrderResultDto> CreatePayOrderAsync(
     [FromBody] CreatePaymentOrderDto input,
     CancellationToken cancellationToken)
   {
     var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
     var userId = CurrentUser.Id;
-    return _orderAppService.CreateNativeOrderAsync(input, clientIp, userId, cancellationToken);
+    return _orderAppService.CreatePayOrderAsync(input, clientIp, userId, cancellationToken);
   }
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.Query)]
@@ -61,9 +61,4 @@ public class PaymentOrderController : BeaverXController
     [FromBody] CreatePaymentRefundDto input,
     CancellationToken cancellationToken)
     => _orderAppService.RefundAsync(input, cancellationToken);
-
-  [RequirePermission(RbacPermissionCodes.Payment.Order.SandboxPay)]
-  [HttpPost("sandbox-pay/{orderNo}")]
-  public Task<PaymentOrderDto> SandboxPayAsync(string orderNo, CancellationToken cancellationToken)
-    => _orderAppService.SandboxPayAsync(orderNo, cancellationToken);
 }

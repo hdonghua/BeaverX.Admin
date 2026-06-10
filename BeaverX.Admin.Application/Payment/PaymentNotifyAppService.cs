@@ -35,32 +35,67 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
   public Task<(string Body, int StatusCode)> HandleWeChatPayNotifyAsync(
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
-    => HandlePayNotifyAsync(PaymentChannelCodes.WeChatNative, context, cancellationToken);
+    => HandlePayNotifyAsync(PaymentChannelCodes.WeChatQrcode, context, cancellationToken);
 
   public Task<(string Body, int StatusCode)> HandleAlipayNotifyAsync(
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
-    => HandlePayNotifyAsync(PaymentChannelCodes.AlipayNative, context, cancellationToken);
-
-  public Task<(string Body, int StatusCode)> HandleSandboxPayNotifyAsync(
-    PaymentNotifyContext context,
-    CancellationToken cancellationToken = default)
-    => HandlePayNotifyAsync(PaymentChannelCodes.SandboxNative, context, cancellationToken);
+    => HandleAlipayNotifyByOrderAsync(context, HandlePayNotifyAsync, cancellationToken);
 
   public Task<(string Body, int StatusCode)> HandleWeChatRefundNotifyAsync(
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
-    => HandleRefundNotifyAsync(PaymentChannelCodes.WeChatNative, context, cancellationToken);
+    => HandleRefundNotifyAsync(PaymentChannelCodes.WeChatQrcode, context, cancellationToken);
 
   public Task<(string Body, int StatusCode)> HandleAlipayRefundNotifyAsync(
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default)
-    => HandleRefundNotifyAsync(PaymentChannelCodes.AlipayNative, context, cancellationToken);
+    => HandleAlipayNotifyByOrderAsync(context, HandleRefundNotifyAsync, cancellationToken);
 
-  public Task<(string Body, int StatusCode)> HandleSandboxRefundNotifyAsync(
+  private async Task<(string Body, int StatusCode)> HandleAlipayNotifyByOrderAsync(
     PaymentNotifyContext context,
-    CancellationToken cancellationToken = default)
-    => HandleRefundNotifyAsync(PaymentChannelCodes.SandboxNative, context, cancellationToken);
+    Func<string, PaymentNotifyContext, CancellationToken, Task<(string Body, int StatusCode)>> handler,
+    CancellationToken cancellationToken)
+  {
+    var orderNo = ExtractAlipayOutTradeNo(context.RawBody);
+    if (!string.IsNullOrWhiteSpace(orderNo))
+    {
+      var order = await _orderRepository.GetQueryable()
+        .FirstOrDefaultAsync(x => x.OrderNo == orderNo, cancellationToken);
+
+      if (order != null && PaymentChannelCodes.IsAlipay(order.ChannelCode))
+      {
+        return await handler(order.ChannelCode, context, cancellationToken);
+      }
+    }
+
+    foreach (var channelCode in new[] { PaymentChannelCodes.AlipayQrcode, PaymentChannelCodes.AlipayAppPay })
+    {
+      var channel = await _channelRepository.GetQueryable()
+        .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
+
+      if (channel != null)
+      {
+        return await handler(channelCode, context, cancellationToken);
+      }
+    }
+
+    throw new InvalidOperationException("支付宝支付渠道不存在");
+  }
+
+  private static string? ExtractAlipayOutTradeNo(string rawBody)
+  {
+    foreach (var pair in rawBody.Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+      var parts = pair.Split('=', 2);
+      if (parts.Length == 2 && parts[0] == "out_trade_no")
+      {
+        return Uri.UnescapeDataString(parts[1].Replace('+', ' '));
+      }
+    }
+
+    return null;
+  }
 
   private async Task<(string Body, int StatusCode)> HandlePayNotifyAsync(
     string channelCode,

@@ -38,6 +38,7 @@ internal static class PaymentMapper
     PaidTime = entity.PaidTime,
     ChannelOrderNo = entity.ChannelOrderNo,
     QrCodeUrl = entity.QrCodeUrl,
+    AppPayOrderString = entity.AppPayOrderString,
     RefundedAmount = entity.RefundedAmount,
     ErrorMessage = entity.ErrorMessage,
     CreationTime = entity.CreationTime,

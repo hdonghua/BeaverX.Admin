@@ -1,5 +1,6 @@
 namespace BeaverX.Admin.Application.Contracts.Payment;
 
+/// <summary>支付模块全局配置（appsettings Payment 节点）</summary>
 public class PaymentOptions
 {
   public const string SectionName = "Payment";

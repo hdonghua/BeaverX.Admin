@@ -111,7 +111,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     return PaymentMapper.ToOrderDto(entity);
   }
 
-  public async Task<CreatePaymentOrderResultDto> CreateNativeOrderAsync(
+  public async Task<CreatePaymentOrderResultDto> CreatePayOrderAsync(
     CreatePaymentOrderDto input,
     string? clientIp,
     long? userId,
@@ -164,24 +164,58 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     var provider = _providerResolver.Resolve(channelCode);
     var notifyUrl = _notifyUrlBuilder.BuildPayNotifyUrl(channelCode, channel.NotifyUrl);
-    var payResult = await provider.CreateNativePayAsync(
-      PaymentMapper.ToProviderChannel(channel),
-      PaymentMapper.ToProviderOrder(order),
-      notifyUrl,
-      cancellationToken);
+    var providerChannel = PaymentMapper.ToProviderChannel(channel);
+    var providerOrder = PaymentMapper.ToProviderOrder(order);
 
-    if (!payResult.Success || string.IsNullOrWhiteSpace(payResult.QrCodeUrl))
+    string? qrCodeUrl = null;
+    string? appPayOrderString = null;
+    string? channelOrderNo = null;
+
+    if (channel.ProviderType == PaymentProviderType.AlipayApp)
     {
-      order.Status = PaymentOrderStatus.Failed;
-      order.ErrorCode = payResult.ErrorCode;
-      order.ErrorMessage = payResult.ErrorMessage ?? "创建支付失败";
-      await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-      throw new RbacException(order.ErrorMessage);
+      var appResult = await provider.CreateAppPayAsync(
+        providerChannel,
+        providerOrder,
+        notifyUrl,
+        cancellationToken);
+
+      if (!appResult.Success || string.IsNullOrWhiteSpace(appResult.AppPayOrderString))
+      {
+        order.Status = PaymentOrderStatus.Failed;
+        order.ErrorCode = appResult.ErrorCode;
+        order.ErrorMessage = appResult.ErrorMessage ?? "未获取 App 支付参数";
+        await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
+        throw new RbacException(order.ErrorMessage);
+      }
+
+      appPayOrderString = appResult.AppPayOrderString;
+      channelOrderNo = appResult.ChannelOrderNo;
+    }
+    else
+    {
+      var qrcodeResult = await provider.CreateQrcodePayAsync(
+        providerChannel,
+        providerOrder,
+        notifyUrl,
+        cancellationToken);
+
+      if (!qrcodeResult.Success || string.IsNullOrWhiteSpace(qrcodeResult.QrCodeUrl))
+      {
+        order.Status = PaymentOrderStatus.Failed;
+        order.ErrorCode = qrcodeResult.ErrorCode;
+        order.ErrorMessage = qrcodeResult.ErrorMessage ?? "未获取支付二维码";
+        await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
+        throw new RbacException(order.ErrorMessage);
+      }
+
+      qrCodeUrl = qrcodeResult.QrCodeUrl;
+      channelOrderNo = qrcodeResult.ChannelOrderNo;
     }
 
     order.Status = PaymentOrderStatus.Paying;
-    order.QrCodeUrl = payResult.QrCodeUrl;
-    order.ChannelOrderNo = payResult.ChannelOrderNo;
+    order.QrCodeUrl = qrCodeUrl;
+    order.AppPayOrderString = appPayOrderString;
+    order.ChannelOrderNo = channelOrderNo;
     order.ErrorCode = null;
     order.ErrorMessage = null;
     await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
@@ -189,7 +223,8 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     return new CreatePaymentOrderResultDto
     {
       Order = PaymentMapper.ToOrderDto(order),
-      QrCodeUrl = payResult.QrCodeUrl!,
+      QrCodeUrl = qrCodeUrl,
+      AppPayOrderString = appPayOrderString,
     };
   }
 
@@ -308,47 +343,6 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     }
 
     return PaymentMapper.ToRefundDto(refund);
-  }
-
-  public async Task<PaymentOrderDto> SandboxPayAsync(
-    string orderNo,
-    CancellationToken cancellationToken = default)
-  {
-    if (string.IsNullOrWhiteSpace(orderNo))
-    {
-      throw new RbacException("订单号不能为空");
-    }
-
-    var order = await _orderRepository.GetQueryable()
-      .FirstOrDefaultAsync(x => x.OrderNo == orderNo.Trim(), cancellationToken);
-
-    if (order == null)
-    {
-      throw new RbacException($"支付订单不存在: {orderNo}");
-    }
-
-    if (order.ChannelCode != PaymentChannelCodes.SandboxNative)
-    {
-      throw new RbacException("仅沙箱渠道支持模拟支付");
-    }
-
-    if (order.Status is PaymentOrderStatus.Success or PaymentOrderStatus.Refunded or PaymentOrderStatus.PartialRefunded)
-    {
-      return PaymentMapper.ToOrderDto(order);
-    }
-
-    if (order.Status is PaymentOrderStatus.Closed or PaymentOrderStatus.Failed)
-    {
-      throw new RbacException("订单已关闭或失败，无法支付");
-    }
-
-    order.Status = PaymentOrderStatus.Success;
-    order.PaidTime = DateTime.UtcNow;
-    order.ChannelOrderNo ??= $"SANDBOX{order.OrderNo}";
-    order.ErrorCode = null;
-    order.ErrorMessage = null;
-    await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-    return PaymentMapper.ToOrderDto(order);
   }
 
   internal async Task ApplyQueryResult(

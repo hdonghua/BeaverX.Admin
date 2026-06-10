@@ -32,7 +32,7 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
         services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
 
-        services.AddHttpClient(nameof(WeChatNativePaymentProvider));
+        services.AddHttpClient(nameof(WeChatQrcodePaymentProvider));
 
         services.AddBeaverXCache(configuration);
         services.AddSignalR();

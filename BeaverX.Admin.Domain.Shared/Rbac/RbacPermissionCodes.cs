@@ -85,7 +85,6 @@ public static class RbacPermissionCodes
             public const string Query = "payment:order:query";
             public const string Close = "payment:order:close";
             public const string Refund = "payment:order:refund";
-            public const string SandboxPay = "payment:order:sandbox_pay";
         }
 
         public static class Refund

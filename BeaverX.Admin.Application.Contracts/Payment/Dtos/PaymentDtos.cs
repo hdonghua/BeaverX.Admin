@@ -2,6 +2,7 @@ using BeaverX.Admin.Domain.Shared.Payment;
 
 namespace BeaverX.Admin.Application.Contracts.Payment.Dtos;
 
+/// <summary>支付渠道 DTO</summary>
 public class PaymentChannelDto
 {
   public long Id { get; set; }
@@ -46,6 +47,7 @@ public class PaymentChannelQueryDto
   public bool? IsEnabled { get; set; }
 }
 
+/// <summary>支付订单 DTO</summary>
 public class PaymentOrderDto
 {
   public long Id { get; set; }
@@ -64,11 +66,13 @@ public class PaymentOrderDto
   public DateTime? PaidTime { get; set; }
   public string? ChannelOrderNo { get; set; }
   public string? QrCodeUrl { get; set; }
+  public string? AppPayOrderString { get; set; }
   public long RefundedAmount { get; set; }
   public string? ErrorMessage { get; set; }
   public DateTime CreationTime { get; set; }
 }
 
+/// <summary>创建支付订单请求</summary>
 public class CreatePaymentOrderDto
 {
   public string ChannelCode { get; set; } = null!;
@@ -93,10 +97,12 @@ public class PaymentOrderQueryDto
   public DateTime? EndTime { get; set; }
 }
 
+/// <summary>创建支付订单响应（含二维码或 App 参数）</summary>
 public class CreatePaymentOrderResultDto
 {
   public PaymentOrderDto Order { get; set; } = null!;
-  public string QrCodeUrl { get; set; } = null!;
+  public string? QrCodeUrl { get; set; }
+  public string? AppPayOrderString { get; set; }
 }
 
 public class CreatePaymentRefundDto
@@ -107,6 +113,7 @@ public class CreatePaymentRefundDto
   public string? Reason { get; set; }
 }
 
+/// <summary>退款单 DTO</summary>
 public class PaymentRefundDto
 {
   public long Id { get; set; }

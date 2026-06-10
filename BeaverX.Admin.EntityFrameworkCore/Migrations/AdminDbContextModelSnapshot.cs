@@ -490,6 +490,10 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<long>("Amount")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("AppPayOrderString")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
                     b.Property<string>("Attach")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");

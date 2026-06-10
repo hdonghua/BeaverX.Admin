@@ -201,6 +201,7 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.Property(x => x.ChannelOrderNo).HasMaxLength(128);
             entity.Property(x => x.ChannelUserId).HasMaxLength(128);
             entity.Property(x => x.QrCodeUrl).HasMaxLength(1024);
+            entity.Property(x => x.AppPayOrderString).HasMaxLength(4096);
             entity.Property(x => x.ErrorCode).HasMaxLength(64);
             entity.Property(x => x.ErrorMessage).HasMaxLength(512);
         });

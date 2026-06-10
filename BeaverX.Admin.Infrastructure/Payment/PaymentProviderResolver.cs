@@ -4,6 +4,7 @@ using BeaverX.Core.Dependency;
 
 namespace BeaverX.Admin.Infrastructure.Payment;
 
+/// <summary>按渠道编码解析已注册的 <see cref="IPaymentProvider"/> 实现</summary>
 public class PaymentProviderResolver : IPaymentProviderResolver, IScopedDependency
 {
   private readonly IEnumerable<IPaymentProvider> _providers;

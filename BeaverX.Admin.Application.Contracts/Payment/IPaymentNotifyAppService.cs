@@ -10,19 +10,11 @@ public interface IPaymentNotifyAppService
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default);
 
-  Task<(string Body, int StatusCode)> HandleSandboxPayNotifyAsync(
-    PaymentNotifyContext context,
-    CancellationToken cancellationToken = default);
-
   Task<(string Body, int StatusCode)> HandleWeChatRefundNotifyAsync(
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default);
 
   Task<(string Body, int StatusCode)> HandleAlipayRefundNotifyAsync(
-    PaymentNotifyContext context,
-    CancellationToken cancellationToken = default);
-
-  Task<(string Body, int StatusCode)> HandleSandboxRefundNotifyAsync(
     PaymentNotifyContext context,
     CancellationToken cancellationToken = default);
 }

@@ -46,23 +46,7 @@ public class PaymentNotifyController : BeaverXController
   public async Task<IActionResult> AlipayRefundAsync(CancellationToken cancellationToken)
   {
     var context = await ReadNotifyContextAsync();
-    var (body, statusCode) = await _notifyAppService.HandleAlipayRefundNotifyAsync(context, cancellationToken);
-    return Content(body, "text/plain", System.Text.Encoding.UTF8);
-  }
-
-  [HttpPost("sandbox/pay")]
-  public async Task<IActionResult> SandboxPayAsync(CancellationToken cancellationToken)
-  {
-    var context = await ReadNotifyContextAsync();
-    var (body, _) = await _notifyAppService.HandleSandboxPayNotifyAsync(context, cancellationToken);
-    return Content(body, "text/plain", System.Text.Encoding.UTF8);
-  }
-
-  [HttpPost("sandbox/refund")]
-  public async Task<IActionResult> SandboxRefundAsync(CancellationToken cancellationToken)
-  {
-    var context = await ReadNotifyContextAsync();
-    var (body, _) = await _notifyAppService.HandleSandboxRefundNotifyAsync(context, cancellationToken);
+    var (body, _) = await _notifyAppService.HandleAlipayRefundNotifyAsync(context, cancellationToken);
     return Content(body, "text/plain", System.Text.Encoding.UTF8);
   }
 
