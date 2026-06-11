@@ -210,10 +210,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
 
         var buttons = await InsertManyAsync([
             Btn(page.Id, "用户新增", RbacPermissionCodes.System.User.Create, 1),
-            Btn(page.Id, "用户修改", RbacPermissionCodes.System.User.Update, 2),
-            Btn(page.Id, "用户删除", RbacPermissionCodes.System.User.Delete, 3),
-            Btn(page.Id, "分配角色", RbacPermissionCodes.System.User.AssignRoles, 4),
-            Btn(page.Id, "重置密码", RbacPermissionCodes.System.User.ResetPassword, 5),
+            //Btn(page.Id, "用户修改", RbacPermissionCodes.System.User.Update, 2),
+            //Btn(page.Id, "用户删除", RbacPermissionCodes.System.User.Delete, 3),
+            Btn(page.Id, "分配角色", RbacPermissionCodes.System.User.AssignRoles, 2),
+            Btn(page.Id, "重置密码", RbacPermissionCodes.System.User.ResetPassword, 3),
         ], cancellationToken);
 
         return [page, ..buttons];
