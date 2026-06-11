@@ -16,4 +16,8 @@ public static class CacheKeys
         $"perm:user:{userId}:v{accessVersion}";
 
     public static string DictOptions(string typeCode) => $"dict:options:{typeCode.Trim()}";
+
+    public static string RefreshToken(string tokenHash) => $"auth:refresh:token:{tokenHash}";
+
+    public static string UserRefreshTokens(long userId) => $"auth:refresh:user:{userId}";
 }
