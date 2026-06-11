@@ -36,6 +36,7 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
 
         services.AddHttpClient(nameof(WeChatQrcodePaymentProvider));
 
+        services.AddBeaverXHangfire(configuration);
         services.AddBeaverXCache(configuration);
         services.AddSignalR();
         services.AddSingleton<IUserIdProvider, UserIdHubConnectionProvider>();

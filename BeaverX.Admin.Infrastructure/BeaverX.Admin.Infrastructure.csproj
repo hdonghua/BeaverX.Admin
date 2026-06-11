@@ -21,11 +21,17 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.20" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BeaverX.Admin.Application\BeaverX.Admin.Application.csproj" />
     <ProjectReference Include="..\BeaverX.Admin.EntityFrameworkCore\BeaverX.Admin.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Dashboard\recurring-cron-edit.js" />
   </ItemGroup>
 
 </Project>

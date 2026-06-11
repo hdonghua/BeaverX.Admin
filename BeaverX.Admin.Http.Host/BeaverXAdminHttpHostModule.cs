@@ -86,6 +86,7 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
         app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseBeaverXHangfire(app.Configuration);
         app.MapControllers();
         app.MapHub<AdminNotificationHub>("/hubs/notifications");
     }

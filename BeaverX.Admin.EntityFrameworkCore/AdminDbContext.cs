@@ -5,6 +5,7 @@ using BeaverX.Admin.Domain.Messaging;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Rbac;
+using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Domain.Users;
 using BeaverX.EntityFrameworkCore.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,8 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
     public DbSet<PaymentRefund> PaymentRefunds => Set<PaymentRefund>();
     public DbSet<PaymentNotifyLog> PaymentNotifyLogs => Set<PaymentNotifyLog>();
+    public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
+    public DbSet<ScheduledJobLog> ScheduledJobLogs => Set<ScheduledJobLog>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -250,6 +253,33 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
             entity.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ScheduledJob>(entity =>
+        {
+            entity.ToTable("sys_scheduled_jobs");
+            entity.HasIndex(x => x.JobCode).IsUnique();
+            entity.Property(x => x.JobCode).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.CronExpression).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.TimeZoneId).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(512);
+            entity.Property(x => x.HttpUrl).HasMaxLength(2048).IsRequired();
+            entity.Property(x => x.HttpHeadersJson).HasMaxLength(4000);
+            entity.Property(x => x.HttpBody).HasMaxLength(8000);
+            entity.Property(x => x.LastRunMessage).HasMaxLength(1024);
+        });
+
+        modelBuilder.Entity<ScheduledJobLog>(entity =>
+        {
+            entity.ToTable("sys_scheduled_job_logs");
+            entity.HasIndex(x => new { x.JobId, x.StartedAt });
+            entity.Property(x => x.ResponseBody).HasMaxLength(4000);
+            entity.Property(x => x.ErrorMessage).HasMaxLength(1024);
+            entity.HasOne(x => x.Job)
+                .WithMany()
+                .HasForeignKey(x => x.JobId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

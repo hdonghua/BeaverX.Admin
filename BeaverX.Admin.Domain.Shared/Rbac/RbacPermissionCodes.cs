@@ -66,6 +66,15 @@ public static class RbacPermissionCodes
         {
             public const string Send = "system:message:send";
         }
+
+        public static class Job
+        {
+            public const string List = "system:job:list";
+            public const string Create = "system:job:create";
+            public const string Update = "system:job:update";
+            public const string Delete = "system:job:delete";
+            public const string Trigger = "system:job:trigger";
+        }
     }
 
     public static class Payment

@@ -248,6 +248,40 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "sys_scheduled_jobs",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    JobType = table.Column<int>(type: "integer", nullable: false),
+                    CronExpression = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    TimeZoneId = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    Description = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    HttpMethod = table.Column<int>(type: "integer", nullable: false),
+                    HttpUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
+                    HttpHeadersJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    HttpBody = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: true),
+                    TimeoutSeconds = table.Column<int>(type: "integer", nullable: false),
+                    LastRunTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastRunStatus = table.Column<int>(type: "integer", nullable: true),
+                    LastRunMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_sys_scheduled_jobs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "sys_users",
                 columns: table => new
                 {
@@ -366,6 +400,35 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         name: "FK_sys_role_menus_sys_roles_RoleId",
                         column: x => x.RoleId,
                         principalTable: "sys_roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "sys_scheduled_job_logs",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobId = table.Column<long>(type: "bigint", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FinishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DurationMs = table.Column<int>(type: "integer", nullable: true),
+                    HttpStatusCode = table.Column<int>(type: "integer", nullable: true),
+                    ResponseBody = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
+                    IsManualTrigger = table.Column<bool>(type: "boolean", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_sys_scheduled_job_logs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_sys_scheduled_job_logs_sys_scheduled_jobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "sys_scheduled_jobs",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -561,6 +624,17 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_sys_scheduled_job_logs_JobId_StartedAt",
+                table: "sys_scheduled_job_logs",
+                columns: new[] { "JobId", "StartedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_sys_scheduled_jobs_JobCode",
+                table: "sys_scheduled_jobs",
+                column: "JobCode",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_sys_user_messages_UserId_IsRead",
                 table: "sys_user_messages",
                 columns: new[] { "UserId", "IsRead" });
@@ -627,6 +701,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_role_menus");
 
             migrationBuilder.DropTable(
+                name: "sys_scheduled_job_logs");
+
+            migrationBuilder.DropTable(
                 name: "sys_user_messages");
 
             migrationBuilder.DropTable(
@@ -643,6 +720,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             migrationBuilder.DropTable(
                 name: "sys_menus");
+
+            migrationBuilder.DropTable(
+                name: "sys_scheduled_jobs");
 
             migrationBuilder.DropTable(
                 name: "sys_roles");

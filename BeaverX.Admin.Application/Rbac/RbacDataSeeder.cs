@@ -151,6 +151,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         newMenus.AddRange(await EnsureMenuMenusAsync(systemDir.Id, cancellationToken));
         newMenus.AddRange(await EnsureDictMenusAsync(systemDir.Id, cancellationToken));
         newMenus.AddRange(await EnsureConfigMenusAsync(systemDir.Id, cancellationToken));
+        newMenus.AddRange(await EnsureJobMenusAsync(systemDir.Id, cancellationToken));
         newMenus.AddRange(await EnsureMessageMenusAsync(systemDir.Id, cancellationToken));
         newMenus.AddRange(await EnsurePaymentMenusAsync(cancellationToken));
 
@@ -346,6 +347,39 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "配置新增", RbacPermissionCodes.System.Config.Create, 1),
             Btn(page.Id, "配置修改", RbacPermissionCodes.System.Config.Update, 2),
             Btn(page.Id, "配置删除", RbacPermissionCodes.System.Config.Delete, 3),
+        ], cancellationToken);
+
+        return [page, ..buttons];
+    }
+
+    private async Task<List<Menu>> EnsureJobMenusAsync(long parentId, CancellationToken cancellationToken)
+    {
+        if (await _menuRepository.AnyAsync(
+                x => x.Perms == RbacPermissionCodes.System.Job.List,
+                cancellationToken))
+        {
+            return [];
+        }
+
+        _logger.LogInformation("Seeding scheduled job menus...");
+
+        var page = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "定时任务",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.System.Job.List,
+            Path = "/system/job",
+            Component = "system/job/index",
+            Icon = "clock-circle",
+            Sort = 6
+        }, cancellationToken);
+
+        var buttons = await InsertManyAsync([
+            Btn(page.Id, "任务新增", RbacPermissionCodes.System.Job.Create, 1),
+            Btn(page.Id, "任务修改", RbacPermissionCodes.System.Job.Update, 2),
+            Btn(page.Id, "任务删除", RbacPermissionCodes.System.Job.Delete, 3),
+            Btn(page.Id, "立即执行", RbacPermissionCodes.System.Job.Trigger, 4),
         ], cancellationToken);
 
         return [page, ..buttons];
