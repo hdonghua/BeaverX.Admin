@@ -6,6 +6,7 @@ using BeaverX.Admin.Domain.Messages;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Users;
+using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Messages;
 
@@ -28,12 +29,14 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     public async Task<List<MessageDto>> GetListAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var messages = await _messageRepository.GetListAsync(
-            x => x.UserId == userId,
-            cancellationToken);
+        var messages = await _messageRepository.GetQueryable()
+            .Where(x => x.UserId == userId)
+            .OrderBy(x => x.IsRead)
+            .ThenByDescending(x => x.CreationTime)
+            .Take(50)
+            .ToListAsync(cancellationToken);
 
         return messages
-            .OrderByDescending(x => x.CreationTime)
             .Select(ToDto)
             .ToList();
     }
