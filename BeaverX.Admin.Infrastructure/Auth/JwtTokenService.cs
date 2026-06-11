@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BeaverX.Admin.Application.Contracts.Rbac;
-using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -21,8 +20,7 @@ public class JwtTokenService : IJwtTokenService, IScopedDependency
     public (string Token, int ExpiresIn) CreateToken(
         long userId,
         string userName,
-        IEnumerable<string> roles,
-        IEnumerable<string> permissions)
+        IEnumerable<string> roles)
     {
         var expiresIn = _options.ExpiresInMinutes * 60;
         var claims = new List<Claim>
@@ -34,7 +32,6 @@ public class JwtTokenService : IJwtTokenService, IScopedDependency
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-        claims.AddRange(permissions.Select(permission => new Claim(RbacClaimTypes.Permission, permission)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

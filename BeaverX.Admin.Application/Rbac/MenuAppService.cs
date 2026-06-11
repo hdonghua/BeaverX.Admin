@@ -4,6 +4,7 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
@@ -131,6 +132,52 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         await _menuRepository.DeleteAsync(id, cancellationToken: cancellationToken);
+        await _cacheInvalidator.InvalidateMenusAsync(cancellationToken);
+    }
+
+    public async Task ReorderAsync(ReorderMenusDto input, CancellationToken cancellationToken = default)
+    {
+        if (input.OrderedIds == null || input.OrderedIds.Count == 0)
+        {
+            return;
+        }
+
+        var orderedIds = input.OrderedIds.Distinct().ToList();
+        if (orderedIds.Count != input.OrderedIds.Count)
+        {
+            throw new RbacException("菜单排序项不能重复");
+        }
+
+        var menus = await _menuRepository.GetListAsync(
+            x => orderedIds.Contains(x.Id),
+            cancellationToken);
+
+        if (menus.Count != orderedIds.Count)
+        {
+            throw new RbacException("菜单不存在");
+        }
+
+        if (menus.Any(x => x.ParentId != input.ParentId))
+        {
+            throw new RbacException("只能在同一层级内排序");
+        }
+
+        var expectedCount = await _menuRepository.GetQueryable()
+            .Where(x => x.ParentId == input.ParentId && !x.IsDeleted)
+            .CountAsync(cancellationToken);
+
+        if (expectedCount != orderedIds.Count)
+        {
+            throw new RbacException("排序菜单数量与当前层级不一致");
+        }
+
+        var menuMap = menus.ToDictionary(x => x.Id);
+        for (var index = 0; index < orderedIds.Count; index++)
+        {
+            menuMap[orderedIds[index]].Sort = index;
+        }
+
+        await _menuRepository.UpdateManyAsync(menus, cancellationToken: cancellationToken);
         await _cacheInvalidator.InvalidateMenusAsync(cancellationToken);
     }
 

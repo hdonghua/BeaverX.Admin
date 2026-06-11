@@ -9,4 +9,5 @@ public interface IMenuAppService
     Task<MenuDto> CreateAsync(CreateMenuDto input, CancellationToken cancellationToken = default);
     Task<MenuDto> UpdateAsync(long id, UpdateMenuDto input, CancellationToken cancellationToken = default);
     Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+    Task ReorderAsync(ReorderMenusDto input, CancellationToken cancellationToken = default);
 }

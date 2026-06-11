@@ -48,3 +48,9 @@ public class UpdateMenuDto
     public bool? IsEnabled { get; set; }
     public bool? IsExternal { get; set; }
 }
+
+public class ReorderMenusDto
+{
+    public long? ParentId { get; set; }
+    public List<long> OrderedIds { get; set; } = [];
+}

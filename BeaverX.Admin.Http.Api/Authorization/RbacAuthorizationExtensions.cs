@@ -7,6 +7,7 @@ public static class RbacAuthorizationExtensions
 {
     public static IServiceCollection AddRbacPermissionAuthorization(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
         return services;

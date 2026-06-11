@@ -5,6 +5,5 @@ public interface IJwtTokenService
     (string Token, int ExpiresIn) CreateToken(
         long userId,
         string userName,
-        IEnumerable<string> roles,
-        IEnumerable<string> permissions);
+        IEnumerable<string> roles);
 }

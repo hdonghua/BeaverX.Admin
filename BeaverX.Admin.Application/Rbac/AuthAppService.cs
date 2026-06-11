@@ -15,11 +15,11 @@ namespace BeaverX.Admin.Application.Rbac;
 public class AuthAppService : IAuthAppService, IScopedDependency
 {
     private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Menu> _menuRepository;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly RefreshTokenService _refreshTokenService;
     private readonly MenuCacheService _menuCacheService;
+    private readonly IUserPermissionResolver _userPermissionResolver;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
@@ -27,22 +27,22 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     public AuthAppService(
         IRepository<User> userRepository,
-        IRepository<Menu> menuRepository,
         IJwtTokenService jwtTokenService,
         IPasswordHasher passwordHasher,
         RefreshTokenService refreshTokenService,
         MenuCacheService menuCacheService,
+        IUserPermissionResolver userPermissionResolver,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser)
     {
         _userRepository = userRepository;
-        _menuRepository = menuRepository;
         _jwtTokenService = jwtTokenService;
         _passwordHasher = passwordHasher;
         _refreshTokenService = refreshTokenService;
         _menuCacheService = menuCacheService;
+        _userPermissionResolver = userPermissionResolver;
         _cache = cache;
         _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
@@ -59,8 +59,8 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         }
 
         var roles = GetRoleCodes(user);
-        var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
-        var tokenResult = await IssueTokensAsync(user, roles, permissions, cancellationToken);
+        var permissions = await _userPermissionResolver.GetPermissionsAsync(user.Id, cancellationToken);
+        var tokenResult = await IssueTokensAsync(user, roles, cancellationToken);
 
         return new LoginResultDto
         {
@@ -100,8 +100,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
             }
 
             var roles = GetRoleCodes(user);
-            var permissions = await ResolvePermissionsAsync(roles, user, ct);
-            result = await IssueTokensAsync(user, roles, permissions, ct);
+            result = await IssueTokensAsync(user, roles, ct);
         }, cancellationToken);
 
         return result!;
@@ -126,7 +125,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
             ?? throw new RbacException("用户不存在");
 
         var roles = GetRoleCodes(user);
-        var permissions = await ResolvePermissionsAsync(roles, user, cancellationToken);
+        var permissions = await _userPermissionResolver.GetPermissionsAsync(user.Id, cancellationToken);
         return BuildProfile(user, roles, permissions);
     }
 
@@ -244,46 +243,6 @@ public class AuthAppService : IAuthAppService, IScopedDependency
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    private async Task<List<string>> ResolvePermissionsAsync(
-        List<string> roles,
-        User user,
-        CancellationToken cancellationToken)
-    {
-        var accessVersion = await _cacheInvalidator.GetAccessVersionAsync(cancellationToken);
-        var cacheKey = CacheKeys.UserPermissions(user.Id, accessVersion);
-
-        return await _cache.GetOrSetAsync(
-            cacheKey,
-            async ct => await ResolvePermissionsCoreAsync(roles, user, ct),
-            CacheDurations.UserAccess,
-            cancellationToken);
-    }
-
-    private async Task<List<string>> ResolvePermissionsCoreAsync(
-        List<string> roles,
-        User user,
-        CancellationToken cancellationToken)
-    {
-        if (IsSuperAdmin(roles))
-        {
-            var allMenus = await _menuCacheService.GetAllMenusAsync(cancellationToken);
-            return RbacMenuHelper.CollectPerms(allMenus);
-        }
-
-        var roleMenuIds = user.UserRoles
-            .SelectMany(x => x.Role.RoleMenus)
-            .Select(x => x.MenuId)
-            .ToHashSet();
-
-        if (roleMenuIds.Count == 0)
-        {
-            return [];
-        }
-
-        var menus = await _menuRepository.GetListAsync(x => roleMenuIds.Contains(x.Id), cancellationToken);
-        return RbacMenuHelper.CollectPerms(menus);
-    }
-
     private static bool IsSuperAdmin(IEnumerable<string> roles) =>
         roles.Contains(RbacPermissionCodes.SuperAdmin, StringComparer.OrdinalIgnoreCase);
 
@@ -293,14 +252,12 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private async Task<TokenResultDto> IssueTokensAsync(
         User user,
         List<string> roles,
-        List<string> permissions,
         CancellationToken cancellationToken)
     {
         var (accessToken, expiresIn) = _jwtTokenService.CreateToken(
             user.Id,
             user.UserName,
-            roles,
-            permissions);
+            roles);
         var (refreshToken, expiresAt) = await _refreshTokenService.CreateAsync(
             user.Id,
             cancellationToken);
@@ -316,7 +273,10 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         };
     }
 
-    private static UserProfileDto BuildProfile(User user, List<string> roles, List<string> permissions) => new()
+    private static UserProfileDto BuildProfile(
+        User user,
+        List<string> roles,
+        IReadOnlyCollection<string> permissions) => new()
     {
         Id = user.Id,
         UserName = user.UserName,
@@ -325,6 +285,6 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         Phone = user.Phone,
         Avatar = user.Avatar,
         Roles = roles,
-        Permissions = permissions
+        Permissions = permissions.ToList()
     };
 }

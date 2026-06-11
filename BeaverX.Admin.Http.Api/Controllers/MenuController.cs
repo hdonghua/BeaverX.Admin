@@ -36,6 +36,11 @@ public class MenuController : BeaverXController
     public Task<MenuDto> UpdateAsync(long id, [FromBody] UpdateMenuDto input, CancellationToken cancellationToken)
         => _menuAppService.UpdateAsync(id, input, cancellationToken);
 
+    [RequirePermission(RbacPermissionCodes.System.Menu.Update)]
+    [HttpPut("reorder")]
+    public Task ReorderAsync([FromBody] ReorderMenusDto input, CancellationToken cancellationToken)
+        => _menuAppService.ReorderAsync(input, cancellationToken);
+
     [RequirePermission(RbacPermissionCodes.System.Menu.Delete)]
     [HttpDelete("{id:long}")]
     public Task DeleteAsync(long id, CancellationToken cancellationToken)
