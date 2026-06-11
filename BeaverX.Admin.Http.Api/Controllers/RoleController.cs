@@ -16,7 +16,9 @@ public class RoleController : BeaverXController
         _roleAppService = roleAppService;
     }
 
-    [RequirePermission(RbacPermissionCodes.System.Role.List)]
+    [RequirePermission(
+        RbacPermissionCodes.System.Role.List,
+        RbacPermissionCodes.System.User.AssignRoles)]
     [HttpGet("list")]
     public Task<PagedResultDto<RoleDto>> GetListAsync([FromQuery] RoleQueryDto input, CancellationToken cancellationToken)
         => _roleAppService.GetListAsync(input, cancellationToken);

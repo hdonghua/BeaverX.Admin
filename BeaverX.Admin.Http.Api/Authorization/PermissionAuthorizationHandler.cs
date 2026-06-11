@@ -39,7 +39,13 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
             httpContext,
             httpContext.RequestAborted);
 
-        if (permissions.Contains(requirement.Permission, StringComparer.OrdinalIgnoreCase))
+        var satisfied = requirement.Match == PermissionMatchMode.All
+            ? requirement.Permissions.All(code =>
+                permissions.Contains(code, StringComparer.OrdinalIgnoreCase))
+            : requirement.Permissions.Any(code =>
+                permissions.Contains(code, StringComparer.OrdinalIgnoreCase));
+
+        if (satisfied)
         {
             context.Succeed(requirement);
         }

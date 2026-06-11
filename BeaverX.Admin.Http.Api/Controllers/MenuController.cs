@@ -16,7 +16,9 @@ public class MenuController : BeaverXController
         _menuAppService = menuAppService;
     }
 
-    [RequirePermission(RbacPermissionCodes.System.Menu.List)]
+    [RequirePermission(
+        RbacPermissionCodes.System.Menu.List,
+        RbacPermissionCodes.System.Role.AssignMenus)]
     [HttpGet("tree")]
     public Task<List<MenuDto>> GetTreeAsync(CancellationToken cancellationToken)
         => _menuAppService.GetTreeAsync(cancellationToken);
