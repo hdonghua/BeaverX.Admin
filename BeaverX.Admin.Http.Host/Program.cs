@@ -1,7 +1,5 @@
 using BeaverX.Admin.Http.Host;
-using BeaverX.Admin.Infrastructure.Scheduling;
 using BeaverX.Core;
-using Hangfire;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -24,16 +22,6 @@ try
     var app = builder.Build();
 
     app.InitializeBeaverX();
-
-    // 勿在每次启动时 RecurringJob.AddOrUpdate(..., Cron.Daily)，会覆盖面板里改过的 Cron。
-    // 仅首次注册请用 AddOrUpdateIfNotExists，或改到「定时任务」管理页维护。
-    app.Lifetime.ApplicationStarted.Register(() =>
-    {
-        HangfireRecurringJobStartup.AddOrUpdateIfNotExists(
-            "myrecurringjob",
-            () => Console.WriteLine("Recurring!"),
-            Cron.Daily());
-    });
 
     app.Run();
 }

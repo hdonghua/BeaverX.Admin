@@ -23,6 +23,7 @@ public static class HangfireServiceCollectionExtensions
 
         services.AddHttpClient(nameof(HttpApiScheduledJobRunner));
         services.AddScoped<HttpApiScheduledJobRunner>();
+        services.AddScoped<CodeRecurringJobRunner>();
         services.AddHangfire(config => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
@@ -40,6 +41,7 @@ public static class HangfireServiceCollectionExtensions
         });
 
         services.AddHostedService<ScheduledJobSyncHostedService>();
+        services.AddHostedService<CodeRecurringJobSyncHostedService>();
 
         return services;
     }

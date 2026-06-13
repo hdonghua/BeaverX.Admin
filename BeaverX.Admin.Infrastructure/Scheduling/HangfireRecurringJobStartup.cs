@@ -11,27 +11,34 @@ namespace BeaverX.Admin.Infrastructure.Scheduling;
 /// </summary>
 public static class HangfireRecurringJobStartup
 {
-  public static bool Exists(string recurringJobId)
-  {
-    using var connection = JobStorage.Current.GetConnection();
-    return connection.GetRecurringJobs()
-      .Any(x => string.Equals(x.Id, recurringJobId, StringComparison.Ordinal));
-  }
-
-  /// <summary>
-  /// 仅当 Hangfire 中不存在该任务时才注册（保留面板中已修改的 Cron）。
-  /// </summary>
-  public static void AddOrUpdateIfNotExists(
-    string recurringJobId,
-    Expression<Action> methodCall,
-    string cronExpression,
-    RecurringJobOptions? options = null)
-  {
-    if (Exists(recurringJobId))
+    public static bool Exists(string recurringJobId)
     {
-      return;
+        using var connection = JobStorage.Current.GetConnection();
+        return connection.GetRecurringJobs()
+          .Any(x => string.Equals(x.Id, recurringJobId, StringComparison.Ordinal));
     }
 
-    RecurringJob.AddOrUpdate(recurringJobId, methodCall, cronExpression, options);
-  }
+    /// <summary>
+    /// 仅当 Hangfire 中不存在该任务时才注册（保留面板中已修改的 Cron）。
+    /// </summary>
+    public static void AddOrUpdateIfNotExists<T>(
+      string recurringJobId,
+      Expression<Func<T, Task>> methodCall,
+      string cronExpression,
+      RecurringJobOptions? options = null)
+    {
+        if (Exists(recurringJobId))
+        {
+            return;
+        }
+
+        if (options != null)
+        {
+            RecurringJob.AddOrUpdate(recurringJobId, methodCall, cronExpression, options);
+        }
+        else
+        {
+            RecurringJob.AddOrUpdate(recurringJobId, methodCall, cronExpression);
+        }
+    }
 }
