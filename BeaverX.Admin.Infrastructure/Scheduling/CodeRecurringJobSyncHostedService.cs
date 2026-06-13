@@ -43,7 +43,11 @@ public class CodeRecurringJobSyncHostedService : IHostedService
             HangfireRecurringJobStartup.AddOrUpdateIfNotExists<CodeRecurringJobRunner>(
                 jobId,
                 runner => runner.ExecuteAsync(jobId, CancellationToken.None),
-                job.CronExpression.Trim());
+                job.CronExpression.Trim(),
+                new Hangfire.RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.Local
+                });
 
             _logger.LogInformation(
                 "Registered recurring job {JobId} with cron {Cron}",

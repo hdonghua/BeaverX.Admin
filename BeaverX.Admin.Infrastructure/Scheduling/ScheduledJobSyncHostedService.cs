@@ -38,6 +38,7 @@ public class ScheduledJobSyncHostedService : IHostedService
         using var scope = _scopeFactory.CreateScope();
         var jobRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
         var registrar = scope.ServiceProvider.GetRequiredService<IHangfireScheduledJobRegistrar>();
+        var pauseService = scope.ServiceProvider.GetRequiredService<IRecurringJobPauseService>();
 
         var jobs = await jobRepository.GetQueryable()
             .OrderBy(x => x.Id)
@@ -52,13 +53,16 @@ public class ScheduledJobSyncHostedService : IHostedService
 
         foreach (var job in jobs)
         {
+            var hangfireJobId = HangfireScheduledJobRegistrar.BuildRecurringJobId(job.Id);
+
             if (_hangfireOptions.Value.BusinessJobStartupSyncMode == BusinessJobStartupSyncMode.MergeFromHangfire)
             {
-                var hangfireJobId = HangfireScheduledJobRegistrar.BuildRecurringJobId(job.Id);
                 var hangfireJob = hangfireJobs.FirstOrDefault(x =>
                     string.Equals(x.Id, hangfireJobId, StringComparison.Ordinal));
 
-                if (hangfireJob?.Cron != null &&
+                var isPaused = await pauseService.IsPausedAsync(hangfireJobId, cancellationToken);
+                if (!isPaused &&
+                    hangfireJob?.Cron != null &&
                     !string.Equals(hangfireJob.Cron, job.CronExpression, StringComparison.Ordinal))
                 {
                     job.CronExpression = hangfireJob.Cron;
@@ -75,10 +79,16 @@ public class ScheduledJobSyncHostedService : IHostedService
                 }
             }
 
+            var cronExpression = job.CronExpression;
+            if (await pauseService.IsPausedAsync(hangfireJobId, cancellationToken))
+            {
+                cronExpression = Cron.Never();
+            }
+
             registrar.Register(new ScheduledJobRegistration
             {
                 JobId = job.Id,
-                CronExpression = job.CronExpression,
+                CronExpression = cronExpression,
                 TimeZoneId = job.TimeZoneId,
                 IsEnabled = job.IsEnabled
             });

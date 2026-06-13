@@ -16,6 +16,8 @@ public static class HangfireDashboardExtensions
         }
 
         DashboardRoutes.Routes.Add("/recurring/cron/update", new RecurringCronUpdateDispatcher());
+        DashboardRoutes.Routes.Add("/recurring/timezone/update", new RecurringTimeZoneUpdateDispatcher());
+        DashboardRoutes.Routes.Add("/recurring/pause/toggle", new RecurringJobPauseDispatcher());
 
         var assembly = Assembly.GetExecutingAssembly();
         DashboardRoutes.AddJavaScript(assembly, "BeaverX.Admin.Infrastructure.Dashboard.recurring-cron-edit.js");
