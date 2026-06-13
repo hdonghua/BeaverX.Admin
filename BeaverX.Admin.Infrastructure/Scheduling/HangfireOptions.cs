@@ -20,4 +20,9 @@ public class HangfireOptions
     /// </summary>
     public BusinessJobStartupSyncMode BusinessJobStartupSyncMode { get; set; } =
         BusinessJobStartupSyncMode.ApplyDatabase;
+
+    /// <summary>
+    /// Dashboard 独立 Basic 认证（浏览器弹窗输入账号密码）。
+    /// </summary>
+    public HangfireDashboardAuthOptions Auth { get; set; } = new();
 }

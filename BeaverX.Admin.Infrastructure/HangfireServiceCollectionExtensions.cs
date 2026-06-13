@@ -55,9 +55,10 @@ public static class HangfireServiceCollectionExtensions
 
         if (hangfireOptions.EnableDashboard)
         {
+            app.UseMiddleware<HangfireBasicAuthMiddleware>();
             app.UseHangfireDashboard(hangfireOptions.DashboardPath, new DashboardOptions
             {
-                //Authorization = [new HangfireDashboardAuthorizationFilter()],
+                Authorization = [new HangfireDashboardPassthroughAuthorizationFilter()],
                 DashboardTitle = "BeaverX Jobs",
                 IgnoreAntiforgeryToken = true
             });
