@@ -1,9 +1,9 @@
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Application.Contracts.Payment.Dtos;
-using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
+using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Domain.Shared.Payment;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
@@ -100,7 +100,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
   {
     if (string.IsNullOrWhiteSpace(orderNo))
     {
-      throw new RbacException("订单号不能为空");
+      throw new BusinessException("订单号不能为空");
     }
 
     var entity = await _orderRepository.GetQueryable()
@@ -108,7 +108,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     if (entity == null)
     {
-      throw new RbacException($"支付订单不存在: {orderNo}");
+      throw new BusinessException($"支付订单不存在: {orderNo}");
     }
 
     return PaymentMapper.ToOrderDto(entity);
@@ -120,25 +120,21 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     long? userId,
     CancellationToken cancellationToken = default)
   {
-    if (string.IsNullOrWhiteSpace(input.ChannelCode) ||
-        string.IsNullOrWhiteSpace(input.Subject))
+    if (string.IsNullOrWhiteSpace(input.ChannelCode))
     {
-      throw new RbacException("支付渠道和订单标题不能为空");
-    }
-
-    if (input.Amount <= 0)
-    {
-      throw new RbacException("支付金额必须大于 0");
+      throw new BusinessException("支付渠道不能为空");
     }
 
     var channelCode = input.ChannelCode.Trim();
     var channel = await _channelRepository.GetQueryable()
-      .FirstOrDefaultAsync(x => x.ChannelCode == channelCode && x.IsEnabled, cancellationToken);
+      .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
     if (channel == null)
     {
-      throw new RbacException($"支付渠道不可用: {channelCode}");
+      throw new BusinessException($"支付渠道不存在: {channelCode}");
     }
+
+    channel.EnsureAvailableForPayment();
 
     var expireMinutes = input.ExpireMinutes ?? _paymentOptions.DefaultExpireMinutes;
     if (expireMinutes <= 0)
@@ -146,22 +142,18 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
       expireMinutes = _paymentOptions.DefaultExpireMinutes;
     }
 
-    var order = new PaymentOrder
-    {
-      OrderNo = PaymentNoGenerator.NewOrderNo(),
-      ChannelCode = channelCode,
-      Subject = input.Subject.Trim(),
-      Description = NormalizeOptional(input.Description),
-      Amount = input.Amount,
-      Currency = "CNY",
-      Status = PaymentOrderStatus.Pending,
-      ClientIp = NormalizeOptional(clientIp),
-      Attach = NormalizeOptional(input.Attach),
-      BusinessType = NormalizeOptional(input.BusinessType),
-      BusinessId = NormalizeOptional(input.BusinessId),
-      UserId = userId,
-      ExpireTime = DateTime.UtcNow.AddMinutes(expireMinutes),
-    };
+    var order = PaymentOrder.CreatePending(
+      PaymentNoGenerator.NewOrderNo(),
+      channelCode,
+      input.Subject,
+      input.Amount,
+      DateTime.UtcNow.AddMinutes(expireMinutes),
+      input.Description,
+      clientIp,
+      input.Attach,
+      input.BusinessType,
+      input.BusinessId,
+      userId);
 
     await _orderRepository.InsertAsync(order, cancellationToken: cancellationToken);
 
@@ -189,11 +181,9 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
       if (!appResult.Success || string.IsNullOrWhiteSpace(appResult.AppPayOrderString))
       {
-        order.Status = PaymentOrderStatus.Failed;
-        order.ErrorCode = appResult.ErrorCode;
-        order.ErrorMessage = appResult.ErrorMessage ?? "未获取 App 支付参数";
+        order.MarkChannelPayFailed(appResult.ErrorCode, appResult.ErrorMessage ?? "未获取 App 支付参数");
         await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-        throw new RbacException(order.ErrorMessage);
+        throw new BusinessException(order.ErrorMessage!);
       }
 
       appPayOrderString = appResult.AppPayOrderString;
@@ -209,23 +199,16 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
       if (!qrcodeResult.Success || string.IsNullOrWhiteSpace(qrcodeResult.QrCodeUrl))
       {
-        order.Status = PaymentOrderStatus.Failed;
-        order.ErrorCode = qrcodeResult.ErrorCode;
-        order.ErrorMessage = qrcodeResult.ErrorMessage ?? "未获取支付二维码";
+        order.MarkChannelPayFailed(qrcodeResult.ErrorCode, qrcodeResult.ErrorMessage ?? "未获取支付二维码");
         await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-        throw new RbacException(order.ErrorMessage);
+        throw new BusinessException(order.ErrorMessage!);
       }
 
       qrCodeUrl = qrcodeResult.QrCodeUrl;
       channelOrderNo = qrcodeResult.ChannelOrderNo;
     }
 
-    order.Status = PaymentOrderStatus.Paying;
-    order.QrCodeUrl = qrCodeUrl;
-    order.AppPayOrderString = appPayOrderString;
-    order.ChannelOrderNo = channelOrderNo;
-    order.ErrorCode = null;
-    order.ErrorMessage = null;
+    order.MarkPaying(qrCodeUrl, appPayOrderString, channelOrderNo);
     await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
 
     return new CreatePaymentOrderResultDto
@@ -241,7 +224,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     CancellationToken cancellationToken = default)
   {
     var order = await FindOrderAsync(id, cancellationToken);
-    if (order.Status is PaymentOrderStatus.Success or PaymentOrderStatus.Refunded or PaymentOrderStatus.PartialRefunded)
+    if (order.ShouldSkipProviderSync)
     {
       return PaymentMapper.ToOrderDto(order);
     }
@@ -268,13 +251,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     CancellationToken cancellationToken = default)
   {
     var order = await FindOrderAsync(id, cancellationToken);
-    if (order.Status is PaymentOrderStatus.Success or PaymentOrderStatus.Refunding
-        or PaymentOrderStatus.Refunded or PaymentOrderStatus.PartialRefunded)
-    {
-      throw new RbacException("当前订单状态不允许关闭");
-    }
-
-    order.Status = PaymentOrderStatus.Closed;
+    order.Close();
     await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
     return PaymentMapper.ToOrderDto(order);
   }
@@ -284,42 +261,21 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     CancellationToken cancellationToken = default)
   {
     var order = await FindOrderAsync(input.PaymentOrderId, cancellationToken);
-    if (order.Status is not PaymentOrderStatus.Success and not PaymentOrderStatus.PartialRefunded)
-    {
-      throw new RbacException("仅支付成功或部分退款的订单可发起退款");
-    }
-
-    var refundable = order.Amount - order.RefundedAmount;
-    if (refundable <= 0)
-    {
-      throw new RbacException("订单无可退金额");
-    }
-
+    var refundable = order.GetRefundableAmount();
     var refundAmount = input.Amount ?? refundable;
-    if (refundAmount <= 0 || refundAmount > refundable)
-    {
-      throw new RbacException("退款金额无效");
-    }
 
-    var channel = await FindChannelByCodeAsync(order.ChannelCode, cancellationToken);
-    var refund = new PaymentRefund
-    {
-      RefundNo = PaymentNoGenerator.NewRefundNo(),
-      PaymentOrderId = order.Id,
-      OrderNo = order.OrderNo,
-      ChannelCode = order.ChannelCode,
-      Amount = refundAmount,
-      TotalAmount = order.Amount,
-      Status = PaymentRefundStatus.Pending,
-      ChannelOrderNo = order.ChannelOrderNo,
-      Reason = NormalizeOptional(input.Reason),
-    };
+    var refund = PaymentRefund.CreatePending(
+      order,
+      PaymentNoGenerator.NewRefundNo(),
+      refundAmount,
+      input.Reason);
 
     await _refundRepository.InsertAsync(refund, cancellationToken: cancellationToken);
 
-    order.Status = PaymentOrderStatus.Refunding;
+    order.BeginRefunding();
     await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
 
+    var channel = await FindChannelByCodeAsync(order.ChannelCode, cancellationToken);
     var provider = _providerResolver.Resolve(order.ChannelCode);
     var notifyUrl = _notifyUrlBuilder.BuildRefundNotifyUrl(order.ChannelCode, channel.NotifyUrl);
     var providerChannel = await _channelContextBuilder.BuildAsync(
@@ -337,28 +293,25 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     if (!refundResult.Success)
     {
-      refund.Status = PaymentRefundStatus.Failed;
-      refund.ErrorCode = refundResult.ErrorCode;
-      refund.ErrorMessage = refundResult.ErrorMessage ?? "退款失败";
-      order.Status = order.RefundedAmount > 0
-        ? PaymentOrderStatus.PartialRefunded
-        : PaymentOrderStatus.Success;
+      refund.MarkFailed(refundResult.ErrorCode, refundResult.ErrorMessage ?? "退款失败");
+      order.RevertRefundingAfterRefundFailed();
       await _refundRepository.UpdateAsync(refund, cancellationToken: cancellationToken);
       await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-      throw new RbacException(refund.ErrorMessage);
+      throw new BusinessException(refund.ErrorMessage!);
     }
 
-    refund.Status = refundResult.Status;
-    refund.ChannelRefundNo = refundResult.ChannelRefundNo;
-    refund.RefundTime = refundResult.RefundTime;
+    refund.ApplyProviderResult(
+      refundResult.Success,
+      refundResult.Status,
+      refundResult.ChannelRefundNo,
+      refundResult.RefundTime);
 
-    if (refundResult.Status == PaymentRefundStatus.Success)
+    if (refund.Status == PaymentRefundStatus.Success)
     {
       await ApplyRefundSuccess(order, refund, cancellationToken);
     }
     else
     {
-      refund.Status = PaymentRefundStatus.Processing;
       await _refundRepository.UpdateAsync(refund, cancellationToken: cancellationToken);
     }
 
@@ -370,27 +323,11 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     QueryPayResult queryResult,
     CancellationToken cancellationToken)
   {
-    if (queryResult.Status == PaymentOrderStatus.Success &&
-        order.Status is not PaymentOrderStatus.Success
-          and not PaymentOrderStatus.Refunding
-          and not PaymentOrderStatus.Refunded
-          and not PaymentOrderStatus.PartialRefunded)
-    {
-      order.Status = PaymentOrderStatus.Success;
-      order.PaidTime = queryResult.PaidTime ?? DateTime.UtcNow;
-      order.ChannelOrderNo = queryResult.ChannelOrderNo ?? order.ChannelOrderNo;
-      order.ErrorCode = null;
-      order.ErrorMessage = null;
-      await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-      return;
-    }
-
-    if (queryResult.Status == PaymentOrderStatus.Closed &&
-        order.Status is PaymentOrderStatus.Paying or PaymentOrderStatus.Pending)
-    {
-      order.Status = PaymentOrderStatus.Closed;
-      await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
-    }
+    order.ApplyProviderQuery(
+      queryResult.Status,
+      queryResult.PaidTime,
+      queryResult.ChannelOrderNo);
+    await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
   }
 
   internal async Task ApplyRefundSuccess(
@@ -398,12 +335,8 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     PaymentRefund refund,
     CancellationToken cancellationToken)
   {
-    refund.Status = PaymentRefundStatus.Success;
-    refund.RefundTime ??= DateTime.UtcNow;
-    order.RefundedAmount += refund.Amount;
-    order.Status = order.RefundedAmount >= order.Amount
-      ? PaymentOrderStatus.Refunded
-      : PaymentOrderStatus.PartialRefunded;
+    refund.MarkSuccess(refund.ChannelRefundNo, refund.RefundTime);
+    order.RecordRefundSuccess(refund.Amount);
 
     await _refundRepository.UpdateAsync(refund, cancellationToken: cancellationToken);
     await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
@@ -414,7 +347,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     var entity = await _orderRepository.FindAsync(x => x.Id == id, cancellationToken);
     if (entity == null)
     {
-      throw new RbacException($"支付订单不存在: {id}");
+      throw new BusinessException($"支付订单不存在: {id}");
     }
 
     return entity;
@@ -429,12 +362,9 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 
     if (channel == null)
     {
-      throw new RbacException($"支付渠道不存在: {channelCode}");
+      throw new BusinessException($"支付渠道不存在: {channelCode}");
     }
 
     return channel;
   }
-
-  private static string? NormalizeOptional(string? value) =>
-    string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

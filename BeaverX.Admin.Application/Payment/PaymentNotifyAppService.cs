@@ -133,14 +133,8 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
       var order = await _orderRepository.GetQueryable()
         .FirstOrDefaultAsync(x => x.OrderNo == result.OrderNo, cancellationToken);
 
-      if (order != null &&
-          order.Status is not PaymentOrderStatus.Success
-            and not PaymentOrderStatus.Refunding
-            and not PaymentOrderStatus.Refunded
-            and not PaymentOrderStatus.PartialRefunded)
+      if (order != null && order.TryMarkPaidFromNotify())
       {
-        order.Status = PaymentOrderStatus.Success;
-        order.PaidTime = DateTime.UtcNow;
         await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
       }
     }
@@ -181,7 +175,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
       var refund = await _refundRepository.GetQueryable()
         .FirstOrDefaultAsync(x => x.RefundNo == result.RefundNo, cancellationToken);
 
-      if (refund != null && refund.Status != PaymentRefundStatus.Success)
+      if (refund != null && refund.CanApplyNotifySuccess)
       {
         var order = await _orderRepository.FindAsync(x => x.Id == refund.PaymentOrderId, cancellationToken);
         if (order != null)

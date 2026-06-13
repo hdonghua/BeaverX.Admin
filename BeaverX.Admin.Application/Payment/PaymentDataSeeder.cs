@@ -24,44 +24,38 @@ public class PaymentDataSeeder : IScopedDependency, IDataSeeder
   {
     await EnsureChannelAsync(
       PaymentChannelCodes.WeChatQrcode,
-      () => new PaymentChannel
-      {
-        ChannelCode = PaymentChannelCodes.WeChatQrcode,
-        ChannelName = "微信二维码支付",
-        ProviderType = PaymentProviderType.WeChat,
-        IsEnabled = false,
-        ConfigJson = "{\"appId\":\"\",\"mchId\":\"\",\"apiV3Key\":\"\",\"certSerialNo\":\"\",\"privateKey\":\"\",\"platformCert\":\"\"}",
-        Sort = 1,
-        Remark = "微信二维码支付（API: POST /v3/pay/transactions/native）",
-      },
+      () => PaymentChannel.Create(
+        PaymentChannelCodes.WeChatQrcode,
+        "微信二维码支付",
+        PaymentProviderType.WeChat,
+        isEnabled: false,
+        configJson: "{\"appId\":\"\",\"mchId\":\"\",\"apiV3Key\":\"\",\"certSerialNo\":\"\",\"privateKey\":\"\",\"platformCert\":\"\"}",
+        remark: "微信二维码支付（API: POST /v3/pay/transactions/native）",
+        sort: 1),
       cancellationToken);
 
     await EnsureChannelAsync(
       PaymentChannelCodes.AlipayQrcode,
-      () => new PaymentChannel
-      {
-        ChannelCode = PaymentChannelCodes.AlipayQrcode,
-        ChannelName = "支付宝二维码支付",
-        ProviderType = PaymentProviderType.Alipay,
-        IsEnabled = false,
-        ConfigJson = "{\"appId\":\"\",\"privateKey\":\"\",\"alipayPublicKey\":\"\",\"merchantCertPath\":\"\",\"alipayPublicCertPath\":\"\",\"alipayRootCertPath\":\"\",\"signType\":\"RSA2\",\"gateway\":\"https://openapi.alipay.com/gateway.do\"}",
-        Sort = 2,
-        Remark = "支付宝当面付扫码（product_code: QR_CODE_OFFLINE）",
-      },
+      () => PaymentChannel.Create(
+        PaymentChannelCodes.AlipayQrcode,
+        "支付宝二维码支付",
+        PaymentProviderType.Alipay,
+        isEnabled: false,
+        configJson: "{\"appId\":\"\",\"privateKey\":\"\",\"alipayPublicKey\":\"\",\"merchantCertPath\":\"\",\"alipayPublicCertPath\":\"\",\"alipayRootCertPath\":\"\",\"signType\":\"RSA2\",\"gateway\":\"https://openapi.alipay.com/gateway.do\"}",
+        remark: "支付宝当面付扫码（product_code: QR_CODE_OFFLINE）",
+        sort: 2),
       cancellationToken);
 
     await EnsureChannelAsync(
       PaymentChannelCodes.AlipayAppPay,
-      () => new PaymentChannel
-      {
-        ChannelCode = PaymentChannelCodes.AlipayAppPay,
-        ChannelName = "支付宝APP支付",
-        ProviderType = PaymentProviderType.AlipayApp,
-        IsEnabled = false,
-        ConfigJson = "{\"appId\":\"\",\"privateKey\":\"\",\"alipayPublicKey\":\"\",\"merchantCertPath\":\"\",\"alipayPublicCertPath\":\"\",\"alipayRootCertPath\":\"\",\"signType\":\"RSA2\",\"gateway\":\"https://openapi.alipay.com/gateway.do\"}",
-        Sort = 3,
-        Remark = "支付宝 App 支付（product_code: QUICK_MSECURITY_PAY）",
-      },
+      () => PaymentChannel.Create(
+        PaymentChannelCodes.AlipayAppPay,
+        "支付宝APP支付",
+        PaymentProviderType.AlipayApp,
+        isEnabled: false,
+        configJson: "{\"appId\":\"\",\"privateKey\":\"\",\"alipayPublicKey\":\"\",\"merchantCertPath\":\"\",\"alipayPublicCertPath\":\"\",\"alipayRootCertPath\":\"\",\"signType\":\"RSA2\",\"gateway\":\"https://openapi.alipay.com/gateway.do\"}",
+        remark: "支付宝 App 支付（product_code: QUICK_MSECURITY_PAY）",
+        sort: 3),
       cancellationToken);
   }
 

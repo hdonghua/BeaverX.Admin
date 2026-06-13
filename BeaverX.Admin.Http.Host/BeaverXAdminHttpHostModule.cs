@@ -28,7 +28,7 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
 
         services.AddControllers(options =>
         {
-            options.Filters.Add<RbacExceptionFilter>();
+            options.Filters.Add<BusinessExceptionFilter>();
         });
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

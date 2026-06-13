@@ -75,7 +75,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(typeCode))
         {
-            throw new RbacException("字典类型编码不能为空");
+            throw new BusinessException("字典类型编码不能为空");
         }
 
         var code = typeCode.Trim();
@@ -109,7 +109,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.Label) || string.IsNullOrWhiteSpace(input.Value))
         {
-            throw new RbacException("字典标签和值不能为空");
+            throw new BusinessException("字典标签和值不能为空");
         }
 
         await EnsureDictTypeExistsAsync(input.DictTypeId, cancellationToken);
@@ -119,7 +119,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
                 x => x.DictTypeId == input.DictTypeId && x.Value == value,
                 cancellationToken))
         {
-            throw new RbacException("该字典类型下已存在相同的字典值");
+            throw new BusinessException("该字典类型下已存在相同的字典值");
         }
 
         var entity = new DictData
@@ -160,7 +160,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
                     x => x.DictTypeId == entity.DictTypeId && x.Value == value && x.Id != id,
                     cancellationToken))
             {
-                throw new RbacException("该字典类型下已存在相同的字典值");
+                throw new BusinessException("该字典类型下已存在相同的字典值");
             }
 
             entity.Value = value;
@@ -208,7 +208,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
     {
         if (!await _dictTypeRepository.AnyAsync(x => x.Id == dictTypeId, cancellationToken))
         {
-            throw new RbacException("字典类型不存在");
+            throw new BusinessException("字典类型不存在");
         }
     }
 
@@ -220,7 +220,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
 
         if (entity == null)
         {
-            throw new RbacException($"字典数据不存在: {id}");
+            throw new BusinessException($"字典数据不存在: {id}");
         }
 
         return entity;

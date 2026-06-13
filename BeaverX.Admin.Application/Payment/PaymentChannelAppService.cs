@@ -1,9 +1,9 @@
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Application.Contracts.Payment.Dtos;
-using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
+using BeaverX.Admin.Domain.Shared;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -78,29 +78,27 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
     if (string.IsNullOrWhiteSpace(input.ChannelCode) ||
         string.IsNullOrWhiteSpace(input.ChannelName))
     {
-      throw new RbacException("渠道编码和名称不能为空");
+      throw new BusinessException("渠道编码和名称不能为空");
     }
 
     var code = input.ChannelCode.Trim();
     if (await _channelRepository.AnyAsync(x => x.ChannelCode == code, cancellationToken))
     {
-      throw new RbacException("渠道编码已存在");
+      throw new BusinessException("渠道编码已存在");
     }
 
-    var entity = new PaymentChannel
-    {
-      ChannelCode = code,
-      ChannelName = input.ChannelName.Trim(),
-      ProviderType = input.ProviderType,
-      IsEnabled = input.IsEnabled,
-      ConfigJson = string.IsNullOrWhiteSpace(input.ConfigJson) ? "{}" : input.ConfigJson.Trim(),
-      NotifyUrl = NormalizeOptional(input.NotifyUrl),
-      Remark = NormalizeOptional(input.Remark),
-      Sort = input.Sort,
-    };
+    var entity = PaymentChannel.Create(
+      code,
+      input.ChannelName,
+      input.ProviderType,
+      input.IsEnabled,
+      input.ConfigJson,
+      input.NotifyUrl,
+      input.Remark,
+      input.Sort);
 
     await _channelRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-    entity.ConfigJson = AlipayChannelConfigNormalizer.Normalize(entity.Id, entity.ConfigJson);
+    entity.UpdateConfigJson(AlipayChannelConfigNormalizer.Normalize(entity.Id, entity.ConfigJson));
     PaymentChannelConfigValidator.Validate(entity.ProviderType, entity.ConfigJson);
     await _channelRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
 
@@ -116,35 +114,35 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
 
     if (input.ChannelName != null)
     {
-      entity.ChannelName = input.ChannelName.Trim();
+      entity.Rename(input.ChannelName);
     }
 
     if (input.IsEnabled.HasValue)
     {
-      entity.IsEnabled = input.IsEnabled.Value;
+      entity.SetEnabled(input.IsEnabled.Value);
     }
 
     if (input.ConfigJson != null)
     {
-      entity.ConfigJson = AlipayChannelConfigNormalizer.Normalize(
+      entity.UpdateConfigJson(AlipayChannelConfigNormalizer.Normalize(
         entity.Id,
-        input.ConfigJson.Trim());
+        input.ConfigJson.Trim()));
       PaymentChannelConfigValidator.Validate(entity.ProviderType, entity.ConfigJson);
     }
 
     if (input.NotifyUrl != null)
     {
-      entity.NotifyUrl = NormalizeOptional(input.NotifyUrl);
+      entity.SetNotifyUrl(input.NotifyUrl);
     }
 
     if (input.Remark != null)
     {
-      entity.Remark = NormalizeOptional(input.Remark);
+      entity.SetRemark(input.Remark);
     }
 
     if (input.Sort.HasValue)
     {
-      entity.Sort = input.Sort.Value;
+      entity.SetSort(input.Sort.Value);
     }
 
     await _channelRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
@@ -161,12 +159,9 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
     var entity = await _channelRepository.FindAsync(x => x.Id == id, cancellationToken);
     if (entity == null)
     {
-      throw new RbacException($"支付渠道不存在: {id}");
+      throw new BusinessException($"支付渠道不存在: {id}");
     }
 
     return entity;
   }
-
-  private static string? NormalizeOptional(string? value) =>
-    string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

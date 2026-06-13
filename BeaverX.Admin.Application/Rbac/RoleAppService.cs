@@ -80,12 +80,12 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.Code) || string.IsNullOrWhiteSpace(input.Name))
         {
-            throw new RbacException("角色编码和名称不能为空");
+            throw new BusinessException("角色编码和名称不能为空");
         }
 
         if (await _roleRepository.AnyAsync(x => x.Code == input.Code.Trim(), cancellationToken))
         {
-            throw new RbacException("角色编码已存在");
+            throw new BusinessException("角色编码已存在");
         }
 
         var role = new Role
@@ -148,7 +148,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
         if (role == null)
         {
-            throw new RbacException($"角色不存在: {id}");
+            throw new BusinessException($"角色不存在: {id}");
         }
 
         return role;
@@ -178,7 +178,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
             var count = await _menuRepository.GetCountAsync(x => distinctIds.Contains(x.Id), cancellationToken);
             if (count != distinctIds.Count)
             {
-                throw new RbacException("存在无效的菜单 ID");
+                throw new BusinessException("存在无效的菜单 ID");
             }
         }
 

@@ -38,7 +38,7 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
         var userIds = await ResolveTargetUserIdsAsync(input, cancellationToken);
         if (userIds.Count == 0)
         {
-            throw new RbacException("没有可发送的目标用户");
+            throw new BusinessException("没有可发送的目标用户");
         }
 
         var type = input.Type.Trim().ToLowerInvariant();
@@ -82,23 +82,23 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
     {
         if (string.IsNullOrWhiteSpace(input.Title))
         {
-            throw new RbacException("消息标题不能为空");
+            throw new BusinessException("消息标题不能为空");
         }
 
         if (string.IsNullOrWhiteSpace(input.Content))
         {
-            throw new RbacException("消息内容不能为空");
+            throw new BusinessException("消息内容不能为空");
         }
 
         if (!input.SendToAll && input.UserId is not > 0)
         {
-            throw new RbacException("请选择接收用户或勾选发送给全部用户");
+            throw new BusinessException("请选择接收用户或勾选发送给全部用户");
         }
 
         var type = input.Type?.Trim();
         if (string.IsNullOrWhiteSpace(type) || !AllowedTypes.Contains(type))
         {
-            throw new RbacException("消息分类无效，可选 message / notice / todo");
+            throw new BusinessException("消息分类无效，可选 message / notice / todo");
         }
     }
 
@@ -121,7 +121,7 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
 
         if (!exists)
         {
-            throw new RbacException("目标用户不存在或已被禁用");
+            throw new BusinessException("目标用户不存在或已被禁用");
         }
 
         return [userId];

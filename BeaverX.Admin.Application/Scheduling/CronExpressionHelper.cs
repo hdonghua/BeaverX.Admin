@@ -10,7 +10,7 @@ public static class CronExpressionHelper
         var error = TryParse(cronExpression, out _);
         if (error != null)
         {
-            throw new RbacException(error);
+            throw new BusinessException(error);
         }
     }
 

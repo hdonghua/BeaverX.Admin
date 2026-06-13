@@ -77,7 +77,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         var jobCode = input.JobCode.Trim();
         if (await _jobRepository.AnyAsync(x => x.JobCode == jobCode, cancellationToken))
         {
-            throw new RbacException($"任务编码已存在: {jobCode}");
+            throw new BusinessException($"任务编码已存在: {jobCode}");
         }
 
         var entity = new ScheduledJob
@@ -226,30 +226,30 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.JobCode))
         {
-            throw new RbacException("任务编码不能为空");
+            throw new BusinessException("任务编码不能为空");
         }
 
         if (string.IsNullOrWhiteSpace(input.Name))
         {
-            throw new RbacException("任务名称不能为空");
+            throw new BusinessException("任务名称不能为空");
         }
 
         if (input.JobType != ScheduledJobType.HttpApi)
         {
-            throw new RbacException("当前仅支持 HTTP API 类型任务");
+            throw new BusinessException("当前仅支持 HTTP API 类型任务");
         }
 
         CronExpressionHelper.EnsureValid(input.CronExpression);
 
         if (string.IsNullOrWhiteSpace(input.HttpUrl))
         {
-            throw new RbacException("HTTP 地址不能为空");
+            throw new BusinessException("HTTP 地址不能为空");
         }
 
         if (!Uri.TryCreate(input.HttpUrl.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            throw new RbacException("HTTP 地址格式无效");
+            throw new BusinessException("HTTP 地址格式无效");
         }
     }
 
@@ -269,7 +269,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         var entity = await _jobRepository.FindAsync(x => x.Id == id, cancellationToken);
         if (entity == null)
         {
-            throw new RbacException($"定时任务不存在: {id}");
+            throw new BusinessException($"定时任务不存在: {id}");
         }
 
         return entity;
@@ -285,7 +285,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         }
         catch (TimeZoneNotFoundException)
         {
-            throw new RbacException($"时区无效: {value}");
+            throw new BusinessException($"时区无效: {value}");
         }
     }
 

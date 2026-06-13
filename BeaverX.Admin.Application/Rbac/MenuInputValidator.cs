@@ -47,12 +47,12 @@ internal static class MenuInputValidator
         {
             if (menuType != MenuType.Menu)
             {
-                throw new RbacException("外链仅支持菜单类型");
+                throw new BusinessException("外链仅支持菜单类型");
             }
 
             if (!IsExternalUrl(path))
             {
-                throw new RbacException("外链地址必须是有效的 http/https URL");
+                throw new BusinessException("外链地址必须是有效的 http/https URL");
             }
 
             return;
@@ -60,17 +60,17 @@ internal static class MenuInputValidator
 
         if (menuType == MenuType.Menu && string.IsNullOrWhiteSpace(path))
         {
-            throw new RbacException("路由路径不能为空");
+            throw new BusinessException("路由路径不能为空");
         }
 
         if (!string.IsNullOrWhiteSpace(path) && IsExternalUrl(path))
         {
-            throw new RbacException("内部菜单不能使用外链地址，请开启外链开关");
+            throw new BusinessException("内部菜单不能使用外链地址，请开启外链开关");
         }
 
         if (menuType != MenuType.Menu && !string.IsNullOrWhiteSpace(component))
         {
-            throw new RbacException("仅菜单类型可配置组件路径");
+            throw new BusinessException("仅菜单类型可配置组件路径");
         }
     }
 

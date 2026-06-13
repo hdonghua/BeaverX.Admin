@@ -1,5 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Payment;
-using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Domain.Shared;
 using BeaverX.Core.Dependency;
 
 namespace BeaverX.Admin.Infrastructure.Payment;
@@ -21,7 +21,7 @@ public class PaymentProviderResolver : IPaymentProviderResolver, IScopedDependen
 
     if (provider == null)
     {
-      throw new RbacException($"未注册的支付渠道: {channelCode}");
+      throw new BusinessException($"未注册的支付渠道: {channelCode}");
     }
 
     return provider;

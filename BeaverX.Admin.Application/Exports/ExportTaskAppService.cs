@@ -50,7 +50,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.ExportType))
         {
-            throw new RbacException("导出类型不能为空");
+            throw new BusinessException("导出类型不能为空");
         }
 
         var exportType = input.ExportType.Trim();
@@ -107,7 +107,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         var entity = await FindOwnedTaskAsync(id, cancellationToken);
         if (entity.Status != ExportTaskStatus.Completed || string.IsNullOrWhiteSpace(entity.ObjectKey))
         {
-            throw new RbacException("导出文件尚未就绪");
+            throw new BusinessException("导出文件尚未就绪");
         }
 
         var url = await _blobStorage.GetPresignedUrlAsync(entity.ObjectKey, cancellationToken: cancellationToken);
@@ -127,7 +127,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         var entity = await _exportTaskRepository.FindAsync(x => x.Id == id, cancellationToken);
         if (entity == null || entity.UserId != userId)
         {
-            throw new RbacException($"导出任务不存在: {id}");
+            throw new BusinessException($"导出任务不存在: {id}");
         }
 
         return entity;
@@ -137,7 +137,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     {
         if (_currentUser.Id is not > 0)
         {
-            throw new RbacException("未登录或登录已失效");
+            throw new BusinessException("未登录或登录已失效");
         }
 
         return _currentUser.Id.Value;

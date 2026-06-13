@@ -1,5 +1,6 @@
 using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Caching;
+using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
@@ -55,7 +56,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
         if (user == null || !user.IsEnabled || !_passwordHasher.Verify(input.Password, user.PasswordHash))
         {
-            throw new RbacException("用户名或密码错误");
+            throw new BusinessException("用户名或密码错误");
         }
 
         var roles = GetRoleCodes(user);
@@ -78,7 +79,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.RefreshToken))
         {
-            throw new RbacException("刷新令牌不能为空");
+            throw new BusinessException("刷新令牌不能为空");
         }
 
         TokenResultDto? result = null;
@@ -88,15 +89,15 @@ public class AuthAppService : IAuthAppService, IScopedDependency
             var userId = await _refreshTokenService.TryConsumeAsync(plainToken, cancellationToken: ct);
             if (userId == null)
             {
-                throw new RbacException("刷新令牌无效、已过期或已被使用");
+                throw new BusinessException("刷新令牌无效、已过期或已被使用");
             }
 
             var user = await LoadUserWithAccessByIdAsync(userId.Value, ct)
-                ?? throw new RbacException("用户不存在");
+                ?? throw new BusinessException("用户不存在");
 
             if (!user.IsEnabled)
             {
-                throw new RbacException("用户已被禁用");
+                throw new BusinessException("用户已被禁用");
             }
 
             var roles = GetRoleCodes(user);
@@ -120,9 +121,9 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     public async Task<UserProfileDto> GetProfileAsync(CancellationToken cancellationToken = default)
     {
-        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await LoadUserWithAccessByIdAsync(userId, cancellationToken)
-            ?? throw new RbacException("用户不存在");
+            ?? throw new BusinessException("用户不存在");
 
         var roles = GetRoleCodes(user);
         var permissions = await _userPermissionResolver.GetPermissionsAsync(user.Id, cancellationToken);
@@ -133,7 +134,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         UpdateProfileDto input,
         CancellationToken cancellationToken = default)
     {
-        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await _userRepository.GetAsync(userId, cancellationToken);
 
         if (input.NickName != null)
@@ -167,15 +168,15 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         if (string.IsNullOrWhiteSpace(input.OldPassword) ||
             string.IsNullOrWhiteSpace(input.NewPassword))
         {
-            throw new RbacException("原密码和新密码不能为空");
+            throw new BusinessException("原密码和新密码不能为空");
         }
 
-        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await _userRepository.GetAsync(userId, cancellationToken);
 
         if (!_passwordHasher.Verify(input.OldPassword, user.PasswordHash))
         {
-            throw new RbacException("原密码错误");
+            throw new BusinessException("原密码错误");
         }
 
         user.PasswordHash = _passwordHasher.Hash(input.NewPassword);
@@ -184,13 +185,13 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     public async Task<List<MenuDto>> GetCurrentUserMenusAsync(CancellationToken cancellationToken = default)
     {
-        var userId = _currentUser.Id ?? throw new RbacException("未登录");
+        var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await LoadUserWithAccessByIdAsync(userId, cancellationToken)
-            ?? throw new RbacException("用户不存在");
+            ?? throw new BusinessException("用户不存在");
 
         if (!user.IsEnabled)
         {
-            throw new RbacException("用户已被禁用");
+            throw new BusinessException("用户已被禁用");
         }
 
         var accessVersion = await _cacheInvalidator.GetAccessVersionAsync(cancellationToken);

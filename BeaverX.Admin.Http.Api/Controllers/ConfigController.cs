@@ -42,7 +42,7 @@ public class ConfigController : BeaverXController
         var config = await _configAppService.GetByKeyAsync(key, cancellationToken);
         if (config == null)
         {
-            throw new RbacException($"配置不存在: {key}");
+            throw new BusinessException($"配置不存在: {key}");
         }
 
         return config;

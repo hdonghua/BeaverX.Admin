@@ -98,7 +98,7 @@ BeaverX.Admin/
 - 路由前缀：`/api/[Controller]`（继承 `BeaverXController`）
 - 权限：Controller 方法标注 `[RequirePermission("system:xxx:yyy")]`
 - 权限码定义：`BeaverX.Admin.Domain.Shared/Rbac/RbacPermissionCodes.cs`
-- 业务异常：抛出 `RbacException`，由 `RbacExceptionFilter` 统一返回 JSON
+- 业务异常：抛出 `BusinessException`（`Domain.Shared`），由 `BusinessExceptionFilter` 统一返回 JSON
 
 ## 配置说明
 
@@ -168,7 +168,7 @@ public static class Config
 
 - 实现 `IConfigAppService` + `IScopedDependency`
 - 使用 `IRepository<T>` 访问数据
-- 校验失败抛 `RbacException`
+- 校验失败抛 `BusinessException`
 
 ### 6. Controller
 

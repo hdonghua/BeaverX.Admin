@@ -37,7 +37,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.Name))
         {
-            throw new RbacException("菜单名称不能为空");
+            throw new BusinessException("菜单名称不能为空");
         }
 
         if (input.ParentId.HasValue)
@@ -78,7 +78,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         {
             if (input.ParentId.Value == id)
             {
-                throw new RbacException("父级菜单不能是自己");
+                throw new BusinessException("父级菜单不能是自己");
             }
 
             await _menuRepository.GetAsync(input.ParentId.Value, cancellationToken);
@@ -128,7 +128,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         var hasChildren = await _menuRepository.AnyAsync(x => x.ParentId == id, cancellationToken);
         if (hasChildren)
         {
-            throw new RbacException("请先删除子菜单");
+            throw new BusinessException("请先删除子菜单");
         }
 
         await _menuRepository.DeleteAsync(id, cancellationToken: cancellationToken);
@@ -145,7 +145,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         var orderedIds = input.OrderedIds.Distinct().ToList();
         if (orderedIds.Count != input.OrderedIds.Count)
         {
-            throw new RbacException("菜单排序项不能重复");
+            throw new BusinessException("菜单排序项不能重复");
         }
 
         var menus = await _menuRepository.GetListAsync(
@@ -154,12 +154,12 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
         if (menus.Count != orderedIds.Count)
         {
-            throw new RbacException("菜单不存在");
+            throw new BusinessException("菜单不存在");
         }
 
         if (menus.Any(x => x.ParentId != input.ParentId))
         {
-            throw new RbacException("只能在同一层级内排序");
+            throw new BusinessException("只能在同一层级内排序");
         }
 
         var expectedCount = await _menuRepository.GetQueryable()
@@ -168,7 +168,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
         if (expectedCount != orderedIds.Count)
         {
-            throw new RbacException("排序菜单数量与当前层级不一致");
+            throw new BusinessException("排序菜单数量与当前层级不一致");
         }
 
         var menuMap = menus.ToDictionary(x => x.Id);
@@ -194,7 +194,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
         if (exists)
         {
-            throw new RbacException($"权限标识已存在: {perms}");
+            throw new BusinessException($"权限标识已存在: {perms}");
         }
     }
 }

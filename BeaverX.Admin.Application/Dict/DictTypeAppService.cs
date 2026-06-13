@@ -73,13 +73,13 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.Code) || string.IsNullOrWhiteSpace(input.Name))
         {
-            throw new RbacException("字典类型编码和名称不能为空");
+            throw new BusinessException("字典类型编码和名称不能为空");
         }
 
         var code = input.Code.Trim();
         if (await _dictTypeRepository.AnyAsync(x => x.Code == code, cancellationToken))
         {
-            throw new RbacException("字典类型编码已存在");
+            throw new BusinessException("字典类型编码已存在");
         }
 
         var entity = new DictType
@@ -127,7 +127,7 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
 
         if (await _dictDataRepository.AnyAsync(x => x.DictTypeId == id, cancellationToken))
         {
-            throw new RbacException("请先删除该字典类型下的字典数据");
+            throw new BusinessException("请先删除该字典类型下的字典数据");
         }
 
         await _dictTypeRepository.DeleteAsync(id, cancellationToken: cancellationToken);

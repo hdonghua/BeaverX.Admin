@@ -16,7 +16,7 @@ public static class PaymentChannelConfigValidator
   {
     if (string.IsNullOrWhiteSpace(configJson))
     {
-      throw new RbacException("渠道配置不能为空");
+      throw new BusinessException("渠道配置不能为空");
     }
 
     try
@@ -31,12 +31,12 @@ public static class PaymentChannelConfigValidator
           ValidateWeChatConfig(configJson);
           break;
         default:
-          throw new RbacException($"不支持的支付提供商类型: {providerType}");
+          throw new BusinessException($"不支持的支付提供商类型: {providerType}");
       }
     }
     catch (JsonException)
     {
-      throw new RbacException("渠道配置 JSON 格式无效");
+      throw new BusinessException("渠道配置 JSON 格式无效");
     }
   }
 
@@ -47,23 +47,23 @@ public static class PaymentChannelConfigValidator
 
     if (string.IsNullOrWhiteSpace(config.AppId))
     {
-      throw new RbacException("请填写支付宝 AppId");
+      throw new BusinessException("请填写支付宝 AppId");
     }
 
     if (string.IsNullOrWhiteSpace(config.PrivateKey))
     {
-      throw new RbacException("请填写应用私钥");
+      throw new BusinessException("请填写应用私钥");
     }
 
     if (!AlipayPaymentConstants.IsSupportedSignType(config.SignType))
     {
-      throw new RbacException(
+      throw new BusinessException(
         $"签名类型无效，仅支持：{string.Join("、", AlipayPaymentConstants.SupportedSignTypes)}");
     }
 
     if (!AlipayPaymentConstants.IsSupportedGateway(config.Gateway))
     {
-      throw new RbacException(
+      throw new BusinessException(
         $"网关地址无效，仅支持：{string.Join("、", AlipayPaymentConstants.SupportedGateways)}");
     }
 
@@ -81,12 +81,12 @@ public static class PaymentChannelConfigValidator
 
     if (HasAnyCertField(config))
     {
-      throw new RbacException("证书模式需上传完整三项证书");
+      throw new BusinessException("证书模式需上传完整三项证书");
     }
 
     if (string.IsNullOrWhiteSpace(config.AlipayPublicKey))
     {
-      throw new RbacException("公钥模式需填写支付宝公钥，或上传完整三项证书");
+      throw new BusinessException("公钥模式需填写支付宝公钥，或上传完整三项证书");
     }
   }
 
@@ -105,32 +105,32 @@ public static class PaymentChannelConfigValidator
 
     if (string.IsNullOrWhiteSpace(config.AppId))
     {
-      throw new RbacException("请填写微信 AppId");
+      throw new BusinessException("请填写微信 AppId");
     }
 
     if (string.IsNullOrWhiteSpace(config.MchId))
     {
-      throw new RbacException("请填写微信商户号");
+      throw new BusinessException("请填写微信商户号");
     }
 
     if (string.IsNullOrWhiteSpace(config.ApiV3Key))
     {
-      throw new RbacException("请填写 APIv3 密钥");
+      throw new BusinessException("请填写 APIv3 密钥");
     }
 
     if (string.IsNullOrWhiteSpace(config.CertSerialNo))
     {
-      throw new RbacException("请填写证书序列号");
+      throw new BusinessException("请填写证书序列号");
     }
 
     if (string.IsNullOrWhiteSpace(config.PrivateKey))
     {
-      throw new RbacException("请填写商户私钥");
+      throw new BusinessException("请填写商户私钥");
     }
 
     if (string.IsNullOrWhiteSpace(config.PlatformCert))
     {
-      throw new RbacException("请填写微信平台证书");
+      throw new BusinessException("请填写微信平台证书");
     }
   }
 

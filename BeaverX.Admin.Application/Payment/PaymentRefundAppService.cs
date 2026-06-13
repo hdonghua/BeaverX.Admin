@@ -62,7 +62,7 @@ public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependen
     var entity = await _refundRepository.FindAsync(x => x.Id == id, cancellationToken);
     if (entity == null)
     {
-      throw new RbacException($"退款单不存在: {id}");
+      throw new BusinessException($"退款单不存在: {id}");
     }
 
     return PaymentMapper.ToRefundDto(entity);

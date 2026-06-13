@@ -93,7 +93,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            throw new RbacException("配置键不能为空");
+            throw new BusinessException("配置键不能为空");
         }
 
         var normalizedKey = key.Trim();
@@ -118,13 +118,13 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
             string.IsNullOrWhiteSpace(input.Value) ||
             string.IsNullOrWhiteSpace(input.Label))
         {
-            throw new RbacException("配置键、标签和值不能为空");
+            throw new BusinessException("配置键、标签和值不能为空");
         }
 
         var key = input.Key.Trim();
         if (await _configRepository.AnyAsync(x => x.Key == key, cancellationToken))
         {
-            throw new RbacException("配置键已存在");
+            throw new BusinessException("配置键已存在");
         }
 
         var entity = new SysConfig
@@ -197,7 +197,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         var entity = await _configRepository.FindAsync(x => x.Id == id, cancellationToken);
         if (entity == null)
         {
-            throw new RbacException($"配置不存在: {id}");
+            throw new BusinessException($"配置不存在: {id}");
         }
 
         return entity;

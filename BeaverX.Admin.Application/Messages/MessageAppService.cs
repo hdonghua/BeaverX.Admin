@@ -100,7 +100,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     }
 
     private long GetCurrentUserId()
-        => _currentUser.Id ?? throw new RbacException("未登录");
+        => _currentUser.Id ?? throw new BusinessException("未登录");
 
     private static MessageDto ToDto(UserMessage message) => new()
     {

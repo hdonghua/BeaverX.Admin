@@ -87,12 +87,12 @@ public class UserAppService : IUserAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.UserName) || string.IsNullOrWhiteSpace(input.Password))
         {
-            throw new RbacException("用户名和密码不能为空");
+            throw new BusinessException("用户名和密码不能为空");
         }
 
         if (await _userRepository.AnyAsync(x => x.UserName == input.UserName.Trim(), cancellationToken))
         {
-            throw new RbacException("用户名已存在");
+            throw new BusinessException("用户名已存在");
         }
 
         var user = new User
@@ -158,7 +158,7 @@ public class UserAppService : IUserAppService, IScopedDependency
     {
         if (string.IsNullOrWhiteSpace(input.NewPassword))
         {
-            throw new RbacException("新密码不能为空");
+            throw new BusinessException("新密码不能为空");
         }
 
         var user = await _userRepository.GetAsync(id, cancellationToken);
@@ -175,7 +175,7 @@ public class UserAppService : IUserAppService, IScopedDependency
 
         if (user == null)
         {
-            throw new RbacException($"用户不存在: {id}");
+            throw new BusinessException($"用户不存在: {id}");
         }
 
         return user;
@@ -189,7 +189,7 @@ public class UserAppService : IUserAppService, IScopedDependency
             var existingRoleCount = await _roleRepository.GetCountAsync(x => distinctRoleIds.Contains(x.Id), cancellationToken);
             if (existingRoleCount != distinctRoleIds.Count)
             {
-                throw new RbacException("存在无效的角色 ID");
+                throw new BusinessException("存在无效的角色 ID");
             }
         }
 
