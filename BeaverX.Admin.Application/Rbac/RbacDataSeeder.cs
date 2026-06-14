@@ -39,13 +39,13 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var newMenus = await EnsureAllMenusAsync(cancellationToken);
-        var adminRole = await EnsureSuperAdminRoleAsync(newMenus, cancellationToken);
+        var newMenuIds = await EnsureAllMenusAsync(cancellationToken);
+        var adminRole = await EnsureSuperAdminRoleAsync(newMenuIds, cancellationToken);
         await EnsureAdminUserAsync(adminRole, cancellationToken);
     }
 
     private async Task<Role> EnsureSuperAdminRoleAsync(
-        List<Menu> newMenus,
+        List<long> newMenuIds,
         CancellationToken cancellationToken)
     {
         var role = await _roleRepository.GetQueryable()
@@ -65,14 +65,17 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             };
             await _roleRepository.InsertAsync(role, cancellationToken: cancellationToken);
 
-            var allMenus = await _menuRepository.GetListAsync(_ => true, cancellationToken);
-            await InsertRoleMenusIfMissingAsync(role.Id, allMenus, cancellationToken);
+            var allMenuIds = await _menuRepository.GetQueryable()
+                .AsNoTracking()
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+            await InsertRoleMenusIfMissingAsync(role.Id, allMenuIds, cancellationToken);
             return role;
         }
 
-        if (newMenus.Count > 0)
+        if (newMenuIds.Count > 0)
         {
-            await InsertRoleMenusIfMissingAsync(role.Id, newMenus, cancellationToken);
+            await InsertRoleMenusIfMissingAsync(role.Id, newMenuIds, cancellationToken);
         }
 
         return role;
@@ -111,24 +114,27 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
 
     private async Task InsertRoleMenusIfMissingAsync(
         long roleId,
-        IEnumerable<Menu> menus,
+        IEnumerable<long> menuIds,
         CancellationToken cancellationToken)
     {
-        var menuList = menus.ToList();
-        if (menuList.Count == 0)
+        var menuIdList = menuIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+        if (menuIdList.Count == 0)
         {
             return;
         }
 
-        var menuIds = menuList.Select(x => x.Id).ToList();
         var existingMenuIds = await _roleMenuRepository.GetQueryable()
-            .Where(x => x.RoleId == roleId && menuIds.Contains(x.MenuId))
+            .AsNoTracking()
+            .Where(x => x.RoleId == roleId && menuIdList.Contains(x.MenuId))
             .Select(x => x.MenuId)
             .ToListAsync(cancellationToken);
 
-        var missing = menuList
-            .Where(menu => !existingMenuIds.Contains(menu.Id))
-            .Select(menu => new RoleMenu { RoleId = roleId, MenuId = menu.Id })
+        var missing = menuIdList
+            .Where(menuId => !existingMenuIds.Contains(menuId))
+            .Select(menuId => new RoleMenu { RoleId = roleId, MenuId = menuId })
             .ToList();
 
         if (missing.Count == 0)
@@ -139,36 +145,37 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         await _roleMenuRepository.InsertManyAsync(missing, cancellationToken: cancellationToken);
     }
 
-    private async Task<List<Menu>> EnsureAllMenusAsync(CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureAllMenusAsync(CancellationToken cancellationToken)
     {
-        var newMenus = new List<Menu>();
+        var newMenuIds = new List<long>();
 
-        var (systemDir, systemDirMenus) = await EnsureSystemDirectoryAsync(cancellationToken);
-        newMenus.AddRange(systemDirMenus);
+        var (systemDirId, systemDirMenuIds) = await EnsureSystemDirectoryAsync(cancellationToken);
+        newMenuIds.AddRange(systemDirMenuIds);
 
-        newMenus.AddRange(await EnsureUserMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsureRoleMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsureMenuMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsureDictMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsureConfigMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsureJobMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsureMessageMenusAsync(systemDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsurePaymentMenusAsync(cancellationToken));
+        newMenuIds.AddRange(await EnsureUserMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureRoleMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureMenuMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureDictMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureConfigMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureJobMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureMessageMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsurePaymentMenusAsync(cancellationToken));
 
-        return newMenus;
+        return newMenuIds;
     }
 
-    private async Task<(Menu Directory, List<Menu> NewMenus)> EnsureSystemDirectoryAsync(
+    private async Task<(long DirectoryId, List<long> NewMenuIds)> EnsureSystemDirectoryAsync(
         CancellationToken cancellationToken)
     {
-        var existing = await _menuRepository.GetQueryable()
-            .FirstOrDefaultAsync(
-                x => x.Path == "/system" && x.MenuType == MenuType.Directory,
-                cancellationToken);
+        var existingId = await _menuRepository.GetQueryable()
+            .AsNoTracking()
+            .Where(x => x.Path == "/system" && x.MenuType == MenuType.Directory)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (existing != null)
+        if (existingId > 0)
         {
-            return (existing, []);
+            return (existingId, []);
         }
 
         _logger.LogInformation("Seeding system directory menu...");
@@ -183,10 +190,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             IsVisible = true
         }, cancellationToken);
 
-        return (systemDir, [systemDir]);
+        return (systemDir.Id, [systemDir.Id]);
     }
 
-    private async Task<List<Menu>> EnsureUserMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureUserMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.User.List,
@@ -217,10 +224,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "重置密码", RbacPermissionCodes.System.User.ResetPassword, 3),
         ], cancellationToken);
 
-        return [page, ..buttons];
+        return [page.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsureRoleMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureRoleMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.Role.List,
@@ -250,10 +257,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "分配菜单", RbacPermissionCodes.System.Role.AssignMenus, 4),
         ], cancellationToken);
 
-        return [page, ..buttons];
+        return [page.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsureMenuMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureMenuMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.Menu.List,
@@ -282,10 +289,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "菜单删除", RbacPermissionCodes.System.Menu.Delete, 3),
         ], cancellationToken);
 
-        return [page, ..buttons];
+        return [page.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsureDictMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureDictMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.Dict.List,
@@ -317,10 +324,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "字典数据删除", RbacPermissionCodes.System.Dict.Data.Delete, 6),
         ], cancellationToken);
 
-        return [page, ..buttons];
+        return [page.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsureConfigMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureConfigMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.Config.List,
@@ -349,10 +356,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "配置删除", RbacPermissionCodes.System.Config.Delete, 3),
         ], cancellationToken);
 
-        return [page, ..buttons];
+        return [page.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsureJobMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureJobMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.Job.List,
@@ -382,10 +389,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "立即执行", RbacPermissionCodes.System.Job.Trigger, 4),
         ], cancellationToken);
 
-        return [page, ..buttons];
+        return [page.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsureMessageMenusAsync(long parentId, CancellationToken cancellationToken)
+    private async Task<List<long>> EnsureMessageMenusAsync(long parentId, CancellationToken cancellationToken)
     {
         if (await _menuRepository.AnyAsync(
                 x => x.Perms == RbacPermissionCodes.System.Message.Send,
@@ -408,34 +415,35 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Sort = 6
         }, cancellationToken);
 
-        return [page];
+        return [page.Id];
     }
 
-    private async Task<List<Menu>> EnsurePaymentMenusAsync(CancellationToken cancellationToken)
+    private async Task<List<long>> EnsurePaymentMenusAsync(CancellationToken cancellationToken)
     {
-        var newMenus = new List<Menu>();
+        var newMenuIds = new List<long>();
 
-        var (paymentDir, dirMenus) = await EnsurePaymentDirectoryAsync(cancellationToken);
-        newMenus.AddRange(dirMenus);
+        var (paymentDirId, dirMenuIds) = await EnsurePaymentDirectoryAsync(cancellationToken);
+        newMenuIds.AddRange(dirMenuIds);
 
-        newMenus.AddRange(await EnsurePaymentChannelMenusAsync(paymentDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsurePaymentOrderMenusAsync(paymentDir.Id, cancellationToken));
-        newMenus.AddRange(await EnsurePaymentRefundMenusAsync(paymentDir.Id, cancellationToken));
+        newMenuIds.AddRange(await EnsurePaymentChannelMenusAsync(paymentDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsurePaymentOrderMenusAsync(paymentDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsurePaymentRefundMenusAsync(paymentDirId, cancellationToken));
 
-        return newMenus;
+        return newMenuIds;
     }
 
-    private async Task<(Menu Directory, List<Menu> NewMenus)> EnsurePaymentDirectoryAsync(
+    private async Task<(long DirectoryId, List<long> NewMenuIds)> EnsurePaymentDirectoryAsync(
         CancellationToken cancellationToken)
     {
-        var existing = await _menuRepository.GetQueryable()
-            .FirstOrDefaultAsync(
-                x => x.Path == "/payment" && x.MenuType == MenuType.Directory,
-                cancellationToken);
+        var existingId = await _menuRepository.GetQueryable()
+            .AsNoTracking()
+            .Where(x => x.Path == "/payment" && x.MenuType == MenuType.Directory)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (existing != null)
+        if (existingId > 0)
         {
-            return (existing, []);
+            return (existingId, []);
         }
 
         _logger.LogInformation("Seeding payment directory menu...");
@@ -450,10 +458,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             IsVisible = true
         }, cancellationToken);
 
-        return (paymentDir, [paymentDir]);
+        return (paymentDir.Id, [paymentDir.Id]);
     }
 
-    private async Task<List<Menu>> EnsurePaymentChannelMenusAsync(
+    private async Task<List<long>> EnsurePaymentChannelMenusAsync(
         long parentId,
         CancellationToken cancellationToken)
     {
@@ -484,10 +492,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(channelPage.Id, "渠道删除", RbacPermissionCodes.Payment.Channel.Delete, 3),
         ], cancellationToken);
 
-        return [channelPage, ..buttons];
+        return [channelPage.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsurePaymentOrderMenusAsync(
+    private async Task<List<long>> EnsurePaymentOrderMenusAsync(
         long parentId,
         CancellationToken cancellationToken)
     {
@@ -519,10 +527,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(orderPage.Id, "订单退款", RbacPermissionCodes.Payment.Order.Refund, 4),
         ], cancellationToken);
 
-        return [orderPage, ..buttons];
+        return [orderPage.Id, ..buttons.Select(x => x.Id)];
     }
 
-    private async Task<List<Menu>> EnsurePaymentRefundMenusAsync(
+    private async Task<List<long>> EnsurePaymentRefundMenusAsync(
         long parentId,
         CancellationToken cancellationToken)
     {
@@ -547,7 +555,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Sort = 3
         }, cancellationToken);
 
-        return [refundPage];
+        return [refundPage.Id];
     }
 
     private static Menu Btn(long parentId, string name, string perms, int sort) => new()

@@ -42,6 +42,20 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     {
         base.OnModelCreating(modelBuilder);
 
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (entityType.ClrType is null)
+            {
+                continue;
+            }
+
+            var idProperty = entityType.FindProperty("Id");
+            if (idProperty != null && idProperty.ClrType == typeof(long))
+            {
+                modelBuilder.Entity(entityType.ClrType).Property<long>("Id").ValueGeneratedNever();
+            }
+        }
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("sys_users");

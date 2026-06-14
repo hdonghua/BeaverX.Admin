@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<coreProperties xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.openxmlformats.org/package/2006/metadata/core-properties">
+  <dc:creator>hedonghua</dc:creator>
+  <dc:description>BeaverX.Domain 是 BeaverX 快速开发框架的核心领域契约包。本包秉承实用主义 DDD 哲学，默认锁定高性能“雪花 ID（Int64/long）”作为全局实体主键。内置像素级对齐 ABP 的单文件全审计契约、防熔断当前用户上下文（ICurrentUser）以及纯异步、高性能的现代泛型仓储契约。</dc:description>
+  <dc:identifier>BeaverX.Domain</dc:identifier>
+  <version>1.0.0-preview.4</version>
+  <keywords>abp ddd snowflake repository domain framework net10 aot</keywords>
+  <lastModifiedBy>NuGet.Packaging, Version=7.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35;.NET 8.0</lastModifiedBy>
+</coreProperties>

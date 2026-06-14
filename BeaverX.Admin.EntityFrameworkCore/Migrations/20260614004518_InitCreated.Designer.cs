@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260611143337_InitCreated")]
+    [Migration("20260614004518_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -28,10 +28,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Config.SysConfig", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone");
@@ -94,10 +91,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Dict.DictData", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone");
@@ -162,10 +156,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Dict.DictType", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -216,10 +207,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Exports.ExportTask", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime?>("CompletedTime")
                         .HasColumnType("timestamp with time zone");
@@ -289,10 +277,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Messages.UserMessage", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Avatar")
                         .HasMaxLength(512)
@@ -344,10 +329,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Messaging.LocalMessageOutbox", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("CapMessageId")
                         .IsRequired()
@@ -368,10 +350,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentChannel", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ChannelCode")
                         .IsRequired()
@@ -437,10 +416,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentNotifyLog", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ChannelCode")
                         .IsRequired()
@@ -485,10 +461,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentOrder", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("Amount")
                         .HasColumnType("bigint");
@@ -608,10 +581,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentRefund", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("Amount")
                         .HasColumnType("bigint");
@@ -699,10 +669,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Menu", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Component")
                         .HasMaxLength(256)
@@ -780,10 +747,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Role", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -828,10 +792,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.RoleMenu", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("MenuId")
                         .HasColumnType("bigint");
@@ -852,10 +813,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.User", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Avatar")
                         .HasMaxLength(512)
@@ -918,10 +876,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRefreshToken", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone");
@@ -975,10 +930,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRole", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("RoleId")
                         .HasColumnType("bigint");
@@ -999,10 +951,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Scheduling.ScheduledJob", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone");
@@ -1095,10 +1044,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
             modelBuilder.Entity("BeaverX.Admin.Domain.Scheduling.ScheduledJobLog", b =>
                 {
                     b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp with time zone");

@@ -3,6 +3,7 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Http.Api;
 using BeaverX.Admin.Http.Api.Authorization;
 using BeaverX.Admin.Http.Api.Filters;
+using BeaverX.Admin.Http.Api.Json;
 using BeaverX.Admin.Infrastructure;
 using BeaverX.Admin.Infrastructure.Realtime;
 using BeaverX.Core.Modules;
@@ -29,7 +30,8 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
         services.AddControllers(options =>
         {
             options.Filters.Add<BusinessExceptionFilter>();
-        });
+        })
+        .AddJsonOptions(options => JsonIdSerializationExtensions.ConfigureSnowflakeIdJsonSerialization(options.JsonSerializerOptions));
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

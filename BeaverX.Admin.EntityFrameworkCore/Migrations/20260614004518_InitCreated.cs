@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -16,8 +15,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "export_tasks",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     ExportType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Parameters = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
@@ -44,8 +42,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "local_message_outbox",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     CapMessageId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     ConsumedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -58,8 +55,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_channels",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     ChannelName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ProviderType = table.Column<int>(type: "integer", nullable: false),
@@ -85,8 +81,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_notify_logs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     NotifyType = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
@@ -105,8 +100,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_orders",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     Subject = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
@@ -145,8 +139,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_configs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     Key = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     Value = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
                     Label = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
@@ -171,8 +164,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_dict_types",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -194,8 +186,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_menus",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     ParentId = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     MenuType = table.Column<int>(type: "integer", nullable: false),
@@ -230,8 +221,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_roles",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Description = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -251,8 +241,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_scheduled_jobs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     JobCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     JobType = table.Column<int>(type: "integer", nullable: false),
@@ -285,8 +274,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_users",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     UserName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     PasswordHash = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     NickName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
@@ -311,8 +299,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_refunds",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     RefundNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     PaymentOrderId = table.Column<long>(type: "bigint", nullable: false),
                     OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
@@ -349,8 +336,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_dict_data",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     DictTypeId = table.Column<long>(type: "bigint", nullable: false),
                     Label = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Value = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
@@ -382,8 +368,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_role_menus",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     RoleId = table.Column<long>(type: "bigint", nullable: false),
                     MenuId = table.Column<long>(type: "bigint", nullable: false)
                 },
@@ -408,8 +393,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_scheduled_job_logs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     JobId = table.Column<long>(type: "bigint", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -437,8 +421,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_user_messages",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     Type = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     Title = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
@@ -465,8 +448,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_user_refresh_tokens",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -495,8 +477,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_user_roles",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
                     RoleId = table.Column<long>(type: "bigint", nullable: false)
                 },

@@ -15,5 +15,8 @@ public class AdminPostgreSqlDbDriverOptionsBuilder : IDbDriverOptionsBuilder
         });
 
         optionsBuilder.AddInterceptors(new UtcDateTimeSaveChangesInterceptor());
+#if DEBUG
+        optionsBuilder.EnableSensitiveDataLogging();
+#endif
     }
 }

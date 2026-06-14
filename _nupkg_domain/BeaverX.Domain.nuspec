@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>BeaverX.Domain</id>
+    <version>1.0.0-preview.4</version>
+    <authors>hedonghua</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <projectUrl>https://github.com/hdonghua/BeaverX.NET</projectUrl>
+    <description>BeaverX.Domain 是 BeaverX 快速开发框架的核心领域契约包。本包秉承实用主义 DDD 哲学，默认锁定高性能“雪花 ID（Int64/long）”作为全局实体主键。内置像素级对齐 ABP 的单文件全审计契约、防熔断当前用户上下文（ICurrentUser）以及纯异步、高性能的现代泛型仓储契约。</description>
+    <copyright>Copyright © 2026 BeaverX</copyright>
+    <tags>abp ddd snowflake repository domain framework net10 aot</tags>
+    <repository type="git" url="https://github.com/hdonghua/BeaverX.NET.git" commit="c6516a6cdf62859d79f92ebe4dafc38d2f241070" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="BeaverX.Core" version="1.0.0-preview.3" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>BeaverX.EntityFrameworkCore</id>
+    <version>1.0.0-preview.4</version>
+    <authors>hedonghua</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <projectUrl>https://github.com/hdonghua/BeaverX.NET</projectUrl>
+    <description>BeaverX.EntityFrameworkCore 是 BeaverX 框架的 EF Core 公共基础设施包。它实现了 Domain 层定义的通用泛型仓储契约，并内置了全自动审计、软删除全局查询过滤等工业级硬核生产力特性。</description>
+    <copyright>Copyright © 2026 BeaverX</copyright>
+    <tags>abp efcore entityframework orm framework net10</tags>
+    <repository type="git" url="https://github.com/hdonghua/BeaverX.NET.git" commit="c6516a6cdf62859d79f92ebe4dafc38d2f241070" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="BeaverX.Domain" version="1.0.0-preview.4" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.EntityFrameworkCore" version="10.0.4" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

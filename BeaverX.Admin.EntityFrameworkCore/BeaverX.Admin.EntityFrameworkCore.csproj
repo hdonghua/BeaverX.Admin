@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="BeaverX.EntityFrameworkCore.PostgreSql" Version="1.0.0-preview.4" />
+    <PackageReference Include="IdGen" Version="3.0.7" />
+    <PackageReference Include="IdGen.DependencyInjection" Version="3.0.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
