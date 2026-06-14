@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class PaymentRefundController : BeaverXController
+public class PaymentRefundController : BeaverXControllerBase
 {
   private readonly IPaymentRefundAppService _refundAppService;
 

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class MessageController : BeaverXController
+public class MessageController : BeaverXControllerBase
 {
     private readonly IMessageAppService _messageAppService;
 

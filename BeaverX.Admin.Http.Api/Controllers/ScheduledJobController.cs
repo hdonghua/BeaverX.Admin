@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class ScheduledJobController : BeaverXController
+public class ScheduledJobController : BeaverXControllerBase
 {
     private readonly IScheduledJobAppService _scheduledJobAppService;
 

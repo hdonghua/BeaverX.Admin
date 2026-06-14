@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class AuthController : BeaverXController
+public class AuthController : BeaverXControllerBase
 {
     private readonly IAuthAppService _authAppService;
 

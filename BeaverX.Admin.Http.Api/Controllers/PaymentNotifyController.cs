@@ -9,7 +9,7 @@ namespace BeaverX.Admin.Http.Api.Controllers;
 /// 支付/退款异步回调（供微信、支付宝等渠道调用，无需 JWT）
 /// </summary>
 [AllowAnonymous]
-public class PaymentNotifyController : BeaverXController
+public class PaymentNotifyController : BeaverXControllerBase
 {
   private readonly IPaymentNotifyAppService _notifyAppService;
 

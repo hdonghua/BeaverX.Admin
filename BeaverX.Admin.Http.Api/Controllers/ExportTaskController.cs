@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace BeaverX.Admin.Http.Api.Controllers;
 
 [Authorize]
-public class ExportTaskController : BeaverXController
+public class ExportTaskController : BeaverXControllerBase
 {
     private readonly IExportTaskAppService _exportTaskAppService;
 

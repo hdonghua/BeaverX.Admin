@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class DictDataController : BeaverXController
+public class DictDataController : BeaverXControllerBase
 {
     private readonly IDictDataAppService _dictDataAppService;
 

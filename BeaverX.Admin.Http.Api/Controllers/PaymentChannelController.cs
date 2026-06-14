@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class PaymentChannelController : BeaverXController
+public class PaymentChannelController : BeaverXControllerBase
 {
   private readonly IPaymentChannelAppService _channelAppService;
 

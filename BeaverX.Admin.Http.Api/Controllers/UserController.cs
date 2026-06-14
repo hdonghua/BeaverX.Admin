@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class UserController : BeaverXController
+public class UserController : BeaverXControllerBase
 {
     private readonly IUserAppService _userAppService;
 

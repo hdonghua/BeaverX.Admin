@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BeaverX.Core" Version="1.0.0-preview.3" />
+    <PackageReference Include="BeaverX.Core" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

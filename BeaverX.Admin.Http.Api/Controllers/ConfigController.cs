@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class ConfigController : BeaverXController
+public class ConfigController : BeaverXControllerBase
 {
     private readonly IConfigAppService _configAppService;
 

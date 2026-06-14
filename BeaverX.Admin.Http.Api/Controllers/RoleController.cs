@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class RoleController : BeaverXController
+public class RoleController : BeaverXControllerBase
 {
     private readonly IRoleAppService _roleAppService;
 

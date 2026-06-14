@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class PaymentOrderController : BeaverXController
+public class PaymentOrderController : BeaverXControllerBase
 {
   private readonly IPaymentOrderAppService _orderAppService;
 

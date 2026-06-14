@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class MenuController : BeaverXController
+public class MenuController : BeaverXControllerBase
 {
     private readonly IMenuAppService _menuAppService;
 

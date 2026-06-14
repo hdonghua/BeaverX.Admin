@@ -1,5 +1,6 @@
 ﻿using BeaverX.Admin.Domain;
 using BeaverX.Core.Modules;
+using BeaverX.Domain.IdGeneration;
 using BeaverX.EntityFrameworkCore;
 using BeaverX.EntityFrameworkCore.DependencyInjection;
 using BeaverX.EntityFrameworkCore.PostgreSql;
@@ -27,11 +28,10 @@ namespace BeaverX.Admin.EntityFrameworkCore
                 ?? new IdGenOptions();
             services.Configure<IdGenOptions>(configuration.GetSection(IdGenOptions.SectionName));
             services.AddIdGen(idGenOptions.GeneratorId);
-            services.AddSingleton<IEntityIdGenerator, SnowflakeEntityIdGenerator>();
+            services.AddSingleton<IIdGenerator<long>, SnowflakeEntityIdGenerator>();
 
             services.Replace(ServiceDescriptor.Singleton<IDbDriverOptionsBuilder, AdminPostgreSqlDbDriverOptionsBuilder>());
             services.AddBeaverXDbContext<AdminDbContext>(configuration.GetConnectionString("Default")!);
-            services.ReplaceWithAdminRepositories();
         }
     }
 }

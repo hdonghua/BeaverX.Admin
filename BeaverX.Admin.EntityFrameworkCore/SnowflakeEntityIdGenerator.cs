@@ -1,8 +1,9 @@
-using IdGen;
+using BeaverX.Domain.IdGeneration;
+using IdGenerator = IdGen.IdGenerator;
 
 namespace BeaverX.Admin.EntityFrameworkCore;
 
-public sealed class SnowflakeEntityIdGenerator : IEntityIdGenerator
+public sealed class SnowflakeEntityIdGenerator : IIdGenerator<long>
 {
     private readonly IdGenerator _idGenerator;
 
@@ -11,5 +12,5 @@ public sealed class SnowflakeEntityIdGenerator : IEntityIdGenerator
         _idGenerator = idGenerator;
     }
 
-    public long CreateId() => _idGenerator.CreateId();
+    public long Generate() => _idGenerator.CreateId();
 }

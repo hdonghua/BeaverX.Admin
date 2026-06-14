@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class SiteMessageAdminController : BeaverXController
+public class SiteMessageAdminController : BeaverXControllerBase
 {
     private readonly ISiteMessageAdminAppService _siteMessageAdminAppService;
 
