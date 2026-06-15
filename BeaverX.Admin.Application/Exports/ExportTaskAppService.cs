@@ -2,7 +2,6 @@ using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Application.Contracts.Exports.Dtos;
 using BeaverX.Admin.Application.Realtime;
-using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;

@@ -1,6 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Messages;
 using BeaverX.Admin.Application.Contracts.Messages.Dtos;
-using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Core.Dependency;

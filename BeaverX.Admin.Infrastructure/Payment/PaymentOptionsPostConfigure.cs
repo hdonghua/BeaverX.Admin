@@ -6,22 +6,22 @@ namespace BeaverX.Admin.Infrastructure.Payment;
 
 public class PaymentOptionsPostConfigure : IConfigureOptions<PaymentOptions>
 {
-  private readonly IHostEnvironment _environment;
+    private readonly IHostEnvironment _environment;
 
-  public PaymentOptionsPostConfigure(IHostEnvironment environment)
-  {
-    _environment = environment;
-  }
-
-  public void Configure(PaymentOptions options)
-  {
-    if (Path.IsPathRooted(options.CertCacheRootPath))
+    public PaymentOptionsPostConfigure(IHostEnvironment environment)
     {
-      return;
+        _environment = environment;
     }
 
-    options.CertCacheRootPath = Path.Combine(
-      _environment.ContentRootPath,
-      options.CertCacheRootPath);
-  }
+    public void Configure(PaymentOptions options)
+    {
+        if (Path.IsPathRooted(options.CertCacheRootPath))
+        {
+            return;
+        }
+
+        options.CertCacheRootPath = Path.Combine(
+          _environment.ContentRootPath,
+          options.CertCacheRootPath);
+    }
 }

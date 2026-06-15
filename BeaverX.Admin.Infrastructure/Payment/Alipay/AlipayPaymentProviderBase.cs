@@ -1,8 +1,6 @@
 using System.Globalization;
-using Aop.Api;
 using Aop.Api.Domain;
 using Aop.Api.Request;
-using Aop.Api.Response;
 using Aop.Api.Util;
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
@@ -12,268 +10,268 @@ namespace BeaverX.Admin.Infrastructure.Payment.Alipay;
 /// <summary>支付宝 Provider 基类，封装查询、退款与回调验签的公共逻辑</summary>
 public abstract class AlipayPaymentProviderBase : PaymentProviderBase
 {
-  public abstract override string ChannelCode { get; }
+    public abstract override string ChannelCode { get; }
 
-  public override Task<QueryPayResult> QueryPayAsync(
-    PaymentProviderChannelContext channel,
-    PaymentProviderOrderContext order,
-    CancellationToken cancellationToken = default)
-  {
-    var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    if (!AlipayPayHelper.ValidateConfig(config, out var error))
+    public override Task<QueryPayResult> QueryPayAsync(
+      PaymentProviderChannelContext channel,
+      PaymentProviderOrderContext order,
+      CancellationToken cancellationToken = default)
     {
-      return Task.FromResult(new QueryPayResult
-      {
-        Status = PaymentOrderStatus.Paying,
-        ErrorMessage = error,
-      });
-    }
-
-    try
-    {
-      var client = AlipaySdkClientFactory.Create(config);
-      var request = new AlipayTradeQueryRequest();
-      request.SetBizModel(new AlipayTradeQueryModel
-      {
-        OutTradeNo = order.OrderNo,
-      });
-
-      var certMode = AlipaySdkClientFactory.UsesCertificateMode(config);
-      var response = certMode
-        ? client.CertificateExecute(request)
-        : client.Execute(request);
-      if (response.IsError)
-      {
-        return Task.FromResult(new QueryPayResult
+        var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
+        if (!AlipayPayHelper.ValidateConfig(config, out var error))
         {
-          Status = PaymentOrderStatus.Paying,
-          ErrorMessage = response.SubMsg ?? response.Msg,
-        });
-      }
-
-      var status = response.TradeStatus switch
-      {
-        "TRADE_SUCCESS" or "TRADE_FINISHED" => PaymentOrderStatus.Success,
-        "TRADE_CLOSED" => PaymentOrderStatus.Closed,
-        _ => PaymentOrderStatus.Paying,
-      };
-
-      DateTime? paidTime = null;
-      if (!string.IsNullOrWhiteSpace(response.SendPayDate) &&
-          DateTime.TryParse(response.SendPayDate, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsed))
-      {
-        paidTime = parsed;
-      }
-
-      return Task.FromResult(new QueryPayResult
-      {
-        Status = status,
-        ChannelOrderNo = response.TradeNo,
-        PaidTime = paidTime,
-      });
-    }
-    catch (Exception ex)
-    {
-      return Task.FromResult(new QueryPayResult
-      {
-        Status = PaymentOrderStatus.Paying,
-        ErrorMessage = ex.Message,
-      });
-    }
-  }
-
-  public override Task<RefundProviderResult> RefundAsync(
-    PaymentProviderChannelContext channel,
-    PaymentProviderOrderContext order,
-    PaymentProviderRefundContext refund,
-    string notifyUrl,
-    CancellationToken cancellationToken = default)
-  {
-    var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    if (!AlipayPayHelper.ValidateConfig(config, out var error))
-    {
-      return Task.FromResult(new RefundProviderResult
-      {
-        Success = false,
-        Status = PaymentRefundStatus.Failed,
-        ErrorMessage = error,
-      });
-    }
-
-    try
-    {
-      var client = AlipaySdkClientFactory.Create(config);
-      var request = new AlipayTradeRefundRequest();
-      request.SetNotifyUrl(notifyUrl);
-      request.SetBizModel(new AlipayTradeRefundModel
-      {
-        OutTradeNo = order.OrderNo,
-        RefundAmount = AlipayPayHelper.FormatAmountYuan(refund.Amount),
-        OutRequestNo = refund.RefundNo,
-        RefundReason = refund.Reason,
-      });
-
-      var certMode = AlipaySdkClientFactory.UsesCertificateMode(config);
-      var response = certMode
-        ? client.CertificateExecute(request)
-        : client.Execute(request);
-      if (response.IsError)
-      {
-        return Task.FromResult(new RefundProviderResult
-        {
-          Success = false,
-          Status = PaymentRefundStatus.Failed,
-          ErrorCode = response.SubCode ?? response.Code,
-          ErrorMessage = response.SubMsg ?? response.Msg,
-        });
-      }
-
-      return Task.FromResult(new RefundProviderResult
-      {
-        Success = true,
-        Status = PaymentRefundStatus.Success,
-        ChannelRefundNo = response.TradeNo ?? refund.RefundNo,
-        RefundTime = DateTime.UtcNow,
-      });
-    }
-    catch (Exception ex)
-    {
-      return Task.FromResult(new RefundProviderResult
-      {
-        Success = false,
-        Status = PaymentRefundStatus.Failed,
-        ErrorMessage = ex.Message,
-      });
-    }
-  }
-
-  public override Task<NotifyHandleResult> HandlePayNotifyAsync(
-    PaymentProviderChannelContext channel,
-    PaymentNotifyContext context,
-    CancellationToken cancellationToken = default)
-  {
-    var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    var parameters = ParseNotifyParameters(context.RawBody);
-    if (!VerifyNotify(config, parameters, out var error))
-    {
-      return Task.FromResult(new NotifyHandleResult
-      {
-        Success = false,
-        ResponseBody = "fail",
-        ProcessMessage = error,
-      });
-    }
-
-    var tradeStatus = parameters.GetValueOrDefault("trade_status");
-    if (tradeStatus is not "TRADE_SUCCESS" and not "TRADE_FINISHED")
-    {
-      return Task.FromResult(new NotifyHandleResult
-      {
-        Success = true,
-        ResponseBody = "success",
-        ProcessMessage = $"忽略状态: {tradeStatus}",
-      });
-    }
-
-    return Task.FromResult(new NotifyHandleResult
-    {
-      Success = true,
-      OrderNo = parameters.GetValueOrDefault("out_trade_no"),
-      ResponseBody = "success",
-      ProcessMessage = "alipay pay notify",
-    });
-  }
-
-  public override Task<NotifyHandleResult> HandleRefundNotifyAsync(
-    PaymentProviderChannelContext channel,
-    PaymentNotifyContext context,
-    CancellationToken cancellationToken = default)
-  {
-    var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
-    var parameters = ParseNotifyParameters(context.RawBody);
-    if (!VerifyNotify(config, parameters, out var error))
-    {
-      return Task.FromResult(new NotifyHandleResult
-      {
-        Success = false,
-        ResponseBody = "fail",
-        ProcessMessage = error,
-      });
-    }
-
-    return Task.FromResult(new NotifyHandleResult
-    {
-      Success = true,
-      RefundNo = parameters.GetValueOrDefault("out_biz_no") ?? parameters.GetValueOrDefault("out_request_no"),
-      ResponseBody = "success",
-      ProcessMessage = "alipay refund notify",
-    });
-  }
-
-  private static bool VerifyNotify(
-    AlipayChannelConfig config,
-    Dictionary<string, string> parameters,
-    out string error)
-  {
-    if (parameters.Count == 0)
-    {
-      error = "支付宝回调参数为空";
-      return false;
-    }
-
-    var signType = string.IsNullOrWhiteSpace(config.SignType) ? "RSA2" : config.SignType;
-    try
-    {
-      if (AlipaySdkClientFactory.UsesCertificateMode(config))
-      {
-        var verified = AlipaySignature.RSACertCheckV1(
-          parameters,
-          config.AlipayPublicCertPath!,
-          "utf-8",
-          signType);
-        if (!verified)
-        {
-          error = "支付宝证书模式回调验签失败";
-          return false;
+            return Task.FromResult(new QueryPayResult
+            {
+                Status = PaymentOrderStatus.Paying,
+                ErrorMessage = error,
+            });
         }
-      }
-      else
-      {
-        var verified = AlipaySignature.RSACheckV1(
-          parameters,
-          config.AlipayPublicKey,
-          "utf-8",
-          signType,
-          false);
-        if (!verified)
+
+        try
         {
-          error = "支付宝公钥模式回调验签失败";
-          return false;
+            var client = AlipaySdkClientFactory.Create(config);
+            var request = new AlipayTradeQueryRequest();
+            request.SetBizModel(new AlipayTradeQueryModel
+            {
+                OutTradeNo = order.OrderNo,
+            });
+
+            var certMode = AlipaySdkClientFactory.UsesCertificateMode(config);
+            var response = certMode
+              ? client.CertificateExecute(request)
+              : client.Execute(request);
+            if (response.IsError)
+            {
+                return Task.FromResult(new QueryPayResult
+                {
+                    Status = PaymentOrderStatus.Paying,
+                    ErrorMessage = response.SubMsg ?? response.Msg,
+                });
+            }
+
+            var status = response.TradeStatus switch
+            {
+                "TRADE_SUCCESS" or "TRADE_FINISHED" => PaymentOrderStatus.Success,
+                "TRADE_CLOSED" => PaymentOrderStatus.Closed,
+                _ => PaymentOrderStatus.Paying,
+            };
+
+            DateTime? paidTime = null;
+            if (!string.IsNullOrWhiteSpace(response.SendPayDate) &&
+                DateTime.TryParse(response.SendPayDate, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsed))
+            {
+                paidTime = parsed;
+            }
+
+            return Task.FromResult(new QueryPayResult
+            {
+                Status = status,
+                ChannelOrderNo = response.TradeNo,
+                PaidTime = paidTime,
+            });
         }
-      }
-
-      error = string.Empty;
-      return true;
+        catch (Exception ex)
+        {
+            return Task.FromResult(new QueryPayResult
+            {
+                Status = PaymentOrderStatus.Paying,
+                ErrorMessage = ex.Message,
+            });
+        }
     }
-    catch (Exception ex)
+
+    public override Task<RefundProviderResult> RefundAsync(
+      PaymentProviderChannelContext channel,
+      PaymentProviderOrderContext order,
+      PaymentProviderRefundContext refund,
+      string notifyUrl,
+      CancellationToken cancellationToken = default)
     {
-      error = ex.Message;
-      return false;
-    }
-  }
+        var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
+        if (!AlipayPayHelper.ValidateConfig(config, out var error))
+        {
+            return Task.FromResult(new RefundProviderResult
+            {
+                Success = false,
+                Status = PaymentRefundStatus.Failed,
+                ErrorMessage = error,
+            });
+        }
 
-  private static Dictionary<string, string> ParseNotifyParameters(string rawBody)
-  {
-    var result = new Dictionary<string, string>(StringComparer.Ordinal);
-    foreach (var pair in rawBody.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        try
+        {
+            var client = AlipaySdkClientFactory.Create(config);
+            var request = new AlipayTradeRefundRequest();
+            request.SetNotifyUrl(notifyUrl);
+            request.SetBizModel(new AlipayTradeRefundModel
+            {
+                OutTradeNo = order.OrderNo,
+                RefundAmount = AlipayPayHelper.FormatAmountYuan(refund.Amount),
+                OutRequestNo = refund.RefundNo,
+                RefundReason = refund.Reason,
+            });
+
+            var certMode = AlipaySdkClientFactory.UsesCertificateMode(config);
+            var response = certMode
+              ? client.CertificateExecute(request)
+              : client.Execute(request);
+            if (response.IsError)
+            {
+                return Task.FromResult(new RefundProviderResult
+                {
+                    Success = false,
+                    Status = PaymentRefundStatus.Failed,
+                    ErrorCode = response.SubCode ?? response.Code,
+                    ErrorMessage = response.SubMsg ?? response.Msg,
+                });
+            }
+
+            return Task.FromResult(new RefundProviderResult
+            {
+                Success = true,
+                Status = PaymentRefundStatus.Success,
+                ChannelRefundNo = response.TradeNo ?? refund.RefundNo,
+                RefundTime = DateTime.UtcNow,
+            });
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(new RefundProviderResult
+            {
+                Success = false,
+                Status = PaymentRefundStatus.Failed,
+                ErrorMessage = ex.Message,
+            });
+        }
+    }
+
+    public override Task<NotifyHandleResult> HandlePayNotifyAsync(
+      PaymentProviderChannelContext channel,
+      PaymentNotifyContext context,
+      CancellationToken cancellationToken = default)
     {
-      var parts = pair.Split('=', 2);
-      if (parts.Length == 2)
-      {
-        result[parts[0]] = Uri.UnescapeDataString(parts[1].Replace('+', ' '));
-      }
+        var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
+        var parameters = ParseNotifyParameters(context.RawBody);
+        if (!VerifyNotify(config, parameters, out var error))
+        {
+            return Task.FromResult(new NotifyHandleResult
+            {
+                Success = false,
+                ResponseBody = "fail",
+                ProcessMessage = error,
+            });
+        }
+
+        var tradeStatus = parameters.GetValueOrDefault("trade_status");
+        if (tradeStatus is not "TRADE_SUCCESS" and not "TRADE_FINISHED")
+        {
+            return Task.FromResult(new NotifyHandleResult
+            {
+                Success = true,
+                ResponseBody = "success",
+                ProcessMessage = $"忽略状态: {tradeStatus}",
+            });
+        }
+
+        return Task.FromResult(new NotifyHandleResult
+        {
+            Success = true,
+            OrderNo = parameters.GetValueOrDefault("out_trade_no"),
+            ResponseBody = "success",
+            ProcessMessage = "alipay pay notify",
+        });
     }
 
-    return result;
-  }
+    public override Task<NotifyHandleResult> HandleRefundNotifyAsync(
+      PaymentProviderChannelContext channel,
+      PaymentNotifyContext context,
+      CancellationToken cancellationToken = default)
+    {
+        var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(channel.ConfigJson);
+        var parameters = ParseNotifyParameters(context.RawBody);
+        if (!VerifyNotify(config, parameters, out var error))
+        {
+            return Task.FromResult(new NotifyHandleResult
+            {
+                Success = false,
+                ResponseBody = "fail",
+                ProcessMessage = error,
+            });
+        }
+
+        return Task.FromResult(new NotifyHandleResult
+        {
+            Success = true,
+            RefundNo = parameters.GetValueOrDefault("out_biz_no") ?? parameters.GetValueOrDefault("out_request_no"),
+            ResponseBody = "success",
+            ProcessMessage = "alipay refund notify",
+        });
+    }
+
+    private static bool VerifyNotify(
+      AlipayChannelConfig config,
+      Dictionary<string, string> parameters,
+      out string error)
+    {
+        if (parameters.Count == 0)
+        {
+            error = "支付宝回调参数为空";
+            return false;
+        }
+
+        var signType = string.IsNullOrWhiteSpace(config.SignType) ? "RSA2" : config.SignType;
+        try
+        {
+            if (AlipaySdkClientFactory.UsesCertificateMode(config))
+            {
+                var verified = AlipaySignature.RSACertCheckV1(
+                  parameters,
+                  config.AlipayPublicCertPath!,
+                  "utf-8",
+                  signType);
+                if (!verified)
+                {
+                    error = "支付宝证书模式回调验签失败";
+                    return false;
+                }
+            }
+            else
+            {
+                var verified = AlipaySignature.RSACheckV1(
+                  parameters,
+                  config.AlipayPublicKey,
+                  "utf-8",
+                  signType,
+                  false);
+                if (!verified)
+                {
+                    error = "支付宝公钥模式回调验签失败";
+                    return false;
+                }
+            }
+
+            error = string.Empty;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    private static Dictionary<string, string> ParseNotifyParameters(string rawBody)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in rawBody.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                result[parts[0]] = Uri.UnescapeDataString(parts[1].Replace('+', ' '));
+            }
+        }
+
+        return result;
+    }
 }

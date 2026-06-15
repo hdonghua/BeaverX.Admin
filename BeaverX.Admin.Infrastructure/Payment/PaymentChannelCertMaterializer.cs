@@ -9,100 +9,100 @@ namespace BeaverX.Admin.Infrastructure.Payment;
 
 public class PaymentChannelCertMaterializer : IPaymentChannelCertMaterializer, IScopedDependency
 {
-  private static readonly JsonSerializerOptions JsonOptions = new()
-  {
-    PropertyNameCaseInsensitive = true,
-  };
-
-  private readonly IBlobStorage _blobStorage;
-  private readonly PaymentOptions _options;
-
-  public PaymentChannelCertMaterializer(
-    IBlobStorage blobStorage,
-    IOptions<PaymentOptions> options)
-  {
-    _blobStorage = blobStorage;
-    _options = options.Value;
-  }
-
-  public async Task<string> ResolveAlipayConfigJsonAsync(
-    long channelId,
-    string configJson,
-    CancellationToken cancellationToken = default)
-  {
-    var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(configJson);
-    var changed = false;
-
-    changed |= await EnsureCertFileAsync(
-      config.MerchantCertUrl,
-      config.MerchantCertPath,
-      value => config.MerchantCertPath = value,
-      cancellationToken);
-
-    changed |= await EnsureCertFileAsync(
-      config.AlipayPublicCertUrl,
-      config.AlipayPublicCertPath,
-      value => config.AlipayPublicCertPath = value,
-      cancellationToken);
-
-    changed |= await EnsureCertFileAsync(
-      config.AlipayRootCertUrl,
-      config.AlipayRootCertPath,
-      value => config.AlipayRootCertPath = value,
-      cancellationToken);
-
-    if (!changed)
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-      return configJson;
+        PropertyNameCaseInsensitive = true,
+    };
+
+    private readonly IBlobStorage _blobStorage;
+    private readonly PaymentOptions _options;
+
+    public PaymentChannelCertMaterializer(
+      IBlobStorage blobStorage,
+      IOptions<PaymentOptions> options)
+    {
+        _blobStorage = blobStorage;
+        _options = options.Value;
     }
 
-    return JsonSerializer.Serialize(config, JsonOptions);
-  }
-
-  private async Task<bool> EnsureCertFileAsync(
-    string? certUrl,
-    string? relativePath,
-    Action<string> setAbsolutePath,
-    CancellationToken cancellationToken)
-  {
-    if (string.IsNullOrWhiteSpace(certUrl) || string.IsNullOrWhiteSpace(relativePath))
+    public async Task<string> ResolveAlipayConfigJsonAsync(
+      long channelId,
+      string configJson,
+      CancellationToken cancellationToken = default)
     {
-      return false;
+        var config = PaymentConfigHelper.ParseConfig<AlipayChannelConfig>(configJson);
+        var changed = false;
+
+        changed |= await EnsureCertFileAsync(
+          config.MerchantCertUrl,
+          config.MerchantCertPath,
+          value => config.MerchantCertPath = value,
+          cancellationToken);
+
+        changed |= await EnsureCertFileAsync(
+          config.AlipayPublicCertUrl,
+          config.AlipayPublicCertPath,
+          value => config.AlipayPublicCertPath = value,
+          cancellationToken);
+
+        changed |= await EnsureCertFileAsync(
+          config.AlipayRootCertUrl,
+          config.AlipayRootCertPath,
+          value => config.AlipayRootCertPath = value,
+          cancellationToken);
+
+        if (!changed)
+        {
+            return configJson;
+        }
+
+        return JsonSerializer.Serialize(config, JsonOptions);
     }
 
-    var normalizedRelative = relativePath.Trim().Replace('\\', '/');
-    var localAbsolute = Path.GetFullPath(
-      Path.Combine(_options.CertCacheRootPath, normalizedRelative));
-
-    if (!File.Exists(localAbsolute))
+    private async Task<bool> EnsureCertFileAsync(
+      string? certUrl,
+      string? relativePath,
+      Action<string> setAbsolutePath,
+      CancellationToken cancellationToken)
     {
-      var objectKey = ExtractObjectKeyFromProxyUrl(certUrl);
-      var blob = await _blobStorage.GetAsync(objectKey, cancellationToken: cancellationToken);
-      await using var stream = blob.Content;
-      await using var memory = new MemoryStream();
-      await stream.CopyToAsync(memory, cancellationToken);
+        if (string.IsNullOrWhiteSpace(certUrl) || string.IsNullOrWhiteSpace(relativePath))
+        {
+            return false;
+        }
 
-      var directory = Path.GetDirectoryName(localAbsolute)!;
-      Directory.CreateDirectory(directory);
-      await File.WriteAllBytesAsync(localAbsolute, memory.ToArray(), cancellationToken);
+        var normalizedRelative = relativePath.Trim().Replace('\\', '/');
+        var localAbsolute = Path.GetFullPath(
+          Path.Combine(_options.CertCacheRootPath, normalizedRelative));
+
+        if (!File.Exists(localAbsolute))
+        {
+            var objectKey = ExtractObjectKeyFromProxyUrl(certUrl);
+            var blob = await _blobStorage.GetAsync(objectKey, cancellationToken: cancellationToken);
+            await using var stream = blob.Content;
+            await using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory, cancellationToken);
+
+            var directory = Path.GetDirectoryName(localAbsolute)!;
+            Directory.CreateDirectory(directory);
+            await File.WriteAllBytesAsync(localAbsolute, memory.ToArray(), cancellationToken);
+        }
+
+        setAbsolutePath(localAbsolute);
+        return true;
     }
 
-    setAbsolutePath(localAbsolute);
-    return true;
-  }
-
-  internal static string ExtractObjectKeyFromProxyUrl(string certUrl)
-  {
-    var value = certUrl.Trim();
-    const string marker = "/api/File/proxy/";
-    var index = value.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-    if (index >= 0)
+    internal static string ExtractObjectKeyFromProxyUrl(string certUrl)
     {
-      value = value[(index + marker.Length)..];
-    }
+        var value = certUrl.Trim();
+        const string marker = "/api/File/proxy/";
+        var index = value.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index >= 0)
+        {
+            value = value[(index + marker.Length)..];
+        }
 
-    value = value.TrimStart('/');
-    return string.Join('/', value.Split('/', StringSplitOptions.RemoveEmptyEntries)
-      .Select(Uri.UnescapeDataString));
-  }
+        value = value.TrimStart('/');
+        return string.Join('/', value.Split('/', StringSplitOptions.RemoveEmptyEntries)
+          .Select(Uri.UnescapeDataString));
+    }
 }

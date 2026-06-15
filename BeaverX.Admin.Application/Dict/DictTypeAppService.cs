@@ -1,7 +1,6 @@
 using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Dict;
 using BeaverX.Admin.Application.Contracts.Dict.Dtos;
-using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Dict;
