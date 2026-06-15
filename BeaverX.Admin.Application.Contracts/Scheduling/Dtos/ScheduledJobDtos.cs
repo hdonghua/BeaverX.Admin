@@ -38,18 +38,14 @@ public class ScheduledJobLogDto
     public bool IsManualTrigger { get; set; }
 }
 
-public class ScheduledJobQueryDto
+public class ScheduledJobQueryDto : PagedQueryDto
 {
     public string? Keyword { get; set; }
     public bool? IsEnabled { get; set; }
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
 }
 
-public class ScheduledJobLogQueryDto
+public class ScheduledJobLogQueryDto : PagedQueryDto
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
 }
 
 public class CreateScheduledJobDto

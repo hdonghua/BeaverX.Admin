@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Payment;
 
 namespace BeaverX.Admin.Application.Contracts.Payment.Dtos;
@@ -39,10 +40,8 @@ public class UpdatePaymentChannelDto
     public int? Sort { get; set; }
 }
 
-public class PaymentChannelQueryDto
+public class PaymentChannelQueryDto : PagedQueryDto
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
     public string? Keyword { get; set; }
     public bool? IsEnabled { get; set; }
 }
@@ -86,10 +85,8 @@ public class CreatePaymentOrderDto
     public int? ExpireMinutes { get; set; }
 }
 
-public class PaymentOrderQueryDto
+public class PaymentOrderQueryDto : PagedQueryDto
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
     public string? OrderNo { get; set; }
     public string? ChannelCode { get; set; }
     public PaymentOrderStatus? Status { get; set; }
@@ -131,10 +128,8 @@ public class PaymentRefundDto
     public DateTime CreationTime { get; set; }
 }
 
-public class PaymentRefundQueryDto
+public class PaymentRefundQueryDto : PagedQueryDto
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
     public string? OrderNo { get; set; }
     public string? RefundNo { get; set; }
     public PaymentRefundStatus? Status { get; set; }

@@ -1,3 +1,5 @@
+using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
+
 namespace BeaverX.Admin.Application.Contracts.Config.Dtos;
 
 public class ConfigDto
@@ -13,13 +15,11 @@ public class ConfigDto
     public DateTime CreationTime { get; set; }
 }
 
-public class ConfigQueryDto
+public class ConfigQueryDto : PagedQueryDto
 {
     public string? Keyword { get; set; }
     public string? Group { get; set; }
     public bool? IsEnabled { get; set; }
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
 }
 
 public class CreateConfigDto

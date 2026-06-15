@@ -1,3 +1,5 @@
+using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
+
 namespace BeaverX.Admin.Application.Contracts.Dict.Dtos;
 
 public class DictTypeDto
@@ -10,12 +12,10 @@ public class DictTypeDto
     public DateTime CreationTime { get; set; }
 }
 
-public class DictTypeQueryDto
+public class DictTypeQueryDto : PagedQueryDto
 {
     public string? Keyword { get; set; }
     public bool? IsEnabled { get; set; }
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
 }
 
 public class CreateDictTypeDto

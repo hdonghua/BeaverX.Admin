@@ -14,12 +14,10 @@ public class UserDto
     public List<string> RoleNames { get; set; } = [];
 }
 
-public class UserQueryDto
+public class UserQueryDto : PagedQueryDto
 {
     public string? Keyword { get; set; }
     public bool? IsEnabled { get; set; }
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
 }
 
 public class CreateUserDto
