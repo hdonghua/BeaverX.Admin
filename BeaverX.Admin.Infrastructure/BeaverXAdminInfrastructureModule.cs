@@ -75,10 +75,9 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
 
         services.AddCap(options =>
         {
-            options.UsePostgreSql(postgresOptions =>
+            options.UseMySql(myOptions =>
             {
-                postgresOptions.ConnectionString = connectionString;
-                postgresOptions.Schema = "cap";
+                myOptions.ConnectionString = connectionString;
             });
             options.UseInMemoryMessageQueue();
             options.FailedRetryCount = 5;

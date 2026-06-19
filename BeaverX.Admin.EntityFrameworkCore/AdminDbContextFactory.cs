@@ -15,9 +15,9 @@ public class AdminDbContextFactory : IDesignTimeDbContextFactory<AdminDbContext>
             ?? throw new InvalidOperationException("Connection string 'Default' not found.");
 
         var optionsBuilder = new DbContextOptionsBuilder<AdminDbContext>();
-        optionsBuilder.UseNpgsql(connectionString, npgsqlOptions =>
+        optionsBuilder.UseMySQL(connectionString, mySqlOptions =>
         {
-            npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
+            mySqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
         });
         optionsBuilder.AddInterceptors(new UtcDateTimeSaveChangesInterceptor());
 

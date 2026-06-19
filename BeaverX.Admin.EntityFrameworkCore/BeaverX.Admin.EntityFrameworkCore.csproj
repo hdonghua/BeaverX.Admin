@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BeaverX.EntityFrameworkCore.PostgreSql" Version="1.0.0" />
+    <PackageReference Include="BeaverX.EntityFrameworkCore.MySql" Version="1.0.0" />
     <PackageReference Include="IdGen" Version="3.0.7" />
     <PackageReference Include="IdGen.DependencyInjection" Version="3.0.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />

@@ -11,176 +11,186 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterDatabase()
+                .Annotation("MySQL:Charset", "utf8mb4");
+
             migrationBuilder.CreateTable(
                 name: "export_tasks",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
-                    ExportType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Parameters = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    FileName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    ObjectKey = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    FileUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    ErrorMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
-                    CompletedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ExportType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Parameters = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: true),
+                    FileName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    ObjectKey = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    FileUrl = table.Column<string>(type: "varchar(2048)", maxLength: 2048, nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: true),
+                    CompletedTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_export_tasks", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "local_message_outbox",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    CapMessageId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    ConsumedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CapMessageId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    ConsumedTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_local_message_outbox", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "pay_channels",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    ChannelName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    ProviderType = table.Column<int>(type: "integer", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    ConfigJson = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: false),
-                    NotifyUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Sort = table.Column<int>(type: "integer", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ChannelCode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
+                    ChannelName = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    ProviderType = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    ConfigJson = table.Column<string>(type: "varchar(8000)", maxLength: 8000, nullable: false),
+                    NotifyUrl = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    Remark = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    Sort = table.Column<int>(type: "int", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_pay_channels", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "pay_notify_logs",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    NotifyType = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
-                    ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    RefundNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    RawBody = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: false),
-                    ProcessSuccess = table.Column<bool>(type: "boolean", nullable: false),
-                    ProcessMessage = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    CreatedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    NotifyType = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false),
+                    ChannelCode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
+                    OrderNo = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    RefundNo = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    RawBody = table.Column<string>(type: "varchar(8000)", maxLength: 8000, nullable: false),
+                    ProcessSuccess = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    ProcessMessage = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    CreatedTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_pay_notify_logs", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "pay_orders",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    Subject = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    Description = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    OrderNo = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    ChannelCode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
+                    Subject = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    Description = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                     Amount = table.Column<long>(type: "bigint", nullable: false),
-                    Currency = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    ClientIp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    Attach = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    BusinessType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    BusinessId = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    Currency = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    ClientIp = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    Attach = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    BusinessType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    BusinessId = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    ExpireTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    PaidTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ChannelOrderNo = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    ChannelUserId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    QrCodeUrl = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
-                    AppPayOrderString = table.Column<string>(type: "character varying(4096)", maxLength: 4096, nullable: true),
+                    ExpireTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    PaidTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ChannelOrderNo = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    ChannelUserId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    QrCodeUrl = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: true),
+                    AppPayOrderString = table.Column<string>(type: "varchar(4096)", maxLength: 4096, nullable: true),
                     RefundedAmount = table.Column<long>(type: "bigint", nullable: false),
-                    ErrorCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    ErrorMessage = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ErrorCode = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_pay_orders", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_configs",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    Key = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    Value = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
-                    Label = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    Group = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Sort = table.Column<int>(type: "integer", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Key = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    Value = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: false),
+                    Label = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    Group = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    Remark = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    Sort = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_sys_configs", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_dict_types",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Code = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Remark = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_sys_dict_types", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_menus",
@@ -188,22 +198,22 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     ParentId = table.Column<long>(type: "bigint", nullable: true),
-                    Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    MenuType = table.Column<int>(type: "integer", nullable: false),
-                    Perms = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    Path = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Component = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Icon = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    Sort = table.Column<int>(type: "integer", nullable: false),
-                    IsVisible = table.Column<bool>(type: "boolean", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    IsExternal = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Name = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    MenuType = table.Column<int>(type: "int", nullable: false),
+                    Perms = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    Path = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    Component = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    Icon = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    Sort = table.Column<int>(type: "int", nullable: false),
+                    IsVisible = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsExternal = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -215,110 +225,114 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_menus",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_roles",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Description = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Sort = table.Column<int>(type: "integer", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Code = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Description = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    Sort = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_sys_roles", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_scheduled_jobs",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    JobCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    JobType = table.Column<int>(type: "integer", nullable: false),
-                    CronExpression = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    TimeZoneId = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    Description = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    HttpMethod = table.Column<int>(type: "integer", nullable: false),
-                    HttpUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
-                    HttpHeadersJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    HttpBody = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: true),
-                    TimeoutSeconds = table.Column<int>(type: "integer", nullable: false),
-                    LastRunTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastRunStatus = table.Column<int>(type: "integer", nullable: true),
-                    LastRunMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    JobCode = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    JobType = table.Column<int>(type: "int", nullable: false),
+                    CronExpression = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    TimeZoneId = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    Description = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    HttpMethod = table.Column<int>(type: "int", nullable: false),
+                    HttpUrl = table.Column<string>(type: "varchar(2048)", maxLength: 2048, nullable: false),
+                    HttpHeadersJson = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: true),
+                    HttpBody = table.Column<string>(type: "varchar(8000)", maxLength: 8000, nullable: true),
+                    TimeoutSeconds = table.Column<int>(type: "int", nullable: false),
+                    LastRunTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    LastRunStatus = table.Column<int>(type: "int", nullable: true),
+                    LastRunMessage = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_sys_scheduled_jobs", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_users",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    UserName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    PasswordHash = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    NickName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    Email = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    Phone = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
-                    Avatar = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UserName = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    PasswordHash = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    NickName = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    Email = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    Phone = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true),
+                    Avatar = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_sys_users", x => x.Id);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "pay_refunds",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    RefundNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    RefundNo = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     PaymentOrderId = table.Column<long>(type: "bigint", nullable: false),
-                    OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    OrderNo = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    ChannelCode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     Amount = table.Column<long>(type: "bigint", nullable: false),
                     TotalAmount = table.Column<long>(type: "bigint", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    ChannelRefundNo = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    ChannelOrderNo = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    Reason = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    RefundTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ErrorCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    ErrorMessage = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    ChannelRefundNo = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    ChannelOrderNo = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    Reason = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    RefundTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ErrorCode = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -330,7 +344,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "pay_orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_dict_data",
@@ -338,19 +353,19 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     DictTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    Label = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Value = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Sort = table.Column<int>(type: "integer", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    CssClass = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    ListClass = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Label = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Value = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    Sort = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CssClass = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    ListClass = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true),
+                    Remark = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -362,7 +377,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_dict_types",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_role_menus",
@@ -387,7 +403,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_roles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_scheduled_job_logs",
@@ -395,15 +412,15 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     JobId = table.Column<long>(type: "bigint", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    FinishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DurationMs = table.Column<int>(type: "integer", nullable: true),
-                    HttpStatusCode = table.Column<int>(type: "integer", nullable: true),
-                    ResponseBody = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    ErrorMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
-                    IsManualTrigger = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    StartedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    FinishedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    DurationMs = table.Column<int>(type: "int", nullable: true),
+                    HttpStatusCode = table.Column<int>(type: "int", nullable: true),
+                    ResponseBody = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: true),
+                    IsManualTrigger = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -415,7 +432,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_scheduled_jobs",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_user_messages",
@@ -423,14 +441,14 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
-                    Type = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
-                    Title = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    SubTitle = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    Avatar = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    Content = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: false),
-                    MessageType = table.Column<int>(type: "integer", nullable: true),
-                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Type = table.Column<string>(type: "varchar(16)", maxLength: 16, nullable: false),
+                    Title = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    SubTitle = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    Avatar = table.Column<string>(type: "varchar(512)", maxLength: 512, nullable: true),
+                    Content = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: false),
+                    MessageType = table.Column<int>(type: "int", nullable: true),
+                    IsRead = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -442,7 +460,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_user_refresh_tokens",
@@ -450,16 +469,16 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
-                    TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ReplacedByTokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TokenHash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ReplacedByTokenHash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatorId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeleterId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -471,7 +490,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "sys_user_roles",
@@ -496,7 +516,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         principalTable: "sys_users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateIndex(
                 name: "IX_export_tasks_CreationTime",

@@ -1,9 +1,10 @@
 using BeaverX.Admin.Infrastructure.Scheduling;
 using Hangfire;
-using Hangfire.PostgreSql;
+using Hangfire.MySql;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Transactions;
 
 namespace BeaverX.Admin.Infrastructure;
 
@@ -28,12 +29,18 @@ public static class HangfireServiceCollectionExtensions
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UsePostgreSqlStorage(
-                options => options.UseNpgsqlConnection(connectionString),
-                new PostgreSqlStorageOptions
+            .UseStorage(new MySqlStorage(
+                EnsureMySqlHangfireConnectionString(connectionString),
+                new MySqlStorageOptions
                 {
-                    SchemaName = hangfireOptions.SchemaName
-                }));
+                    TransactionIsolationLevel = IsolationLevel.ReadCommitted,
+                    QueuePollInterval = TimeSpan.FromSeconds(15),
+                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
+                    PrepareSchemaIfNecessary = true,
+                    DashboardJobListLimit = 50000,
+                    TablesPrefix = hangfireOptions.SchemaName
+                })));
 
         services.AddHangfireServer(options =>
         {
@@ -65,5 +72,20 @@ public static class HangfireServiceCollectionExtensions
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Hangfire.MySqlStorage 依赖用户变量，连接串需包含 Allow User Variables=True。
+    /// </summary>
+    private static string EnsureMySqlHangfireConnectionString(string connectionString)
+    {
+        if (connectionString.Contains("Allow User Variables", StringComparison.OrdinalIgnoreCase))
+        {
+            return connectionString;
+        }
+
+        var trimmed = connectionString.TrimEnd();
+        var separator = trimmed.EndsWith(';') ? string.Empty : ";";
+        return $"{trimmed}{separator}Allow User Variables=True;";
     }
 }

@@ -14,13 +14,13 @@
     <PackageReference Include="AlipaySDKNet.Standard" Version="4.9.448" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="DotNetCore.CAP" Version="10.0.0" />
-    <PackageReference Include="DotNetCore.CAP.PostgreSql" Version="10.0.0" />
+    <PackageReference Include="DotNetCore.CAP.MySql" Version="10.0.0" />
     <PackageReference Include="Minio" Version="7.0.0" />
     <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue" Version="10.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.20" />
-    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
+    <PackageReference Include="Hangfire.MySqlStorage" Version="2.0.3" />
   </ItemGroup>
 
   <ItemGroup>

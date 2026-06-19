@@ -4,6 +4,9 @@ public class HangfireOptions
 {
     public const string SectionName = "Hangfire";
 
+    /// <summary>
+    /// PostgreSQL 为 schema 名；MySQL 为 Hangfire 表前缀（如 hangfire_job）。
+    /// </summary>
     public string SchemaName { get; set; } = "hangfire";
 
     public bool EnableDashboard { get; set; } = true;

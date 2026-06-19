@@ -3,7 +3,7 @@ using BeaverX.Core.Modules;
 using BeaverX.Domain.IdGeneration;
 using BeaverX.EntityFrameworkCore;
 using BeaverX.EntityFrameworkCore.DependencyInjection;
-using BeaverX.EntityFrameworkCore.PostgreSql;
+using BeaverX.EntityFrameworkCore.MySql;
 using IdGen.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,7 +15,7 @@ namespace BeaverX.Admin.EntityFrameworkCore
     [DependsOn(
         typeof(BeaverXAdminDomainModule),
         typeof(BeaverXEntityFrameworkCoreModule),
-        typeof(BeaverXEntityFrameworkCorePostgreSqlModule)
+        typeof(BeaverXEntityFrameworkCoreMySqlModule)
     )]
     public class BeaverXAdminEntityFrameworkCoreModule : BeaverXModule
     {
@@ -30,7 +30,7 @@ namespace BeaverX.Admin.EntityFrameworkCore
             services.AddIdGen(idGenOptions.GeneratorId);
             services.AddSingleton<IIdGenerator<long>, SnowflakeEntityIdGenerator>();
 
-            services.Replace(ServiceDescriptor.Singleton<IDbDriverOptionsBuilder, AdminPostgreSqlDbDriverOptionsBuilder>());
+            services.Replace(ServiceDescriptor.Singleton<IDbDriverOptionsBuilder, AdminMySqlDbDriverOptionsBuilder>());
             services.AddBeaverXDbContext<AdminDbContext>(configuration.GetConnectionString("Default")!);
         }
     }
