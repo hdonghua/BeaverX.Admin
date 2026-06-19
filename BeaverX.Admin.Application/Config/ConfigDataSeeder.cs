@@ -54,7 +54,7 @@ public class ConfigDataSeeder : IScopedDependency, IDataSeeder
           {
               Key = "sys.user.initPassword",
               Label = "用户初始密码",
-              Value = "123456",
+              Value = "Admin@123",
               Group = "安全",
               Sort = 1,
               IsEnabled = true,

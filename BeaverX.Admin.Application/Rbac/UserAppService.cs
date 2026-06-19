@@ -85,10 +85,12 @@ public class UserAppService : IUserAppService, IScopedDependency
 
     public async Task<UserDto> CreateAsync(CreateUserDto input, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(input.UserName) || string.IsNullOrWhiteSpace(input.Password))
+        if (string.IsNullOrWhiteSpace(input.UserName))
         {
-            throw new BusinessException("用户名和密码不能为空");
+            throw new BusinessException("用户名不能为空");
         }
+
+        PasswordInputValidator.Validate(input.Password);
 
         if (await _userRepository.AnyAsync(x => x.UserName == input.UserName.Trim(), cancellationToken))
         {
@@ -156,10 +158,7 @@ public class UserAppService : IUserAppService, IScopedDependency
 
     public async Task ResetPasswordAsync(long id, ResetPasswordDto input, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(input.NewPassword))
-        {
-            throw new BusinessException("新密码不能为空");
-        }
+        PasswordInputValidator.Validate(input.NewPassword);
 
         var user = await _userRepository.GetAsync(id, cancellationToken);
         user.PasswordHash = _passwordHasher.Hash(input.NewPassword);

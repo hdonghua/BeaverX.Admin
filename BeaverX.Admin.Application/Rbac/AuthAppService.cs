@@ -165,11 +165,12 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         ChangePasswordDto input,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(input.OldPassword) ||
-            string.IsNullOrWhiteSpace(input.NewPassword))
+        if (string.IsNullOrWhiteSpace(input.OldPassword))
         {
-            throw new BusinessException("原密码和新密码不能为空");
+            throw new BusinessException("原密码不能为空");
         }
+
+        PasswordInputValidator.Validate(input.NewPassword);
 
         var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await _userRepository.GetAsync(userId, cancellationToken);

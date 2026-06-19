@@ -60,7 +60,7 @@ dotnet run --project BeaverX.Admin.Http.Host
 - 字典、配置、消息等演示数据
 - 各模块菜单与按钮权限
 
-默认管理员：**admin / admin123**
+默认管理员：**admin / Admin@123**
 
 ## 解决方案结构
 

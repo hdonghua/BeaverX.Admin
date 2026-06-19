@@ -93,7 +93,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             adminUser = new User
             {
                 UserName = "admin",
-                PasswordHash = _passwordHasher.Hash("admin123"),
+                PasswordHash = _passwordHasher.Hash("Admin@123"),
                 NickName = "系统管理员",
                 IsEnabled = true
             };
