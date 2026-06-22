@@ -1,4 +1,5 @@
 using BeaverX.Admin.Application.Caching;
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
@@ -13,15 +14,18 @@ public class MenuAppService : IMenuAppService, IScopedDependency
     private readonly IRepository<Menu> _menuRepository;
     private readonly MenuCacheService _menuCacheService;
     private readonly AppCacheInvalidator _cacheInvalidator;
+    private readonly IDemoModeService _demoModeService;
 
     public MenuAppService(
         IRepository<Menu> menuRepository,
         MenuCacheService menuCacheService,
-        AppCacheInvalidator cacheInvalidator)
+        AppCacheInvalidator cacheInvalidator,
+        IDemoModeService demoModeService)
     {
         _menuRepository = menuRepository;
         _menuCacheService = menuCacheService;
         _cacheInvalidator = cacheInvalidator;
+        _demoModeService = demoModeService;
     }
 
     public Task<List<MenuDto>> GetTreeAsync(CancellationToken cancellationToken = default) =>
@@ -35,6 +39,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
     public async Task<MenuDto> CreateAsync(CreateMenuDto input, CancellationToken cancellationToken = default)
     {
+        _demoModeService.EnsureMenuWritable();
         if (string.IsNullOrWhiteSpace(input.Name))
         {
             throw new BusinessException("菜单名称不能为空");
@@ -72,6 +77,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
     public async Task<MenuDto> UpdateAsync(long id, UpdateMenuDto input, CancellationToken cancellationToken = default)
     {
+        _demoModeService.EnsureMenuWritable();
         var menu = await _menuRepository.GetAsync(id, cancellationToken);
 
         if (input.ParentId.HasValue)
@@ -125,6 +131,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
+        _demoModeService.EnsureMenuWritable();
         var hasChildren = await _menuRepository.AnyAsync(x => x.ParentId == id, cancellationToken);
         if (hasChildren)
         {
@@ -137,6 +144,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
     public async Task ReorderAsync(ReorderMenusDto input, CancellationToken cancellationToken = default)
     {
+        _demoModeService.EnsureMenuWritable();
         if (input.OrderedIds == null || input.OrderedIds.Count == 0)
         {
             return;

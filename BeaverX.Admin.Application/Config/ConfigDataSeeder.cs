@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.Config;
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Core.Dependency;
@@ -6,17 +7,29 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Config;
 
-public class ConfigDataSeeder : IScopedDependency, IDataSeeder
+public class ConfigDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeeder
 {
     private readonly IRepository<SysConfig> _configRepository;
+    private readonly IDemoDatabaseHardResetService _demoHardResetService;
     private readonly ILogger<ConfigDataSeeder> _logger;
 
     public ConfigDataSeeder(
       IRepository<SysConfig> configRepository,
+      IDemoDatabaseHardResetService demoHardResetService,
       ILogger<ConfigDataSeeder> logger)
     {
         _configRepository = configRepository;
+        _demoHardResetService = demoHardResetService;
         _logger = logger;
+    }
+
+    public int Order => 30;
+
+    public async Task OverwriteAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Overwriting config demo data...");
+        await _demoHardResetService.ClearConfigsAsync(cancellationToken);
+        await SeedAsync(cancellationToken);
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)

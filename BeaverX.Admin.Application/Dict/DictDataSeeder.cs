@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Core.Dependency;
@@ -7,23 +8,35 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Dict;
 
-public class DictDataSeeder : IScopedDependency, IDataSeeder
+public class DictDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeeder
 {
     private const string MenuTypeDictCode = "sys_menu_type";
     private const string WorkTicketStatusDictCode = "work_ticket_status";
 
     private readonly IRepository<DictType> _dictTypeRepository;
     private readonly IRepository<DictData> _dictDataRepository;
+    private readonly IDemoDatabaseHardResetService _demoHardResetService;
     private readonly ILogger<DictDataSeeder> _logger;
 
     public DictDataSeeder(
       IRepository<DictType> dictTypeRepository,
       IRepository<DictData> dictDataRepository,
+      IDemoDatabaseHardResetService demoHardResetService,
       ILogger<DictDataSeeder> logger)
     {
         _dictTypeRepository = dictTypeRepository;
         _dictDataRepository = dictDataRepository;
+        _demoHardResetService = demoHardResetService;
         _logger = logger;
+    }
+
+    public int Order => 20;
+
+    public async Task OverwriteAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Overwriting dictionary demo data...");
+        await _demoHardResetService.ClearDictsAsync(cancellationToken);
+        await SeedAsync(cancellationToken);
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)

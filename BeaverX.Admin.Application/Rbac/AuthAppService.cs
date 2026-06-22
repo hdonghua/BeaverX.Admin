@@ -1,5 +1,6 @@
 using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Caching;
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
@@ -25,6 +26,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private readonly AppCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
+    private readonly IDemoModeService _demoModeService;
 
     public AuthAppService(
         IRepository<User> userRepository,
@@ -36,7 +38,8 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        IDemoModeService demoModeService)
     {
         _userRepository = userRepository;
         _jwtTokenService = jwtTokenService;
@@ -48,6 +51,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _demoModeService = demoModeService;
     }
 
     public async Task<LoginResultDto> LoginAsync(LoginDto input, CancellationToken cancellationToken = default)
@@ -136,6 +140,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     {
         var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await _userRepository.GetAsync(userId, cancellationToken);
+        _demoModeService.EnsureAdminUserOperable(user.UserName);
 
         if (input.NickName != null)
         {
@@ -174,6 +179,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
         var userId = _currentUser.Id ?? throw new BusinessException("未登录");
         var user = await _userRepository.GetAsync(userId, cancellationToken);
+        _demoModeService.EnsureAdminUserOperable(user.UserName);
 
         if (!_passwordHasher.Verify(input.OldPassword, user.PasswordHash))
         {
