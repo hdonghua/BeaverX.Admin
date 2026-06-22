@@ -107,4 +107,16 @@ public static class RbacPermissionCodes
             public const string List = "payment:refund:list";
         }
     }
+
+    public static class Ticket
+    {
+        public static class Work
+        {
+            public const string List = "ticket:work:list";
+            public const string Create = "ticket:work:create";
+            public const string Update = "ticket:work:update";
+            public const string Delete = "ticket:work:delete";
+            public const string Process = "ticket:work:process";
+        }
+    }
 }

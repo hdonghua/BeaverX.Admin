@@ -12,6 +12,34 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "biz_work_tickets",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TicketNo = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    Title = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    ImagesJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    ProcessResult = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ProcessResultImagesJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    HandlerUserId = table.Column<long>(type: "bigint", nullable: true),
+                    ProcessedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_biz_work_tickets", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "export_tasks",
                 columns: table => new
                 {
@@ -499,6 +527,17 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_biz_work_tickets_Status_CreationTime",
+                table: "biz_work_tickets",
+                columns: new[] { "Status", "CreationTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_biz_work_tickets_TicketNo",
+                table: "biz_work_tickets",
+                column: "TicketNo",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_export_tasks_CreationTime",
                 table: "export_tasks",
                 column: "CreationTime");
@@ -657,6 +696,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "biz_work_tickets");
+
             migrationBuilder.DropTable(
                 name: "export_tasks");
 

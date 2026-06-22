@@ -1085,6 +1085,81 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.ToTable("sys_scheduled_job_logs", (string)null);
                 });
 
+            modelBuilder.Entity("BeaverX.Admin.Domain.Ticket.WorkTicket", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("CreatorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("DeleterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("HandlerUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ImagesJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifierId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ProcessResult")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ProcessResultImagesJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("ProcessedTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TicketNo")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketNo")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreationTime");
+
+                    b.ToTable("biz_work_tickets", (string)null);
+                });
+
             modelBuilder.Entity("BeaverX.Admin.Domain.Dict.DictData", b =>
                 {
                     b.HasOne("BeaverX.Admin.Domain.Dict.DictType", "DictType")
