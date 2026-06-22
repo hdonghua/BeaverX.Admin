@@ -11,6 +11,7 @@ namespace BeaverX.Admin.Application.Dict;
 public class DictDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeeder
 {
     private const string MenuTypeDictCode = "sys_menu_type";
+    private const string WorkTicketStatusDictCode = "work_ticket_status";
 
     private readonly IRepository<DictType> _dictTypeRepository;
     private readonly IRepository<DictData> _dictDataRepository;
@@ -84,6 +85,68 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeed
             Value = "2",
             Sort = 3,
             ListClass = "orange",
+            IsEnabled = true,
+        }, cancellationToken);
+
+        await EnsureWorkTicketStatusDictAsync(cancellationToken);
+    }
+
+    private async Task EnsureWorkTicketStatusDictAsync(CancellationToken cancellationToken)
+    {
+        var dictType = await _dictTypeRepository.GetQueryable()
+            .FirstOrDefaultAsync(x => x.Code == WorkTicketStatusDictCode, cancellationToken);
+
+        if (dictType == null)
+        {
+            _logger.LogInformation("Seeding dictionary type {Code}...", WorkTicketStatusDictCode);
+
+            dictType = new DictType
+            {
+                Code = WorkTicketStatusDictCode,
+                Name = "工单状态",
+                Remark = "工单处理状态",
+                IsEnabled = true,
+            };
+            await _dictTypeRepository.InsertAsync(dictType, cancellationToken: cancellationToken);
+        }
+
+        await EnsureDictDataAsync(dictType.Id, "0", () => new DictData
+        {
+            DictTypeId = dictType.Id,
+            Label = "待处理",
+            Value = "0",
+            Sort = 1,
+            ListClass = "orange",
+            IsEnabled = true,
+        }, cancellationToken);
+
+        await EnsureDictDataAsync(dictType.Id, "1", () => new DictData
+        {
+            DictTypeId = dictType.Id,
+            Label = "处理中",
+            Value = "1",
+            Sort = 2,
+            ListClass = "arcoblue",
+            IsEnabled = true,
+        }, cancellationToken);
+
+        await EnsureDictDataAsync(dictType.Id, "2", () => new DictData
+        {
+            DictTypeId = dictType.Id,
+            Label = "已解决",
+            Value = "2",
+            Sort = 3,
+            ListClass = "green",
+            IsEnabled = true,
+        }, cancellationToken);
+
+        await EnsureDictDataAsync(dictType.Id, "3", () => new DictData
+        {
+            DictTypeId = dictType.Id,
+            Label = "已关闭",
+            Value = "3",
+            Sort = 4,
+            ListClass = "gray",
             IsEnabled = true,
         }, cancellationToken);
     }

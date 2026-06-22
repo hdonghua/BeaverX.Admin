@@ -6,6 +6,7 @@ using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Scheduling;
+using BeaverX.Admin.Domain.Ticket;
 using BeaverX.Domain.Users;
 using BeaverX.EntityFrameworkCore.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,7 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<PaymentNotifyLog> PaymentNotifyLogs => Set<PaymentNotifyLog>();
     public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
     public DbSet<ScheduledJobLog> ScheduledJobLogs => Set<ScheduledJobLog>();
+    public DbSet<WorkTicket> WorkTickets => Set<WorkTicket>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
         : base(options, currentUser)
@@ -295,6 +297,19 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
                 .WithMany()
                 .HasForeignKey(x => x.JobId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkTicket>(entity =>
+        {
+            entity.ToTable("biz_work_tickets");
+            entity.HasIndex(x => x.TicketNo).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.CreationTime });
+            entity.Property(x => x.TicketNo).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.ImagesJson).HasMaxLength(4000);
+            entity.Property(x => x.ProcessResult).HasMaxLength(2000);
+            entity.Property(x => x.ProcessResultImagesJson).HasMaxLength(4000);
         });
     }
 }

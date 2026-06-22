@@ -176,6 +176,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeed
         newMenuIds.AddRange(await EnsureMessageMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsureOnlineUserMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsurePaymentMenusAsync(cancellationToken));
+        newMenuIds.AddRange(await EnsureTicketMenusAsync(cancellationToken));
 
         return newMenuIds;
     }
@@ -618,6 +619,109 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeed
         }, cancellationToken);
 
         return [refundPage.Id];
+    }
+
+    private async Task<List<long>> EnsureTicketMenusAsync(CancellationToken cancellationToken)
+    {
+        var newMenuIds = new List<long>();
+
+        var (ticketDirId, dirMenuIds) = await EnsureTicketDirectoryAsync(cancellationToken);
+        newMenuIds.AddRange(dirMenuIds);
+        newMenuIds.AddRange(await EnsureWorkTicketMenusAsync(ticketDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureWorkTicketProcessMenusAsync(ticketDirId, cancellationToken));
+
+        return newMenuIds;
+    }
+
+    private async Task<(long DirectoryId, List<long> NewMenuIds)> EnsureTicketDirectoryAsync(
+        CancellationToken cancellationToken)
+    {
+        var existingId = await _menuRepository.GetQueryable()
+            .AsNoTracking()
+            .Where(x => x.Path == "/ticket" && x.MenuType == MenuType.Directory)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingId > 0)
+        {
+            return (existingId, []);
+        }
+
+        _logger.LogInformation("Seeding ticket directory menu...");
+
+        var ticketDir = await InsertMenuAsync(new Menu
+        {
+            Name = "工单管理",
+            MenuType = MenuType.Directory,
+            Path = "/ticket",
+            Icon = "customer-service",
+            Sort = 15,
+            IsVisible = true
+        }, cancellationToken);
+
+        return (ticketDir.Id, [ticketDir.Id]);
+    }
+
+    private async Task<List<long>> EnsureWorkTicketMenusAsync(
+        long parentId,
+        CancellationToken cancellationToken)
+    {
+        if (await _menuRepository.AnyAsync(
+                x => x.Perms == RbacPermissionCodes.Ticket.Work.List,
+                cancellationToken))
+        {
+            return [];
+        }
+
+        _logger.LogInformation("Seeding work ticket menus...");
+
+        var workPage = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "工单列表",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.Ticket.Work.List,
+            Path = "/ticket/work",
+            Component = "ticket/work/index",
+            Icon = "file",
+            Sort = 1
+        }, cancellationToken);
+
+        var buttons = await InsertManyAsync([
+            Btn(workPage.Id, "工单新增", RbacPermissionCodes.Ticket.Work.Create, 1),
+            Btn(workPage.Id, "工单修改", RbacPermissionCodes.Ticket.Work.Update, 2),
+            Btn(workPage.Id, "工单删除", RbacPermissionCodes.Ticket.Work.Delete, 3),
+        ], cancellationToken);
+
+        return [workPage.Id, ..buttons.Select(x => x.Id)];
+    }
+
+    private async Task<List<long>> EnsureWorkTicketProcessMenusAsync(
+        long parentId,
+        CancellationToken cancellationToken)
+    {
+        if (await _menuRepository.AnyAsync(
+                x => x.Perms == RbacPermissionCodes.Ticket.Work.Process,
+                cancellationToken))
+        {
+            return [];
+        }
+
+        _logger.LogInformation("Seeding work ticket process menus...");
+
+        var processPage = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "工单处理",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.Ticket.Work.Process,
+            Path = "/ticket/process",
+            Component = "ticket/process/index",
+            Icon = "tool",
+            Sort = 2
+        }, cancellationToken);
+
+        return [processPage.Id];
     }
 
     private static Menu Btn(long parentId, string name, string perms, int sort) => new()
