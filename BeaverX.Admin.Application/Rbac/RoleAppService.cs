@@ -1,4 +1,5 @@
 using BeaverX.Admin.Application.Caching;
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
@@ -16,19 +17,22 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     private readonly IRepository<RoleMenu> _roleMenuRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly AppCacheInvalidator _cacheInvalidator;
+    private readonly IDemoModeService _demoModeService;
 
     public RoleAppService(
         IRepository<Role> roleRepository,
         IRepository<Menu> menuRepository,
         IRepository<RoleMenu> roleMenuRepository,
         IUnitOfWork unitOfWork,
-        AppCacheInvalidator cacheInvalidator)
+        AppCacheInvalidator cacheInvalidator,
+        IDemoModeService demoModeService)
     {
         _roleRepository = roleRepository;
         _menuRepository = menuRepository;
         _roleMenuRepository = roleMenuRepository;
         _unitOfWork = unitOfWork;
         _cacheInvalidator = cacheInvalidator;
+        _demoModeService = demoModeService;
     }
 
     public async Task<PagedResultDto<RoleDto>> GetListAsync(RoleQueryDto input, CancellationToken cancellationToken = default)
@@ -88,6 +92,8 @@ public class RoleAppService : IRoleAppService, IScopedDependency
             throw new BusinessException("角色编码已存在");
         }
 
+        _demoModeService.EnsureSuperAdminRoleOperable(input.Code.Trim());
+
         var role = new Role
         {
             Code = input.Code.Trim(),
@@ -104,6 +110,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     public async Task<RoleDto> UpdateAsync(long id, UpdateRoleDto input, CancellationToken cancellationToken = default)
     {
         var role = await _roleRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureSuperAdminRoleOperable(role.Code);
 
         if (input.Name != null) role.Name = input.Name;
         if (input.Description != null) role.Description = input.Description;
@@ -121,6 +128,8 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
+        var role = await _roleRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureSuperAdminRoleOperable(role.Code);
         await _roleRepository.DeleteAsync(id, cancellationToken: cancellationToken);
         await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
@@ -128,6 +137,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     public async Task AssignMenusAsync(long id, AssignRoleMenusDto input, CancellationToken cancellationToken = default)
     {
         var role = await _roleRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureSuperAdminRoleOperable(role.Code);
         var menuIds = RbacRoleHelper.IsSuperAdminRole(role.Code)
             ? await GetAllMenuIdsAsync(cancellationToken)
             : input.MenuIds;

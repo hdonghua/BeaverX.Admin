@@ -15,6 +15,4 @@ public interface IDemoDatabaseHardResetService
     Task ClearUserMessagesAsync(CancellationToken cancellationToken = default);
 
     Task ClearNonAdminUsersAsync(CancellationToken cancellationToken = default);
-
-    Task ResetAdminUserAsync(CancellationToken cancellationToken = default);
 }

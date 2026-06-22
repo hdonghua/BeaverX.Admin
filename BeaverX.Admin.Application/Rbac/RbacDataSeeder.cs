@@ -49,7 +49,6 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeed
 
         await _demoHardResetService.ClearMenusAsync(cancellationToken);
         await _demoHardResetService.ClearNonAdminUsersAsync(cancellationToken);
-        await _demoHardResetService.ResetAdminUserAsync(cancellationToken);
         await SeedAsync(cancellationToken);
     }
 

@@ -1,6 +1,7 @@
 using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Domain.Shared.Demo;
+using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using Microsoft.Extensions.Options;
 
@@ -38,6 +39,22 @@ public class DemoModeService : IDemoModeService, ISingletonDependency
                 StringComparison.OrdinalIgnoreCase))
         {
             throw new BusinessException("演示模式下不允许操作默认管理员账号");
+        }
+    }
+
+    public void EnsureSuperAdminRoleOperable(string? roleCode)
+    {
+        if (!IsEnabled || string.IsNullOrWhiteSpace(roleCode))
+        {
+            return;
+        }
+
+        if (string.Equals(
+                roleCode.Trim(),
+                RbacPermissionCodes.SuperAdmin,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BusinessException("演示模式下不允许操作超级管理员角色");
         }
     }
 }

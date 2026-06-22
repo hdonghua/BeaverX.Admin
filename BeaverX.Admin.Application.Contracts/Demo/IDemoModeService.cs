@@ -7,4 +7,6 @@ public interface IDemoModeService
     void EnsureMenuWritable();
 
     void EnsureAdminUserOperable(string? userName);
+
+    void EnsureSuperAdminRoleOperable(string? roleCode);
 }

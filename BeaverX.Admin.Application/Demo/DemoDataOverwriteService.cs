@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Demo;
 
-public class DemoDataOverwriteService : ISingletonDependency
+public class DemoDataOverwriteService : IScopedDependency
 {
     private readonly IDemoModeService _demoModeService;
     private readonly IEnumerable<IOverwriteDataSeeder> _seeders;
