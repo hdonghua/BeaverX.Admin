@@ -11,9 +11,9 @@ internal static class RbacQueryHelper
         return ((page - 1) * pageSize, pageSize);
     }
 
-    public static List<MenuDto> BuildMenuTree(IEnumerable<MenuDto> items, long? parentId = null)
+    public static List<MenuDto>? BuildMenuTree(IEnumerable<MenuDto> items, long? parentId = null)
     {
-        return items
+        var list = items
             .Where(x => x.ParentId == parentId)
             .OrderBy(x => x.Sort)
             .Select(x =>
@@ -22,5 +22,6 @@ internal static class RbacQueryHelper
                 return x;
             })
             .ToList();
+        return list.Count == 0 ? null : list;
     }
 }
