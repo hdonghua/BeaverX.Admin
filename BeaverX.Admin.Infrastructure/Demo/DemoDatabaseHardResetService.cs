@@ -1,6 +1,4 @@
 using BeaverX.Admin.Application.Contracts.Demo;
-using BeaverX.Admin.Application.Contracts.Rbac;
-using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Demo;
 using BeaverX.Admin.EntityFrameworkCore;
 using BeaverX.Core.Dependency;
@@ -9,19 +7,16 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Infrastructure.Demo;
 
-public class DemoDatabaseHardResetService : IDemoDatabaseHardResetService, ISingletonDependency
+public class DemoDatabaseHardResetService : IDemoDatabaseHardResetService, IScopedDependency
 {
     private readonly AdminDbContext _dbContext;
-    private readonly IPasswordHasher _passwordHasher;
     private readonly ILogger<DemoDatabaseHardResetService> _logger;
 
     public DemoDatabaseHardResetService(
         AdminDbContext dbContext,
-        IPasswordHasher passwordHasher,
         ILogger<DemoDatabaseHardResetService> logger)
     {
         _dbContext = dbContext;
-        _passwordHasher = passwordHasher;
         _logger = logger;
     }
 
@@ -120,31 +115,5 @@ public class DemoDatabaseHardResetService : IDemoDatabaseHardResetService, ISing
             .IgnoreQueryFilters()
             .Where(user => user.UserName != DemoModeDefaults.AdminUserName)
             .ExecuteDeleteAsync(cancellationToken);
-    }
-
-    public async Task ResetAdminUserAsync(CancellationToken cancellationToken = default)
-    {
-        var admin = await _dbContext.Users
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(
-                user => user.UserName == DemoModeDefaults.AdminUserName,
-                cancellationToken);
-
-        if (admin == null)
-        {
-            return;
-        }
-
-        _logger.LogInformation("Resetting default admin user...");
-
-        admin.PasswordHash = _passwordHasher.Hash(DemoModeDefaults.AdminPassword);
-        admin.NickName = DemoModeDefaults.AdminNickName;
-        admin.Email = null;
-        admin.Phone = null;
-        admin.Avatar = null;
-        admin.IsEnabled = true;
-        admin.IsDeleted = false;
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }
