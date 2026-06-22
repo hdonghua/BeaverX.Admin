@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
@@ -8,20 +9,32 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messages;
 
-public class MessageDataSeeder : IScopedDependency, IDataSeeder
+public class MessageDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeeder
 {
     private readonly IRepository<UserMessage> _messageRepository;
     private readonly IRepository<User> _userRepository;
+    private readonly IDemoDatabaseHardResetService _demoHardResetService;
     private readonly ILogger<MessageDataSeeder> _logger;
 
     public MessageDataSeeder(
       IRepository<UserMessage> messageRepository,
       IRepository<User> userRepository,
+      IDemoDatabaseHardResetService demoHardResetService,
       ILogger<MessageDataSeeder> logger)
     {
         _messageRepository = messageRepository;
         _userRepository = userRepository;
+        _demoHardResetService = demoHardResetService;
         _logger = logger;
+    }
+
+    public int Order => 50;
+
+    public async Task OverwriteAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Overwriting message demo data...");
+        await _demoHardResetService.ClearUserMessagesAsync(cancellationToken);
+        await SeedAsync(cancellationToken);
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)

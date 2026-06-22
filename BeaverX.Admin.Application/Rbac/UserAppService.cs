@@ -1,4 +1,5 @@
 using BeaverX.Admin.Application.Caching;
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Realtime;
@@ -20,6 +21,7 @@ public class UserAppService : IUserAppService, IScopedDependency
     private readonly AppCacheInvalidator _cacheInvalidator;
     private readonly RefreshTokenService _refreshTokenService;
     private readonly RealtimePublisher _realtimePublisher;
+    private readonly IDemoModeService _demoModeService;
 
     public UserAppService(
         IRepository<User> userRepository,
@@ -29,7 +31,8 @@ public class UserAppService : IUserAppService, IScopedDependency
         IPasswordHasher passwordHasher,
         AppCacheInvalidator cacheInvalidator,
         RefreshTokenService refreshTokenService,
-        RealtimePublisher realtimePublisher)
+        RealtimePublisher realtimePublisher,
+        IDemoModeService demoModeService)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
@@ -39,6 +42,7 @@ public class UserAppService : IUserAppService, IScopedDependency
         _cacheInvalidator = cacheInvalidator;
         _refreshTokenService = refreshTokenService;
         _realtimePublisher = realtimePublisher;
+        _demoModeService = demoModeService;
     }
 
     public async Task<PagedResultDto<UserDto>> GetListAsync(UserQueryDto input, CancellationToken cancellationToken = default)
@@ -117,6 +121,7 @@ public class UserAppService : IUserAppService, IScopedDependency
     public async Task<UserDto> UpdateAsync(long id, UpdateUserDto input, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureAdminUserOperable(user.UserName);
         var wasEnabled = user.IsEnabled;
 
         if (input.NickName != null) user.NickName = input.NickName;
@@ -142,12 +147,15 @@ public class UserAppService : IUserAppService, IScopedDependency
 
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
+        var user = await _userRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureAdminUserOperable(user.UserName);
         await _userRepository.DeleteAsync(id, cancellationToken: cancellationToken);
     }
 
     public async Task AssignRolesAsync(long id, AssignUserRolesDto input, CancellationToken cancellationToken = default)
     {
-        await _userRepository.GetAsync(id, cancellationToken);
+        var user = await _userRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureAdminUserOperable(user.UserName);
         await _unitOfWork.ExecuteAsync(async ct =>
         {
             await ReplaceUserRolesAsync(id, input.RoleIds, ct);
@@ -161,6 +169,7 @@ public class UserAppService : IUserAppService, IScopedDependency
         PasswordInputValidator.Validate(input.NewPassword);
 
         var user = await _userRepository.GetAsync(id, cancellationToken);
+        _demoModeService.EnsureAdminUserOperable(user.UserName);
         user.PasswordHash = _passwordHasher.Hash(input.NewPassword);
         await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
     }

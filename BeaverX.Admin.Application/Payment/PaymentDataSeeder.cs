@@ -1,3 +1,4 @@
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
@@ -7,17 +8,29 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Payment;
 
-public class PaymentDataSeeder : IScopedDependency, IDataSeeder
+public class PaymentDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeeder
 {
     private readonly IRepository<PaymentChannel> _channelRepository;
+    private readonly IDemoDatabaseHardResetService _demoHardResetService;
     private readonly ILogger<PaymentDataSeeder> _logger;
 
     public PaymentDataSeeder(
       IRepository<PaymentChannel> channelRepository,
+      IDemoDatabaseHardResetService demoHardResetService,
       ILogger<PaymentDataSeeder> logger)
     {
         _channelRepository = channelRepository;
+        _demoHardResetService = demoHardResetService;
         _logger = logger;
+    }
+
+    public int Order => 40;
+
+    public async Task OverwriteAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Overwriting payment channel demo data...");
+        await _demoHardResetService.ClearPaymentChannelsAsync(cancellationToken);
+        await SeedAsync(cancellationToken);
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)

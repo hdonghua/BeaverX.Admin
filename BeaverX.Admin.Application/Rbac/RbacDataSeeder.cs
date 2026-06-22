@@ -1,4 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Application.Contracts.Demo;
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Rbac;
 
-public class RbacDataSeeder : IScopedDependency, IDataSeeder
+public class RbacDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeeder
 {
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Role> _roleRepository;
@@ -17,6 +18,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     private readonly IRepository<UserRole> _userRoleRepository;
     private readonly IRepository<RoleMenu> _roleMenuRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IDemoDatabaseHardResetService _demoHardResetService;
     private readonly ILogger<RbacDataSeeder> _logger;
 
     public RbacDataSeeder(
@@ -26,6 +28,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         IRepository<UserRole> userRoleRepository,
         IRepository<RoleMenu> roleMenuRepository,
         IPasswordHasher passwordHasher,
+        IDemoDatabaseHardResetService demoHardResetService,
         ILogger<RbacDataSeeder> logger)
     {
         _userRepository = userRepository;
@@ -34,7 +37,20 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         _userRoleRepository = userRoleRepository;
         _roleMenuRepository = roleMenuRepository;
         _passwordHasher = passwordHasher;
+        _demoHardResetService = demoHardResetService;
         _logger = logger;
+    }
+
+    public int Order => 10;
+
+    public async Task OverwriteAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Overwriting RBAC demo data...");
+
+        await _demoHardResetService.ClearMenusAsync(cancellationToken);
+        await _demoHardResetService.ClearNonAdminUsersAsync(cancellationToken);
+        await _demoHardResetService.ResetAdminUserAsync(cancellationToken);
+        await SeedAsync(cancellationToken);
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
