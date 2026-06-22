@@ -75,6 +75,12 @@ public static class RbacPermissionCodes
             public const string Delete = "system:job:delete";
             public const string Trigger = "system:job:trigger";
         }
+
+        public static class OnlineUser
+        {
+            public const string List = "system:online_user:list";
+            public const string Kick = "system:online_user:kick";
+        }
     }
 
     public static class Payment

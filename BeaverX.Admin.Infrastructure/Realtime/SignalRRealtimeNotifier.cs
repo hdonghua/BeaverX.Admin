@@ -29,4 +29,18 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier, IScopedDependency
             .User(userId.ToString())
             .SendAsync("Receive", message, cancellationToken);
     }
+
+    public Task SendToAllAsync(
+        string eventName,
+        object? payload,
+        CancellationToken cancellationToken = default)
+    {
+        var message = new RealtimeMessage
+        {
+            Event = eventName,
+            Data = payload
+        };
+
+        return _hubContext.Clients.All.SendAsync("Receive", message, cancellationToken);
+    }
 }

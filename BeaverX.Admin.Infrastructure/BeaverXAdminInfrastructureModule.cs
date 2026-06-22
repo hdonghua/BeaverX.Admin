@@ -1,6 +1,7 @@
 using BeaverX.Admin.Application;
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Application.Contracts.Realtime;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Infrastructure.Payment;
 using BeaverX.Admin.Infrastructure.Payment.WeChat;
@@ -40,6 +41,7 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
         services.AddBeaverXCache(configuration);
         services.AddSignalR();
         services.AddSingleton<IUserIdProvider, UserIdHubConnectionProvider>();
+        services.AddSingleton<IOnlineUserTracker, OnlineUserTracker>();
         ConfigureMinio(services, configuration);
         ConfigureCap(services, configuration);
 

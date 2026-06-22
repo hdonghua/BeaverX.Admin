@@ -159,6 +159,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         newMenuIds.AddRange(await EnsureConfigMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsureJobMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsureMessageMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureOnlineUserMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsurePaymentMenusAsync(cancellationToken));
 
         return newMenuIds;
@@ -416,6 +417,52 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         }, cancellationToken);
 
         return [page.Id];
+    }
+
+    private async Task<List<long>> EnsureOnlineUserMenusAsync(
+        long parentId,
+        CancellationToken cancellationToken)
+    {
+        var newMenuIds = new List<long>();
+
+        var page = await _menuRepository.GetQueryable()
+            .FirstOrDefaultAsync(
+                x => x.Perms == RbacPermissionCodes.System.OnlineUser.List,
+                cancellationToken);
+
+        if (page == null)
+        {
+            _logger.LogInformation("Seeding online user menus...");
+
+            page = await InsertMenuAsync(new Menu
+            {
+                ParentId = parentId,
+                Name = "在线用户",
+                MenuType = MenuType.Menu,
+                Perms = RbacPermissionCodes.System.OnlineUser.List,
+                Path = "/system/online-user",
+                Component = "system/online-user/index",
+                Icon = "wifi",
+                Sort = 7
+            }, cancellationToken);
+
+            newMenuIds.Add(page.Id);
+        }
+
+        if (!await _menuRepository.AnyAsync(
+                x => x.Perms == RbacPermissionCodes.System.OnlineUser.Kick,
+                cancellationToken))
+        {
+            _logger.LogInformation("Seeding online user kick button...");
+
+            var kickButton = await InsertMenuAsync(
+                Btn(page.Id, "强制下线", RbacPermissionCodes.System.OnlineUser.Kick, 1),
+                cancellationToken);
+
+            newMenuIds.Add(kickButton.Id);
+        }
+
+        return newMenuIds;
     }
 
     private async Task<List<long>> EnsurePaymentMenusAsync(CancellationToken cancellationToken)
