@@ -45,6 +45,7 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
                 JsonIdSerializationExtensions.ConfigureSnowflakeIdJsonSerialization(
                     options.PayloadSerializerOptions));
         services.AddSingleton<IUserIdProvider, UserIdHubConnectionProvider>();
+        // 单实例默认内存实现；多节点见 README「多节点部署」→ AddRedisOnlineUserTracker
         services.AddSingleton<IOnlineUserTracker, OnlineUserTracker>();
         ConfigureMinio(services, configuration);
         ConfigureCap(services, configuration);
