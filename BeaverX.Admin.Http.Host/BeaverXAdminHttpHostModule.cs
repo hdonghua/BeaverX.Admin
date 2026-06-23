@@ -3,7 +3,7 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Http.Api;
 using BeaverX.Admin.Http.Api.Authorization;
 using BeaverX.Admin.Http.Api.Filters;
-using BeaverX.Admin.Http.Api.Json;
+using BeaverX.Admin.Domain.Shared.Json;
 using BeaverX.Admin.Infrastructure;
 using BeaverX.Admin.Infrastructure.Realtime;
 using BeaverX.Core.Modules;

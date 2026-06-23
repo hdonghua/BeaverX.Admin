@@ -13,15 +13,18 @@ namespace BeaverX.Admin.Application.Realtime;
 public class RealtimePublisher : IScopedDependency
 {
     private readonly IRealtimeNotifier _notifier;
+    private readonly IOnlineUserTracker _onlineUserTracker;
     private readonly IRepository<ExportTask> _exportTaskRepository;
     private readonly IRepository<UserMessage> _messageRepository;
 
     public RealtimePublisher(
         IRealtimeNotifier notifier,
+        IOnlineUserTracker onlineUserTracker,
         IRepository<ExportTask> exportTaskRepository,
         IRepository<UserMessage> messageRepository)
     {
         _notifier = notifier;
+        _onlineUserTracker = onlineUserTracker;
         _exportTaskRepository = exportTaskRepository;
         _messageRepository = messageRepository;
     }
@@ -81,6 +84,31 @@ public class RealtimePublisher : IScopedDependency
             RealtimeEvents.UserDisabled,
             new UserDisabledPayload(),
             cancellationToken);
+
+    public Task NotifyUserForceOfflineAsync(
+        long userId,
+        CancellationToken cancellationToken = default) =>
+        _notifier.SendToUserAsync(
+            userId,
+            RealtimeEvents.UserForceOffline,
+            new UserForceOfflinePayload
+            {
+                Message = "您已被管理员强制下线"
+            },
+            cancellationToken);
+
+    public Task NotifyOnlineUsersChangedAsync(CancellationToken cancellationToken = default)
+    {
+        var users = _onlineUserTracker.GetOnlineUsers().ToList();
+        return _notifier.SendToAllAsync(
+            RealtimeEvents.OnlineUsersChanged,
+            new OnlineUsersChangedPayload
+            {
+                Users = users,
+                TotalConnections = _onlineUserTracker.GetTotalConnectionCount()
+            },
+            cancellationToken);
+    }
 
     private async Task<int> GetActiveExportCountAsync(long userId, CancellationToken cancellationToken)
     {

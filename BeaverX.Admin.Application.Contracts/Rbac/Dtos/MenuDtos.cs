@@ -16,7 +16,7 @@ public class MenuDto
     public bool IsVisible { get; set; }
     public bool IsEnabled { get; set; }
     public bool IsExternal { get; set; }
-    public List<MenuDto> Children { get; set; } = [];
+    public List<MenuDto>? Children { get; set; }
 }
 
 public class CreateMenuDto

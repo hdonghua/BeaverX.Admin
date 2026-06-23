@@ -75,6 +75,12 @@ public static class RbacPermissionCodes
             public const string Delete = "system:job:delete";
             public const string Trigger = "system:job:trigger";
         }
+
+        public static class OnlineUser
+        {
+            public const string List = "system:online_user:list";
+            public const string Kick = "system:online_user:kick";
+        }
     }
 
     public static class Payment
@@ -99,6 +105,18 @@ public static class RbacPermissionCodes
         public static class Refund
         {
             public const string List = "payment:refund:list";
+        }
+    }
+
+    public static class Ticket
+    {
+        public static class Work
+        {
+            public const string List = "ticket:work:list";
+            public const string Create = "ticket:work:create";
+            public const string Update = "ticket:work:update";
+            public const string Delete = "ticket:work:delete";
+            public const string Process = "ticket:work:process";
         }
     }
 }

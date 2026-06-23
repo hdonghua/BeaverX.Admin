@@ -1,7 +1,9 @@
 using BeaverX.Admin.Application;
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Application.Contracts.Rbac;
+using BeaverX.Admin.Application.Contracts.Realtime;
 using BeaverX.Admin.Application.Contracts.Storage;
+using BeaverX.Admin.Domain.Shared.Json;
 using BeaverX.Admin.Infrastructure.Payment;
 using BeaverX.Admin.Infrastructure.Payment.WeChat;
 using BeaverX.Admin.EntityFrameworkCore;
@@ -38,8 +40,13 @@ public class BeaverXAdminInfrastructureModule : BeaverXModule
 
         services.AddBeaverXHangfire(configuration);
         services.AddBeaverXCache(configuration);
-        services.AddSignalR();
+        services.AddSignalR()
+            .AddJsonProtocol(options =>
+                JsonIdSerializationExtensions.ConfigureSnowflakeIdJsonSerialization(
+                    options.PayloadSerializerOptions));
         services.AddSingleton<IUserIdProvider, UserIdHubConnectionProvider>();
+        // 单实例默认内存实现；多节点见 README「多节点部署」→ AddRedisOnlineUserTracker
+        services.AddSingleton<IOnlineUserTracker, OnlineUserTracker>();
         ConfigureMinio(services, configuration);
         ConfigureCap(services, configuration);
 
