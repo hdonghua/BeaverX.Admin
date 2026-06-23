@@ -187,7 +187,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Name = "系统管理",
             MenuType = MenuType.Directory,
             Path = "/system",
-            Icon = "setting",
+            Icon = "icon-settings",
             Sort = 1,
             IsVisible = true
         }, cancellationToken);
@@ -248,7 +248,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Perms = RbacPermissionCodes.System.Role.List,
             Path = "/system/role",
             Component = "system/role/index",
-            Icon = "team",
+            Icon = "icon-safe",
             Sort = 2
         }, cancellationToken);
 

@@ -193,13 +193,22 @@ public class ConfigController : BeaverXController
 
 | 字段 | 示例 | 说明 |
 |------|------|------|
-| `Path` | `/system/config` | 前端路由 path |
-| `Component` | `system/config/index` | 对应 `views/system/config/index.vue` |
+| `Path` | `/system/config` | 路由地址，**可自定义** |
+| `Component` | `system/config/index` | 须与 `views/system/config/index.vue` 对应，用于前端匹配 |
 | `Perms` | `system:config:list` | 页面访问权限 |
+
+前端根据 `Component` 匹配页面，根据 `Path` 注册/展示路由地址；二者职责分离。
 
 ### 8. 前端联调
 
-参考 [beaverx-vue-admin README](https://github.com/hdonghua/beaverx-vue-admin) 配置路由与 `PATH_TO_ROUTE_NAME`。
+参考 [beaverx-vue-admin README](https://github.com/hdonghua/beaverx-vue-admin)：
+
+1. 在 `router/routes/modules/` 增加静态路由与 `views/` 页面
+2. 在菜单管理（或种子）中配置相同 `Component`，`Path` 可按需填写
+3. 在 `constants/permissions.ts` 增加与 `RbacPermissionCodes` 一致的权限常量（供 `v-permission` 使用）
+4. 为角色分配菜单后联调
+
+**component 不一致** 是最常见的 403 原因（例如后端 `system/configs/index`，前端视图是 `system/config/index`）。
 
 ## RBAC 要点
 
@@ -358,7 +367,7 @@ var user = await _cache.GetOrSetAsync(
 |------|------|
 | 迁移失败 | 连接串是否正确；是否指定 `--startup-project` |
 | 启动后无种子数据 | 检查 `IDataSeeder` 是否实现；表是否已有数据（种子幂等跳过） |
-| 前端 403 | 角色是否分配菜单；权限码是否与 Controller 一致 |
+| 前端 403 | 角色是否分配菜单；`Component` 是否与 `views/` 一致；权限码是否与 Controller 一致 |
 | CORS 错误 | `CorsOrgins` 是否包含前端地址 |
 | MinIO 相关错误 | 导出/上传依赖 MinIO，请确认服务与配置 |
 | 导出一直 Pending | 检查 CAP 是否启动；查看 `cap` schema 与 `Logs/` |
