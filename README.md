@@ -355,6 +355,102 @@ var user = await _cache.GetOrSetAsync(
 
 业务代码只写逻辑键（如 `user:1`），前缀由配置统一拼接。
 
+## 多节点部署
+
+默认配置面向**单实例**开发/小规模部署。水平扩展（多 Pod / 多进程）时，以下组件需改为共享存储或分布式中间件：
+
+| 能力 | 单实例（默认） | 多节点需调整 |
+|------|----------------|--------------|
+| 业务缓存 `ICacheService` | `Cache:Driver = Memory` | 改为 `Redis`，并配置 `RedisConnectionString` |
+| SignalR 实时推送 | 本机 Hub 连接 | 增加 **Redis Backplane**，否则 `SendToUser` 只能命中本节点连接 |
+| 在线用户 `IOnlineUserTracker` | 内存 `OnlineUserTracker` | 启用 **`RedisOnlineUserTracker`**（基于 StackExchange.Redis `IDatabase`） |
+| CAP 异步导出 | `UseInMemoryMessageQueue()` | 改为 Redis / RabbitMQ 等共享队列 |
+| Hangfire | PostgreSQL 存储（已共享） | 多实例可同时跑 Worker，注意任务幂等 |
+| JWT / 数据库 / MinIO | 无节点亲和 | 一般无需改动 |
+
+### 1. 缓存切 Redis
+
+```json
+{
+  "Cache": {
+    "Driver": "Redis",
+    "KeyPrefix": "beaverx:admin:",
+    "RedisConnectionString": "localhost:6379"
+  }
+}
+```
+
+### 2. SignalR Redis Backplane
+
+在 `BeaverXAdminInfrastructureModule` 中为 `AddSignalR()` 追加 Backplane（需引用 `Microsoft.AspNetCore.SignalR.StackExchangeRedis`）：
+
+```csharp
+using BeaverX.Admin.Infrastructure.Realtime;
+
+var redisConnection = RealtimeDistributedExtensions.ResolveRedisConnectionString(configuration);
+
+services.AddSignalR()
+    .AddStackExchangeRedis(redisConnection, options =>
+    {
+        options.Configuration.ChannelPrefix = RedisChannel.Literal("BeaverXAdmin:SignalR:");
+    })
+    .AddJsonProtocol(/* 保持现有 JSON 配置 */);
+```
+
+前端仍连接负载均衡后的同一 Hub 地址 `/hubs/notifications`；Backplane 负责跨节点转发消息。
+
+### 3. 在线用户：RedisOnlineUserTracker
+
+实现位于 `Infrastructure/Realtime/RedisOnlineUserTracker.cs`，通过注入的 **`IDatabase`** 读写 Redis Hash（键：`{KeyPrefix}online:connections`），**不**使用 `IDistributedCache`。
+
+**默认不启用**。在 `BeaverXAdminHttpHostModule.ConfigureServices` 中、于 Infrastructure 模块加载**之后**调用：
+
+```csharp
+using BeaverX.Admin.Infrastructure.Realtime;
+
+public override void ConfigureServices(ServiceConfigurationContext context)
+{
+    // ... 现有 JWT、CORS 等 ...
+
+    context.Services.AddRedisOnlineUserTracker(context.Configuration);
+}
+```
+
+扩展方法 `AddRedisOnlineUserTracker` 会：
+
+1. 注册 `IConnectionMultiplexer` 与 `IDatabase`（连接串读取 `Cache:RedisConnectionString` 或 `ConnectionStrings:Redis`）
+2. 用 `RedisOnlineUserTracker` **替换**默认的 `OnlineUserTracker` 注册
+
+若仅需自定义 Redis 连接、仍使用分布式追踪，也可手动注册：
+
+```csharp
+services.AddSingleton<IConnectionMultiplexer>(_ =>
+    ConnectionMultiplexer.Connect(configuration["Cache:RedisConnectionString"]!));
+services.AddSingleton(sp => sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
+services.Replace(ServiceDescriptor.Singleton<IOnlineUserTracker, RedisOnlineUserTracker>());
+```
+
+### 4. CAP 消息队列
+
+在 `BeaverXAdminInfrastructureModule.ConfigureCap` 中，将 `UseInMemoryMessageQueue()` 替换为例如：
+
+```csharp
+// 需引用 DotNetCore.CAP.RedisStreams 或 DotNetCore.CAP.RabbitMQ 等
+options.UseRedis(redisConnectionString);
+```
+
+否则导出任务消息只会被发布到本进程内存队列，其他节点无法消费。
+
+### 5. 推荐检查清单
+
+- [ ] PostgreSQL、Redis、MinIO 对所有 API 实例可达
+- [ ] `Cache:Driver = Redis`
+- [ ] SignalR 已配置 Redis Backplane
+- [ ] Host 模块已调用 `AddRedisOnlineUserTracker`
+- [ ] CAP 已改用共享队列
+- [ ] 负载均衡开启 WebSocket 粘性会话**或**依赖 Backplane（推荐后者，粘性非必须）
+- [ ] 各实例 `Jwt:SecretKey`、CORS 配置一致
+
 ## 日志
 
 - 控制台 + `BeaverX.Admin.Http.Host/Logs/log-YYYYMMDD.txt`
