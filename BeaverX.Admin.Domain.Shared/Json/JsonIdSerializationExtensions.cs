@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-namespace BeaverX.Admin.Http.Api.Json;
+namespace BeaverX.Admin.Domain.Shared.Json;
 
 public static class JsonIdSerializationExtensions
 {

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BeaverX.Admin.Http.Api.Json;
+namespace BeaverX.Admin.Domain.Shared.Json;
 
 /// <summary>
 /// 将 long / long? 序列化为 JSON string，避免前端 Number 精度丢失。
