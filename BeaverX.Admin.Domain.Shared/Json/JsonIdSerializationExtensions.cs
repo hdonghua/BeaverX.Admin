@@ -17,10 +17,25 @@ public static class JsonIdSerializationExtensions
 
     public static void ConfigureSnowflakeIdJsonSerialization(JsonSerializerOptions options)
     {
+        ConfigureUtcDateTimeJsonSerialization(options);
         options.TypeInfoResolver = new DefaultJsonTypeInfoResolver
         {
             Modifiers = { ApplyLongIdConverters }
         };
+    }
+
+    /// <summary>
+    /// 注册全局 UTC DateTime JSON 转换器（DateTime / DateTime?）。
+    /// </summary>
+    public static void ConfigureUtcDateTimeJsonSerialization(JsonSerializerOptions options)
+    {
+        if (options.Converters.Any(c => c is UtcDateTimeJsonConverter))
+        {
+            return;
+        }
+
+        options.Converters.Add(new UtcDateTimeJsonConverter());
+        options.Converters.Add(new NullableUtcDateTimeJsonConverter());
     }
 
     private static void ApplyLongIdConverters(JsonTypeInfo typeInfo)

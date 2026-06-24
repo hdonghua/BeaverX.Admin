@@ -1,3 +1,4 @@
+using BeaverX.Admin.Domain.Shared.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -49,11 +50,5 @@ public class UtcDateTimeSaveChangesInterceptor : SaveChangesInterceptor
         }
     }
 
-    internal static DateTime ToUtc(DateTime value) =>
-        value.Kind switch
-        {
-            DateTimeKind.Utc => value,
-            DateTimeKind.Local => value.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
-        };
+    internal static DateTime ToUtc(DateTime value) => DateTimeUtcHelper.ToUtc(value);
 }
