@@ -2,13 +2,22 @@
 
 基于 [BeaverX](https://www.nuget.org/packages/BeaverX.Core) 模块化框架的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。
 
+## 在线预览
+
+| 项目 | 说明 |
+|------|------|
+| 地址 | [https://beaverxadmin.com/](https://beaverxadmin.com/) |
+| 账号 | `admin` / `Admin@123` |
+
+> **演示环境说明**：系统每 **5 分钟** 会定时清理并覆盖数据，请勿保存重要信息或用于生产。
+
 ## 技术栈
 
 | 类别 | 技术 |
 |------|------|
 | 运行时 | .NET 10 |
 | Web | ASP.NET Core + BeaverX.WebMvc |
-| ORM | Entity Framework Core + PostgreSQL |
+| ORM | Entity Framework Core + **PostgreSQL**（默认分支）/ **MySQL**（`master-mysql` 分支） |
 | 认证 | JWT Bearer + Refresh Token |
 | 日志 | Serilog（控制台 + 本地文件） |
 | 对象存储 | MinIO（可选） |
@@ -16,9 +25,51 @@
 ## 环境要求
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- PostgreSQL 14+（或兼容版本）
+- **PostgreSQL 14+**（`master` 默认分支）或 **MySQL 8+**（`master-mysql` 分支，见下文）
 - （可选）MinIO，用于文件上传
 - 前端项目：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
+
+## 数据库选型（PostgreSQL / MySQL）
+
+后端按 **Git 分支** 区分数据库驱动，**前端无需改动**。
+
+| 分支 | 数据库 | 说明 |
+|------|--------|------|
+| `master`（默认） | PostgreSQL | 主开发分支，CAP / Hangfire 使用 PostgreSQL |
+| `master-mysql` | MySQL 8+ | MySQL 版本，需手动切换分支 |
+
+### 切换到 MySQL（`master-mysql`）
+
+```bash
+git clone https://github.com/hdonghua/BeaverX.Admin.git
+cd BeaverX.Admin
+
+git fetch origin
+git checkout master-mysql
+```
+
+编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Server=localhost;Port=3306;Database=beaverx-admin;User=root;Password=你的密码;Allow User Variables=True;"
+  }
+}
+```
+
+> `Allow User Variables=True` 为 Hangfire.MySql 所需，请勿省略。
+
+MySQL 分支差异摘要：
+
+- EF Core 驱动：`BeaverX.EntityFrameworkCore.MySql` + `AdminMySqlDbDriverOptionsBuilder`
+- Hangfire 存储：MySQL（表前缀见 `Hangfire:SchemaName`）
+- CAP 消息存储：MySQL（与业务库共用 `ConnectionStrings:Default`）
+- API 时间字段：全局 UTC JSON 序列化 + 写入库前 UTC 规范化（兼容 MySQL `DATETIME`）
+
+迁移与启动命令与 PostgreSQL 相同（见「快速开始」）。**不要在同一分支混用两种数据库的迁移历史**；从 PostgreSQL 迁到 MySQL 请使用 `master-mysql` 分支重新 `dotnet ef database update`。
+
+演示站点 [beaverxadmin.com](https://beaverxadmin.com/) 使用 **MySQL** 分支部署。
 
 ## 快速开始
 
@@ -104,7 +155,7 @@ BeaverX.Admin/
 
 | 配置节 | 文件 | 说明 |
 |--------|------|------|
-| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL |
+| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL（`master`）或 MySQL（`master-mysql`） |
 | `Jwt` | appsettings.json | 签发与校验 |
 | `CorsOrgins` | appsettings.Development.json | 前端源，逗号分隔 |
 | `Minio` | appsettings.json | 文件服务（可不配） |
@@ -283,9 +334,77 @@ await _messageSender.SendAsync(new SendMessageRequest
 2. 实现 `IScopedDependency` 即可被 DI 自动注册
 3. 调用方通过 `Channels` 指定渠道，或默认广播到全部已注册渠道
 
+## 定时任务（Hangfire）
+
+基于 **Hangfire + PostgreSQL / MySQL**（随分支：`master` / `master-mysql`），支持两种互不冲突的周期性任务：
+
+| 方式 | 说明 | Hangfire Job Id |
+|------|------|-----------------|
+| **后台 HTTP API 任务** | 管理端「系统管理 → 定时任务」或 `POST /api/ScheduledJob` 配置，定时请求 HTTP URL | `scheduled-job:{id}` |
+| **代码 `IRecurringJob`** | 实现接口并注册 DI，启动时自动同步到 Hangfire | 类型全名 |
+
+### 方式一：后台 HTTP API 任务
+
+- 数据表：`sys_scheduled_jobs`、`sys_scheduled_job_logs`
+- 前端页面：`/system/job`（权限 `system:job:*`）
+- 创建/更新后由 `IHangfireScheduledJobRegistrar` 同步 Hangfire；支持手动触发、Cron 校验、执行日志
+- 当前 `JobType` 仅支持 **HttpApi**（GET/POST/PUT/DELETE）
+
+```http
+POST /api/ScheduledJob
+{
+  "jobCode": "health-check",
+  "name": "健康检查",
+  "jobType": 1,
+  "cronExpression": "0 */5 * * *",
+  "httpMethod": 1,
+  "httpUrl": "http://localhost:5216/api/Health",
+  "timeoutSeconds": 30
+}
+```
+
+### 方式二：代码 `IRecurringJob`
+
+实现 `IRecurringJob`（含 `CronExpression` + `ExecuteAsync`），继承 `IScopedDependency` 即可被 DI 扫描；`CodeRecurringJobSyncHostedService` 启动时注册。
+
+```csharp
+public class SampleDailyRecurringJob : IRecurringJob
+{
+    public string CronExpression => "0 0 * * *";
+
+    public Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        // 注入 IRepository / IAppService 执行业务
+        return Task.CompletedTask;
+    }
+}
+```
+
+参考：`Application/Scheduling/Jobs/SampleDailyRecurringJob.cs`
+
+### 配置与 Dashboard
+
+```json
+{
+  "Hangfire": {
+    "SchemaName": "hangfire",
+    "EnableDashboard": true,
+    "DashboardPath": "/hangfire",
+    "SyncBusinessJobsOnStartup": true,
+    "BusinessJobStartupSyncMode": "MergeFromHangfire",
+    "Auth": { "Enabled": true, "Username": "hangfire", "Password": "hangfire123" }
+  }
+}
+```
+
+- Dashboard：`/hangfire`（HTTP Basic，与业务 JWT 无关）
+- 多实例：Hangfire 使用数据库持久化（PostgreSQL 或 MySQL），多节点可同时跑 Worker，**任务逻辑需幂等**
+
+保姆级说明见配套文档 `doc-beaverx-admin/docs/backend/scheduled-jobs.md`。
+
 ## 异步导出（DotNetCap）
 
-导出任务采用 **CAP + PostgreSQL 消息存储 + 内存队列 + MinIO 文件**：
+导出任务采用 **CAP + 数据库存储（PostgreSQL / MySQL，随分支）+ 内存队列 + MinIO 文件**：
 
 | 组件 | 说明 |
 |------|------|
@@ -365,7 +484,7 @@ var user = await _cache.GetOrSetAsync(
 | SignalR 实时推送 | 本机 Hub 连接 | 增加 **Redis Backplane**，否则 `SendToUser` 只能命中本节点连接 |
 | 在线用户 `IOnlineUserTracker` | 内存 `OnlineUserTracker` | 启用 **`RedisOnlineUserTracker`**（基于 StackExchange.Redis `IDatabase`） |
 | CAP 异步导出 | `UseInMemoryMessageQueue()` | 改为 Redis / RabbitMQ 等共享队列 |
-| Hangfire | PostgreSQL 存储（已共享） | 多实例可同时跑 Worker，注意任务幂等 |
+| Hangfire | 数据库持久化（PostgreSQL / MySQL） | 多实例可同时跑 Worker，注意任务幂等 |
 | JWT / 数据库 / MinIO | 无节点亲和 | 一般无需改动 |
 
 ### 1. 缓存切 Redis
@@ -443,7 +562,7 @@ options.UseRedis(redisConnectionString);
 
 ### 5. 推荐检查清单
 
-- [ ] PostgreSQL、Redis、MinIO 对所有 API 实例可达
+- [ ] 数据库（PostgreSQL 或 MySQL）、Redis、MinIO 对所有 API 实例可达
 - [ ] `Cache:Driver = Redis`
 - [ ] SignalR 已配置 Redis Backplane
 - [ ] Host 模块已调用 `AddRedisOnlineUserTracker`
