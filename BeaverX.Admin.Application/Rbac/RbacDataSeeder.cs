@@ -47,7 +47,6 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder, IOverwriteDataSeed
     {
         _logger.LogInformation("Overwriting RBAC demo data...");
 
-        await _demoHardResetService.ClearMenusAsync(cancellationToken);
         await _demoHardResetService.ClearNonAdminUsersAsync(cancellationToken);
         await SeedAsync(cancellationToken);
     }

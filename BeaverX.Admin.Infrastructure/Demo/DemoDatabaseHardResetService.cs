@@ -38,36 +38,6 @@ public class DemoDatabaseHardResetService : IDemoDatabaseHardResetService, IScop
             cancellationToken);
     }
 
-    public async Task ClearMenusAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Clearing demo menus...");
-
-        await _dbContext.Database.ExecuteSqlRawAsync(
-            "DELETE FROM sys_role_menus",
-            cancellationToken);
-
-        while (true)
-        {
-            var leafIds = await _dbContext.Menus
-                .IgnoreQueryFilters()
-                .Where(menu => !_dbContext.Menus
-                    .IgnoreQueryFilters()
-                    .Any(child => child.ParentId == menu.Id))
-                .Select(menu => menu.Id)
-                .ToListAsync(cancellationToken);
-
-            if (leafIds.Count == 0)
-            {
-                break;
-            }
-
-            await _dbContext.Menus
-                .IgnoreQueryFilters()
-                .Where(menu => leafIds.Contains(menu.Id))
-                .ExecuteDeleteAsync(cancellationToken);
-        }
-    }
-
     public async Task ClearDictsAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Clearing demo dictionaries...");
