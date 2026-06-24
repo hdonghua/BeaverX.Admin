@@ -336,7 +336,7 @@ await _messageSender.SendAsync(new SendMessageRequest
 
 ## 定时任务（Hangfire）
 
-基于 **Hangfire + PostgreSQL**，支持两种互不冲突的周期性任务：
+基于 **Hangfire + PostgreSQL / MySQL**（随分支：`master` / `master-mysql`），支持两种互不冲突的周期性任务：
 
 | 方式 | 说明 | Hangfire Job Id |
 |------|------|-----------------|
@@ -398,13 +398,13 @@ public class SampleDailyRecurringJob : IRecurringJob
 ```
 
 - Dashboard：`/hangfire`（HTTP Basic，与业务 JWT 无关）
-- 多实例：Hangfire 使用 PostgreSQL 存储，多节点可同时跑 Worker，**任务逻辑需幂等**
+- 多实例：Hangfire 使用数据库持久化（PostgreSQL 或 MySQL），多节点可同时跑 Worker，**任务逻辑需幂等**
 
 保姆级说明见配套文档 `doc-beaverx-admin/docs/backend/scheduled-jobs.md`。
 
 ## 异步导出（DotNetCap）
 
-导出任务采用 **CAP + PostgreSQL 消息存储 + 内存队列 + MinIO 文件**：
+导出任务采用 **CAP + 数据库存储（PostgreSQL / MySQL，随分支）+ 内存队列 + MinIO 文件**：
 
 | 组件 | 说明 |
 |------|------|
@@ -484,7 +484,7 @@ var user = await _cache.GetOrSetAsync(
 | SignalR 实时推送 | 本机 Hub 连接 | 增加 **Redis Backplane**，否则 `SendToUser` 只能命中本节点连接 |
 | 在线用户 `IOnlineUserTracker` | 内存 `OnlineUserTracker` | 启用 **`RedisOnlineUserTracker`**（基于 StackExchange.Redis `IDatabase`） |
 | CAP 异步导出 | `UseInMemoryMessageQueue()` | 改为 Redis / RabbitMQ 等共享队列 |
-| Hangfire | PostgreSQL 存储（已共享） | 多实例可同时跑 Worker，注意任务幂等 |
+| Hangfire | 数据库持久化（PostgreSQL / MySQL） | 多实例可同时跑 Worker，注意任务幂等 |
 | JWT / 数据库 / MinIO | 无节点亲和 | 一般无需改动 |
 
 ### 1. 缓存切 Redis
@@ -562,7 +562,7 @@ options.UseRedis(redisConnectionString);
 
 ### 5. 推荐检查清单
 
-- [ ] PostgreSQL、Redis、MinIO 对所有 API 实例可达
+- [ ] 数据库（PostgreSQL 或 MySQL）、Redis、MinIO 对所有 API 实例可达
 - [ ] `Cache:Driver = Redis`
 - [ ] SignalR 已配置 Redis Backplane
 - [ ] Host 模块已调用 `AddRedisOnlineUserTracker`
