@@ -292,6 +292,74 @@ await _messageSender.SendAsync(new SendMessageRequest
 2. 实现 `IScopedDependency` 即可被 DI 自动注册
 3. 调用方通过 `Channels` 指定渠道，或默认广播到全部已注册渠道
 
+## 定时任务（Hangfire）
+
+基于 **Hangfire + PostgreSQL**，支持两种互不冲突的周期性任务：
+
+| 方式 | 说明 | Hangfire Job Id |
+|------|------|-----------------|
+| **后台 HTTP API 任务** | 管理端「系统管理 → 定时任务」或 `POST /api/ScheduledJob` 配置，定时请求 HTTP URL | `scheduled-job:{id}` |
+| **代码 `IRecurringJob`** | 实现接口并注册 DI，启动时自动同步到 Hangfire | 类型全名 |
+
+### 方式一：后台 HTTP API 任务
+
+- 数据表：`sys_scheduled_jobs`、`sys_scheduled_job_logs`
+- 前端页面：`/system/job`（权限 `system:job:*`）
+- 创建/更新后由 `IHangfireScheduledJobRegistrar` 同步 Hangfire；支持手动触发、Cron 校验、执行日志
+- 当前 `JobType` 仅支持 **HttpApi**（GET/POST/PUT/DELETE）
+
+```http
+POST /api/ScheduledJob
+{
+  "jobCode": "health-check",
+  "name": "健康检查",
+  "jobType": 1,
+  "cronExpression": "0 */5 * * *",
+  "httpMethod": 1,
+  "httpUrl": "http://localhost:5216/api/Health",
+  "timeoutSeconds": 30
+}
+```
+
+### 方式二：代码 `IRecurringJob`
+
+实现 `IRecurringJob`（含 `CronExpression` + `ExecuteAsync`），继承 `IScopedDependency` 即可被 DI 扫描；`CodeRecurringJobSyncHostedService` 启动时注册。
+
+```csharp
+public class SampleDailyRecurringJob : IRecurringJob
+{
+    public string CronExpression => "0 0 * * *";
+
+    public Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        // 注入 IRepository / IAppService 执行业务
+        return Task.CompletedTask;
+    }
+}
+```
+
+参考：`Application/Scheduling/Jobs/SampleDailyRecurringJob.cs`
+
+### 配置与 Dashboard
+
+```json
+{
+  "Hangfire": {
+    "SchemaName": "hangfire",
+    "EnableDashboard": true,
+    "DashboardPath": "/hangfire",
+    "SyncBusinessJobsOnStartup": true,
+    "BusinessJobStartupSyncMode": "MergeFromHangfire",
+    "Auth": { "Enabled": true, "Username": "hangfire", "Password": "hangfire123" }
+  }
+}
+```
+
+- Dashboard：`/hangfire`（HTTP Basic，与业务 JWT 无关）
+- 多实例：Hangfire 使用 PostgreSQL 存储，多节点可同时跑 Worker，**任务逻辑需幂等**
+
+保姆级说明见配套文档 `doc-beaverx-admin/docs/backend/scheduled-jobs.md`。
+
 ## 异步导出（DotNetCap）
 
 导出任务采用 **CAP + PostgreSQL 消息存储 + 内存队列 + MinIO 文件**：
