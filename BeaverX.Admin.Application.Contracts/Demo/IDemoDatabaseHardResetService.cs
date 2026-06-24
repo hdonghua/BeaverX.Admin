@@ -4,8 +4,6 @@ public interface IDemoDatabaseHardResetService
 {
     Task ClearBusinessDemoDataAsync(CancellationToken cancellationToken = default);
 
-    Task ClearMenusAsync(CancellationToken cancellationToken = default);
-
     Task ClearDictsAsync(CancellationToken cancellationToken = default);
 
     Task ClearConfigsAsync(CancellationToken cancellationToken = default);
