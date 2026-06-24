@@ -2,6 +2,15 @@
 
 基于 [BeaverX](https://www.nuget.org/packages/BeaverX.Core) 模块化框架的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。
 
+## 在线预览
+
+| 项目 | 说明 |
+|------|------|
+| 地址 | [https://beaverxadmin.com/](https://beaverxadmin.com/) |
+| 账号 | `admin` / `Admin@123` |
+
+> **演示环境说明**：系统每 **5 分钟** 会定时清理并覆盖数据，请勿保存重要信息或用于生产。
+
 ## 技术栈
 
 | 类别 | 技术 |
