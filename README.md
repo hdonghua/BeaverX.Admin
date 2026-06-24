@@ -1,5 +1,7 @@
 # BeaverX.Admin（后端）
 
+> **Language**: 简体中文 | [English](README.en.md)
+
 基于 [BeaverX](https://www.nuget.org/packages/BeaverX.Core) 模块化框架的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。
 
 ## 在线预览
