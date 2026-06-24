@@ -17,7 +17,7 @@
 |------|------|
 | 运行时 | .NET 10 |
 | Web | ASP.NET Core + BeaverX.WebMvc |
-| ORM | Entity Framework Core + PostgreSQL |
+| ORM | Entity Framework Core + **PostgreSQL**（默认分支）/ **MySQL**（`master-mysql` 分支） |
 | 认证 | JWT Bearer + Refresh Token |
 | 日志 | Serilog（控制台 + 本地文件） |
 | 对象存储 | MinIO（可选） |
@@ -25,9 +25,51 @@
 ## 环境要求
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- PostgreSQL 14+（或兼容版本）
+- **PostgreSQL 14+**（`master` 默认分支）或 **MySQL 8+**（`master-mysql` 分支，见下文）
 - （可选）MinIO，用于文件上传
 - 前端项目：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
+
+## 数据库选型（PostgreSQL / MySQL）
+
+后端按 **Git 分支** 区分数据库驱动，**前端无需改动**。
+
+| 分支 | 数据库 | 说明 |
+|------|--------|------|
+| `master`（默认） | PostgreSQL | 主开发分支，CAP / Hangfire 使用 PostgreSQL |
+| `master-mysql` | MySQL 8+ | MySQL 版本，需手动切换分支 |
+
+### 切换到 MySQL（`master-mysql`）
+
+```bash
+git clone https://github.com/hdonghua/BeaverX.Admin.git
+cd BeaverX.Admin
+
+git fetch origin
+git checkout master-mysql
+```
+
+编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Server=localhost;Port=3306;Database=beaverx-admin;User=root;Password=你的密码;Allow User Variables=True;"
+  }
+}
+```
+
+> `Allow User Variables=True` 为 Hangfire.MySql 所需，请勿省略。
+
+MySQL 分支差异摘要：
+
+- EF Core 驱动：`BeaverX.EntityFrameworkCore.MySql` + `AdminMySqlDbDriverOptionsBuilder`
+- Hangfire 存储：MySQL（表前缀见 `Hangfire:SchemaName`）
+- CAP 消息存储：MySQL（与业务库共用 `ConnectionStrings:Default`）
+- API 时间字段：全局 UTC JSON 序列化 + 写入库前 UTC 规范化（兼容 MySQL `DATETIME`）
+
+迁移与启动命令与 PostgreSQL 相同（见「快速开始」）。**不要在同一分支混用两种数据库的迁移历史**；从 PostgreSQL 迁到 MySQL 请使用 `master-mysql` 分支重新 `dotnet ef database update`。
+
+演示站点 [beaverxadmin.com](https://beaverxadmin.com/) 使用 **MySQL** 分支部署。
 
 ## 快速开始
 
@@ -113,7 +155,7 @@ BeaverX.Admin/
 
 | 配置节 | 文件 | 说明 |
 |--------|------|------|
-| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL |
+| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL（`master`）或 MySQL（`master-mysql`） |
 | `Jwt` | appsettings.json | 签发与校验 |
 | `CorsOrgins` | appsettings.Development.json | 前端源，逗号分隔 |
 | `Minio` | appsettings.json | 文件服务（可不配） |
