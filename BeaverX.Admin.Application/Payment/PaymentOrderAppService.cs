@@ -100,8 +100,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
             throw new BusinessException("订单号不能为空");
         }
 
-        var entity = await _orderRepository.GetSugarQueryable()
-          .FirstAsync(x => x.OrderNo == orderNo.Trim(), cancellationToken);
+        var entity = await _orderRepository.GetFirstAsync(x => x.OrderNo == orderNo.Trim(), cancellationToken);
 
         if (entity == null)
         {
@@ -123,8 +122,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
         }
 
         var channelCode = input.ChannelCode.Trim();
-        var channel = await _channelRepository.GetSugarQueryable()
-          .FirstAsync(x => x.ChannelCode == channelCode, cancellationToken);
+        var channel = await _channelRepository.GetFirstAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)
         {
@@ -354,8 +352,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
       string channelCode,
       CancellationToken cancellationToken)
     {
-        var channel = await _channelRepository.GetSugarQueryable()
-          .FirstAsync(x => x.ChannelCode == channelCode, cancellationToken);
+        var channel = await _channelRepository.GetFirstAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)
         {

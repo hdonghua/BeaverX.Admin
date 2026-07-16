@@ -24,8 +24,7 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var adminUser = await _userRepository.GetSugarQueryable()
-          .FirstAsync(x => x.UserName == "admin", cancellationToken);
+        var adminUser = await _userRepository.GetFirstAsync(x => x.UserName == "admin", cancellationToken);
 
         if (adminUser == null)
         {

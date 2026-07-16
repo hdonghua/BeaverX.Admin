@@ -27,8 +27,7 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var menuTypeDict = await _dictTypeRepository.GetSugarQueryable()
-          .FirstAsync(x => x.Code == MenuTypeDictCode, cancellationToken);
+        var menuTypeDict = await _dictTypeRepository.GetFirstAsync(x => x.Code == MenuTypeDictCode, cancellationToken);
 
         if (menuTypeDict == null)
         {
@@ -79,8 +78,7 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
 
     private async Task EnsureWorkTicketStatusDictAsync(CancellationToken cancellationToken)
     {
-        var dictType = await _dictTypeRepository.GetSugarQueryable()
-            .FirstAsync(x => x.Code == WorkTicketStatusDictCode, cancellationToken);
+        var dictType = await _dictTypeRepository.GetFirstAsync(x => x.Code == WorkTicketStatusDictCode, cancellationToken);
 
         if (dictType == null)
         {
