@@ -80,9 +80,7 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
             return [];
         }
 
-        var menus = await _menuRepository.GetSugarQueryable()
-            .Where(x => roleMenuIds.Contains(x.Id))
-            .ToListAsync(cancellationToken);
+        var menus = await _menuRepository.GetListAsync(x => roleMenuIds.Contains(x.Id), cancellationToken);
         return RbacMenuHelper.CollectPerms(menus);
     }
 

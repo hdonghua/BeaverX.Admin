@@ -24,7 +24,7 @@ public class MenuCacheService : IScopedDependency
             CacheKeys.MenuAll,
             async ct =>
             {
-                var menus = await _menuRepository.GetSugarQueryable().ToListAsync(ct);
+                var menus = await _menuRepository.GetListAsync(ct);
                 return menus.Select(MenuCacheItem.FromEntity).ToList();
             },
             CacheDurations.Menu,

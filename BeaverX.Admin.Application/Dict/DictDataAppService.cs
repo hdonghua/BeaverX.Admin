@@ -242,9 +242,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         }
 
         var dictTypeIds = items.Select(x => x.DictTypeId).Distinct().ToList();
-        var dictTypes = await _dictTypeRepository.GetSugarQueryable()
-            .Where(x => dictTypeIds.Contains(x.Id))
-            .ToListAsync(cancellationToken);
+        var dictTypes = await _dictTypeRepository.GetListAsync(x => dictTypeIds.Contains(x.Id), cancellationToken);
         var dictTypeMap = dictTypes.ToDictionary(x => x.Id);
 
         foreach (var item in items)

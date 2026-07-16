@@ -46,8 +46,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         List<long> newMenuIds,
         CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetSugarQueryable()
-            .FirstAsync(x => x.Code == RbacPermissionCodes.SuperAdmin, cancellationToken);
+        var role = await _roleRepository.GetFirstAsync(x => x.Code == RbacPermissionCodes.SuperAdmin, cancellationToken);
 
         if (role == null)
         {
@@ -80,8 +79,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
 
     private async Task EnsureAdminUserAsync(Role adminRole, CancellationToken cancellationToken)
     {
-        var adminUser = await _userRepository.GetSugarQueryable()
-            .FirstAsync(x => x.UserName == "admin", cancellationToken);
+        var adminUser = await _userRepository.GetFirstAsync(x => x.UserName == "admin", cancellationToken);
 
         if (adminUser == null)
         {
@@ -221,7 +219,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "重置密码", RbacPermissionCodes.System.User.ResetPassword, 3),
         ], cancellationToken);
 
-        return [page.Id, ..buttons.Select(x => x.Id)];
+        return [page.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureRoleMenusAsync(long parentId, CancellationToken cancellationToken)
@@ -254,7 +252,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "分配菜单", RbacPermissionCodes.System.Role.AssignMenus, 4),
         ], cancellationToken);
 
-        return [page.Id, ..buttons.Select(x => x.Id)];
+        return [page.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureMenuMenusAsync(long parentId, CancellationToken cancellationToken)
@@ -286,7 +284,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "菜单删除", RbacPermissionCodes.System.Menu.Delete, 3),
         ], cancellationToken);
 
-        return [page.Id, ..buttons.Select(x => x.Id)];
+        return [page.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureDictMenusAsync(long parentId, CancellationToken cancellationToken)
@@ -321,7 +319,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "字典数据删除", RbacPermissionCodes.System.Dict.Data.Delete, 6),
         ], cancellationToken);
 
-        return [page.Id, ..buttons.Select(x => x.Id)];
+        return [page.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureConfigMenusAsync(long parentId, CancellationToken cancellationToken)
@@ -353,7 +351,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "配置删除", RbacPermissionCodes.System.Config.Delete, 3),
         ], cancellationToken);
 
-        return [page.Id, ..buttons.Select(x => x.Id)];
+        return [page.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureJobMenusAsync(long parentId, CancellationToken cancellationToken)
@@ -386,7 +384,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(page.Id, "立即执行", RbacPermissionCodes.System.Job.Trigger, 4),
         ], cancellationToken);
 
-        return [page.Id, ..buttons.Select(x => x.Id)];
+        return [page.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureMessageMenusAsync(long parentId, CancellationToken cancellationToken)
@@ -421,10 +419,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     {
         var newMenuIds = new List<long>();
 
-        var page = await _menuRepository.GetSugarQueryable()
-            .FirstAsync(
-                x => x.Perms == RbacPermissionCodes.System.OnlineUser.List,
-                cancellationToken);
+        var page = await _menuRepository.GetFirstAsync(x => x.Perms == RbacPermissionCodes.System.OnlineUser.List, cancellationToken);
 
         if (page == null)
         {
@@ -534,7 +529,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(channelPage.Id, "渠道删除", RbacPermissionCodes.Payment.Channel.Delete, 3),
         ], cancellationToken);
 
-        return [channelPage.Id, ..buttons.Select(x => x.Id)];
+        return [channelPage.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsurePaymentOrderMenusAsync(
@@ -569,7 +564,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(orderPage.Id, "订单退款", RbacPermissionCodes.Payment.Order.Refund, 4),
         ], cancellationToken);
 
-        return [orderPage.Id, ..buttons.Select(x => x.Id)];
+        return [orderPage.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsurePaymentRefundMenusAsync(
@@ -671,7 +666,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             Btn(workPage.Id, "工单删除", RbacPermissionCodes.Ticket.Work.Delete, 3),
         ], cancellationToken);
 
-        return [workPage.Id, ..buttons.Select(x => x.Id)];
+        return [workPage.Id, .. buttons.Select(x => x.Id)];
     }
 
     private async Task<List<long>> EnsureWorkTicketProcessMenusAsync(

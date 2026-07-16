@@ -85,8 +85,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
             CacheKeys.ConfigByKey(normalizedKey),
             async ct =>
             {
-                var entity = await _configRepository.GetSugarQueryable()
-                    .FirstAsync(x => x.Key == normalizedKey, ct);
+                var entity = await _configRepository.GetFirstAsync(x => x.Key == normalizedKey, ct);
 
                 return entity == null ? null : ToDto(entity);
             },
