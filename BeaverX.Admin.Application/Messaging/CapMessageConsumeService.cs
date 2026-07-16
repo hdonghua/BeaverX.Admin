@@ -1,18 +1,16 @@
 using BeaverX.Admin.Domain.Messaging;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messaging;
 
 public class CapMessageConsumeService : IScopedDependency
 {
-    private readonly IRepository<LocalMessageOutbox> _repository;
+    private readonly ISugarRepository<LocalMessageOutbox> _repository;
     private readonly ILogger<CapMessageConsumeService> _logger;
 
     public CapMessageConsumeService(
-        IRepository<LocalMessageOutbox> repository,
+        ISugarRepository<LocalMessageOutbox> repository,
         ILogger<CapMessageConsumeService> logger)
     {
         _repository = repository;
@@ -55,7 +53,7 @@ public class CapMessageConsumeService : IScopedDependency
                 },
                 cancellationToken: cancellationToken);
         }
-        catch (DbUpdateException ex)
+        catch (Exception ex)
         {
             if (await IsConsumedAsync(capMessageId, cancellationToken))
             {

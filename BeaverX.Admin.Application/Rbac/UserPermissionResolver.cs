@@ -5,21 +5,20 @@ using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
 {
-    private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Menu> _menuRepository;
+    private readonly ISugarRepository<User> _userRepository;
+    private readonly ISugarRepository<Menu> _menuRepository;
     private readonly MenuCacheService _menuCacheService;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public UserPermissionResolver(
-        IRepository<User> userRepository,
-        IRepository<Menu> menuRepository,
+        ISugarRepository<User> userRepository,
+        ISugarRepository<Menu> menuRepository,
         MenuCacheService menuCacheService,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator)
@@ -49,17 +48,14 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
         long userId,
         CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .ThenInclude(x => x.RoleMenus)
-            .FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        var user = await _userRepository.FindAsync(x => x.Id == userId, cancellationToken);
 
         if (user == null || !user.IsEnabled)
         {
             return [];
         }
 
+        await PopulateUserAccessAsync(user, cancellationToken);
         return await ResolvePermissionsCoreAsync(GetRoleCodes(user), user, cancellationToken);
     }
 
@@ -84,7 +80,9 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
             return [];
         }
 
-        var menus = await _menuRepository.GetListAsync(x => roleMenuIds.Contains(x.Id), cancellationToken);
+        var menus = await _menuRepository.GetSugarQueryable()
+            .Where(x => roleMenuIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
         return RbacMenuHelper.CollectPerms(menus);
     }
 
@@ -97,4 +95,45 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
 
     private static bool IsSuperAdmin(IEnumerable<string> roles) =>
         roles.Contains(RbacPermissionCodes.SuperAdmin, StringComparer.OrdinalIgnoreCase);
+
+    private async Task PopulateUserAccessAsync(User user, CancellationToken cancellationToken)
+    {
+        var userRoles = await _userRepository.Client.Queryable<UserRole>()
+            .Where(x => x.UserId == user.Id)
+            .ToListAsync(cancellationToken);
+
+        var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
+        if (roleIds.Count == 0)
+        {
+            user.UserRoles = [];
+            return;
+        }
+
+        var roles = await _userRepository.Client.Queryable<Role>()
+            .Where(x => roleIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+        var roleMap = roles.ToDictionary(x => x.Id);
+
+        var roleMenus = await _userRepository.Client.Queryable<RoleMenu>()
+            .Where(x => roleIds.Contains(x.RoleId))
+            .ToListAsync(cancellationToken);
+        var roleMenuMap = roleMenus
+            .GroupBy(x => x.RoleId)
+            .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
+
+        foreach (var role in roles)
+        {
+            role.RoleMenus = roleMenuMap.TryGetValue(role.Id, out var items) ? items : [];
+        }
+
+        foreach (var userRole in userRoles)
+        {
+            if (roleMap.TryGetValue(userRole.RoleId, out var role))
+            {
+                userRole.Role = role;
+            }
+        }
+
+        user.UserRoles = userRoles;
+    }
 }

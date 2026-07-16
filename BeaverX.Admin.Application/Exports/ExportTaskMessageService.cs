@@ -1,8 +1,7 @@
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BeaverX.Data.SqlSugar.Repositories;
 
 namespace BeaverX.Admin.Application.Exports;
 
@@ -11,9 +10,9 @@ namespace BeaverX.Admin.Application.Exports;
 /// </summary>
 public class ExportTaskMessageService : IScopedDependency
 {
-    private readonly IRepository<ExportTask> _exportTaskRepository;
+    private readonly ISugarRepository<ExportTask> _exportTaskRepository;
 
-    public ExportTaskMessageService(IRepository<ExportTask> exportTaskRepository)
+    public ExportTaskMessageService(ISugarRepository<ExportTask> exportTaskRepository)
     {
         _exportTaskRepository = exportTaskRepository;
     }
@@ -38,11 +37,10 @@ public class ExportTaskMessageService : IScopedDependency
             return false;
         }
 
-        var claimed = await _exportTaskRepository.GetQueryable()
+        var claimed = await _exportTaskRepository.AsUpdateable()
             .Where(x => x.Id == taskId && x.Status == ExportTaskStatus.Pending)
-            .ExecuteUpdateAsync(
-                s => s.SetProperty(x => x.Status, ExportTaskStatus.Processing),
-                cancellationToken);
+            .SetColumns(x => x.Status == ExportTaskStatus.Processing)
+            .ExecuteCommandAsync(cancellationToken);
 
         return claimed > 0;
     }
@@ -61,16 +59,15 @@ public class ExportTaskMessageService : IScopedDependency
 
     public async Task ResetStuckProcessingAsync(CancellationToken cancellationToken = default)
     {
-        await _exportTaskRepository.GetQueryable()
+        await _exportTaskRepository.AsUpdateable()
             .Where(x => x.Status == ExportTaskStatus.Processing)
-            .ExecuteUpdateAsync(
-                s => s.SetProperty(x => x.Status, ExportTaskStatus.Pending),
-                cancellationToken);
+            .SetColumns(x => x.Status == ExportTaskStatus.Pending)
+            .ExecuteCommandAsync(cancellationToken);
     }
 
     public async Task<List<long>> GetRepublishTaskIdsAsync(CancellationToken cancellationToken = default)
     {
-        return await _exportTaskRepository.GetQueryable()
+        return await _exportTaskRepository.GetSugarQueryable()
             .Where(x => x.Status == ExportTaskStatus.Pending)
             .OrderBy(x => x.Id)
             .Select(x => x.Id)

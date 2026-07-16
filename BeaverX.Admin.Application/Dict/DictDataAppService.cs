@@ -5,20 +5,19 @@ using BeaverX.Admin.Application.Contracts.Dict.Dtos;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Dict;
 
 public class DictDataAppService : IDictDataAppService, IScopedDependency
 {
-    private readonly IRepository<DictType> _dictTypeRepository;
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly ISugarRepository<DictType> _dictTypeRepository;
+    private readonly ISugarRepository<DictData> _dictDataRepository;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public DictDataAppService(
-        IRepository<DictType> dictTypeRepository,
-        IRepository<DictData> dictDataRepository,
+        ISugarRepository<DictType> dictTypeRepository,
+        ISugarRepository<DictData> dictDataRepository,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -32,9 +31,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         DictDataQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _dictDataRepository.GetQueryable()
-            .Include(x => x.DictType)
-            .AsQueryable();
+        var query = _dictDataRepository.GetSugarQueryable();
 
         if (input.DictTypeId.HasValue)
         {
@@ -44,7 +41,11 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         if (!string.IsNullOrWhiteSpace(input.TypeCode))
         {
             var typeCode = input.TypeCode.Trim();
-            query = query.Where(x => x.DictType.Code == typeCode);
+            var dictTypeId = await _dictTypeRepository.GetSugarQueryable()
+                .Where(x => x.Code == typeCode)
+                .Select(x => x.Id)
+                .FirstAsync(cancellationToken);
+            query = query.Where(x => x.DictTypeId == dictTypeId);
         }
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
@@ -62,9 +63,10 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
 
         var items = await query
             .OrderBy(x => x.Sort)
-            .ThenByDescending(x => x.CreationTime)
+            .OrderByDescending(x => x.CreationTime)
             .ToListAsync(cancellationToken);
 
+        await PopulateDictTypesAsync(items, cancellationToken);
         return items.Select(DictMapper.ToDictDataDto).ToList();
     }
 
@@ -80,18 +82,26 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         var code = typeCode.Trim();
         return _cache.GetOrSetAsync(
             CacheKeys.DictOptions(code),
-            async ct => await _dictDataRepository.GetQueryable()
-                .Include(x => x.DictType)
-                .Where(x => x.DictType.Code == code && x.IsEnabled && x.DictType.IsEnabled)
+            async ct =>
+            {
+                var dictType = await _dictTypeRepository.FindAsync(x => x.Code == code && x.IsEnabled, ct);
+                if (dictType == null)
+                {
+                    return [];
+                }
+
+                return await _dictDataRepository.GetSugarQueryable()
+                .Where(x => x.DictTypeId == dictType.Id && x.IsEnabled)
                 .OrderBy(x => x.Sort)
-                .ThenBy(x => x.Id)
+                .OrderBy(x => x.Id)
                 .Select(x => new DictOptionDto
                 {
                     Label = x.Label,
                     Value = x.Value,
                     ListClass = x.ListClass
                 })
-                .ToListAsync(ct),
+                .ToListAsync(ct);
+            },
             CacheDurations.Dict,
             cancellationToken);
     }
@@ -213,15 +223,36 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
 
     private async Task<DictData> FindWithTypeAsync(long id, CancellationToken cancellationToken)
     {
-        var entity = await _dictDataRepository.GetQueryable()
-            .Include(x => x.DictType)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var entity = await _dictDataRepository.FindAsync(x => x.Id == id, cancellationToken);
 
         if (entity == null)
         {
             throw new BusinessException($"字典数据不存在: {id}");
         }
 
+        entity.DictType = await _dictTypeRepository.GetAsync(entity.DictTypeId, cancellationToken);
         return entity;
+    }
+
+    private async Task PopulateDictTypesAsync(List<DictData> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        var dictTypeIds = items.Select(x => x.DictTypeId).Distinct().ToList();
+        var dictTypes = await _dictTypeRepository.GetSugarQueryable()
+            .Where(x => dictTypeIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+        var dictTypeMap = dictTypes.ToDictionary(x => x.Id);
+
+        foreach (var item in items)
+        {
+            if (dictTypeMap.TryGetValue(item.DictTypeId, out var dictType))
+            {
+                item.DictType = dictType;
+            }
+        }
     }
 }

@@ -8,11 +8,11 @@ namespace BeaverX.Admin.Application.Config;
 
 public class ConfigDataSeeder : IScopedDependency, IDataSeeder
 {
-    private readonly IRepository<SysConfig> _configRepository;
+    private readonly ISugarRepository<SysConfig> _configRepository;
     private readonly ILogger<ConfigDataSeeder> _logger;
 
     public ConfigDataSeeder(
-      IRepository<SysConfig> configRepository,
+      ISugarRepository<SysConfig> configRepository,
       ILogger<ConfigDataSeeder> logger)
     {
         _configRepository = configRepository;

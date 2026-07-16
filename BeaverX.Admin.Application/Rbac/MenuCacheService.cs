@@ -9,10 +9,10 @@ namespace BeaverX.Admin.Application.Rbac;
 
 public class MenuCacheService : IScopedDependency
 {
-    private readonly IRepository<Menu> _menuRepository;
+    private readonly ISugarRepository<Menu> _menuRepository;
     private readonly ICacheService _cache;
 
-    public MenuCacheService(IRepository<Menu> menuRepository, ICacheService cache)
+    public MenuCacheService(ISugarRepository<Menu> menuRepository, ICacheService cache)
     {
         _menuRepository = menuRepository;
         _cache = cache;
@@ -24,7 +24,7 @@ public class MenuCacheService : IScopedDependency
             CacheKeys.MenuAll,
             async ct =>
             {
-                var menus = await _menuRepository.GetListAsync(ct);
+                var menus = await _menuRepository.GetSugarQueryable().ToListAsync(ct);
                 return menus.Select(MenuCacheItem.FromEntity).ToList();
             },
             CacheDurations.Menu,
@@ -38,9 +38,9 @@ public class MenuCacheService : IScopedDependency
             CacheKeys.MenuTree,
             async ct =>
             {
-                var menus = await _menuRepository.GetListAsync(ct);
+                var menus = await _menuRepository.GetSugarQueryable().ToListAsync(ct);
                 var dtos = menus.Select(RbacMapper.ToMenuDto).ToList();
-                return RbacQueryHelper.BuildMenuTree(dtos);
+                return RbacQueryHelper.BuildMenuTree(dtos) ?? [];
             },
             CacheDurations.Menu,
             cancellationToken);

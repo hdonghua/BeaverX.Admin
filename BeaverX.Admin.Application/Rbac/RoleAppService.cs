@@ -5,22 +5,21 @@ using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Uow;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class RoleAppService : IRoleAppService, IScopedDependency
 {
-    private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<Menu> _menuRepository;
-    private readonly IRepository<RoleMenu> _roleMenuRepository;
+    private readonly ISugarRepository<Role> _roleRepository;
+    private readonly ISugarRepository<Menu> _menuRepository;
+    private readonly ISugarRepository<RoleMenu> _roleMenuRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public RoleAppService(
-        IRepository<Role> roleRepository,
-        IRepository<Menu> menuRepository,
-        IRepository<RoleMenu> roleMenuRepository,
+        ISugarRepository<Role> roleRepository,
+        ISugarRepository<Menu> menuRepository,
+        ISugarRepository<RoleMenu> roleMenuRepository,
         IUnitOfWork unitOfWork,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -33,9 +32,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
     public async Task<PagedResultDto<RoleDto>> GetListAsync(RoleQueryDto input, CancellationToken cancellationToken = default)
     {
-        var query = _roleRepository.GetQueryable()
-            .Include(x => x.RoleMenus)
-            .AsQueryable();
+        var query = _roleRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -48,14 +45,16 @@ public class RoleAppService : IRoleAppService, IScopedDependency
             query = query.Where(x => x.IsEnabled == input.IsEnabled.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderBy(x => x.Sort)
-            .ThenByDescending(x => x.CreationTime)
+            .OrderByDescending(x => x.CreationTime)
             .Skip(skip)
             .Take(take)
             .ToListAsync(cancellationToken);
+
+        await PopulateRoleMenusAsync(items, cancellationToken);
 
         var roleDtos = new List<RoleDto>();
         foreach (var item in items)
@@ -142,15 +141,14 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
     private async Task<Role> FindRoleWithRelationsAsync(long id, CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetQueryable()
-            .Include(x => x.RoleMenus)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var role = await _roleRepository.FindAsync(x => x.Id == id, cancellationToken);
 
         if (role == null)
         {
             throw new BusinessException($"角色不存在: {id}");
         }
 
+        await PopulateRoleMenusAsync([role], cancellationToken);
         return role;
     }
 
@@ -166,7 +164,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
     }
 
     private async Task<List<long>> GetAllMenuIdsAsync(CancellationToken cancellationToken) =>
-        await _menuRepository.GetQueryable()
+        await _menuRepository.GetSugarQueryable()
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
 
@@ -196,5 +194,26 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         });
 
         await _roleMenuRepository.InsertManyAsync(items, autoSave: true, cancellationToken: cancellationToken);
+    }
+
+    private async Task PopulateRoleMenusAsync(List<Role> roles, CancellationToken cancellationToken)
+    {
+        if (roles.Count == 0)
+        {
+            return;
+        }
+
+        var roleIds = roles.Select(x => x.Id).Distinct().ToList();
+        var roleMenus = await _roleMenuRepository.GetSugarQueryable()
+            .Where(x => roleIds.Contains(x.RoleId))
+            .ToListAsync(cancellationToken);
+        var roleMenuMap = roleMenus
+            .GroupBy(x => x.RoleId)
+            .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
+
+        foreach (var role in roles)
+        {
+            role.RoleMenus = roleMenuMap.TryGetValue(role.Id, out var items) ? items : [];
+        }
     }
 }

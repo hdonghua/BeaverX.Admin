@@ -6,20 +6,18 @@ using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Admin.Domain.Shared.Scheduling;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Scheduling;
 
 public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
 {
-    private readonly IRepository<ScheduledJob> _jobRepository;
-    private readonly IRepository<ScheduledJobLog> _logRepository;
+    private readonly ISugarRepository<ScheduledJob> _jobRepository;
+    private readonly ISugarRepository<ScheduledJobLog> _logRepository;
     private readonly IHangfireScheduledJobRegistrar _registrar;
 
     public ScheduledJobAppService(
-        IRepository<ScheduledJob> jobRepository,
-        IRepository<ScheduledJobLog> logRepository,
+        ISugarRepository<ScheduledJob> jobRepository,
+        ISugarRepository<ScheduledJobLog> logRepository,
         IHangfireScheduledJobRegistrar registrar)
     {
         _jobRepository = jobRepository;
@@ -31,7 +29,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         ScheduledJobQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _jobRepository.GetQueryable().AsQueryable();
+        var query = _jobRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -47,7 +45,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
             query = query.Where(x => x.IsEnabled == input.IsEnabled.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderByDescending(x => x.CreationTime)
@@ -190,11 +188,10 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
     {
         _ = await FindAsync(id, cancellationToken);
 
-        var query = _logRepository.GetQueryable()
-            .Where(x => x.JobId == id)
-            .AsQueryable();
+        var query = _logRepository.GetSugarQueryable()
+            .Where(x => x.JobId == id);
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderByDescending(x => x.StartedAt)

@@ -3,19 +3,17 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class MenuAppService : IMenuAppService, IScopedDependency
 {
-    private readonly IRepository<Menu> _menuRepository;
+    private readonly ISugarRepository<Menu> _menuRepository;
     private readonly MenuCacheService _menuCacheService;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public MenuAppService(
-        IRepository<Menu> menuRepository,
+        ISugarRepository<Menu> menuRepository,
         MenuCacheService menuCacheService,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -148,9 +146,9 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             throw new BusinessException("菜单排序项不能重复");
         }
 
-        var menus = await _menuRepository.GetListAsync(
-            x => orderedIds.Contains(x.Id),
-            cancellationToken);
+        var menus = await _menuRepository.GetSugarQueryable()
+            .Where(x => orderedIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
 
         if (menus.Count != orderedIds.Count)
         {
@@ -162,7 +160,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             throw new BusinessException("只能在同一层级内排序");
         }
 
-        var expectedCount = await _menuRepository.GetQueryable()
+        var expectedCount = await _menuRepository.GetSugarQueryable()
             .Where(x => x.ParentId == input.ParentId && !x.IsDeleted)
             .CountAsync(cancellationToken);
 

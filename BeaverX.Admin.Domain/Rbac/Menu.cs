@@ -18,7 +18,12 @@ public class Menu : FullAuditedEntity
     public bool IsEnabled { get; set; } = true;
     public bool IsExternal { get; set; }
 
+    [Navigate(NavigateType.OneToOne, nameof(ParentId))]
     public Menu? Parent { get; set; }
+
+    [Navigate(NavigateType.OneToMany, nameof(ParentId))]
     public ICollection<Menu> Children { get; set; } = [];
+
+    [Navigate(NavigateType.OneToMany, nameof(RoleMenu.MenuId))]
     public ICollection<RoleMenu> RoleMenus { get; set; } = [];
 }

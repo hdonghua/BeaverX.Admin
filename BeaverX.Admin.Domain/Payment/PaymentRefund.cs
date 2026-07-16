@@ -25,9 +25,10 @@ public class PaymentRefund : FullAuditedEntity
     public string? ErrorCode { get; private set; }
     public string? ErrorMessage { get; private set; }
 
+    [Navigate(NavigateType.OneToOne, nameof(PaymentOrderId))]
     public PaymentOrder? PaymentOrder { get; private set; }
 
-    private PaymentRefund()
+    public PaymentRefund()
     {
     }
 

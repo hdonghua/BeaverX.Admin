@@ -1,23 +1,20 @@
 ﻿using BeaverX.Admin.Domain;
+using BeaverX.Admin.SqlSugar.Interceptors;
 using BeaverX.Core.Modules;
+using BeaverX.Data.SqlSugar;
+using BeaverX.Data.SqlSugar.DependencyInjection;
 using BeaverX.Domain.IdGeneration;
-using BeaverX.EntityFrameworkCore;
-using BeaverX.EntityFrameworkCore.DependencyInjection;
-using BeaverX.EntityFrameworkCore.MySql;
 using IdGen.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace BeaverX.Admin.EntityFrameworkCore
 {
     [DependsOn(
         typeof(BeaverXAdminDomainModule),
-        typeof(BeaverXEntityFrameworkCoreModule),
-        typeof(BeaverXEntityFrameworkCoreMySqlModule)
+        typeof(BeaverXDataSqlSugarModule)
     )]
-    public class BeaverXAdminEntityFrameworkCoreModule : BeaverXModule
+    public class BeaverXAdminSqlSugarModule : BeaverXModule
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
@@ -30,8 +27,13 @@ namespace BeaverX.Admin.EntityFrameworkCore
             services.AddIdGen(idGenOptions.GeneratorId);
             services.AddSingleton<IIdGenerator<long>, SnowflakeEntityIdGenerator>();
 
-            services.Replace(ServiceDescriptor.Singleton<IDbDriverOptionsBuilder, AdminMySqlDbDriverOptionsBuilder>());
-            services.AddBeaverXDbContext<AdminDbContext>(configuration.GetConnectionString("Default")!);
+            services.AddBeaverXSqlSugar(options =>
+            {
+                options.ConnectionString = configuration.GetConnectionString("Default")!;
+                options.DbType = global::SqlSugar.DbType.PostgreSQL;
+                options.AddEntitiesFromAssembly(typeof(BeaverXAdminDomainModule).Assembly);
+                options.NormalizeEntityBeforeWrite = UtcDateTimeSaveChangesInterceptor.NormalizeDateTimes;
+            });
         }
     }
 }

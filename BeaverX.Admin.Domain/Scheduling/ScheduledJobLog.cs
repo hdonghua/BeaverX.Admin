@@ -15,5 +15,6 @@ public class ScheduledJobLog : CreationAuditedEntity
     public string? ErrorMessage { get; set; }
     public bool IsManualTrigger { get; set; }
 
+    [Navigate(NavigateType.OneToOne, nameof(JobId))]
     public ScheduledJob Job { get; set; } = null!;
 }

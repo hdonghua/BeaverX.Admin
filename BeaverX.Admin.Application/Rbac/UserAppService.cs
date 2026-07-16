@@ -6,15 +6,14 @@ using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Uow;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class UserAppService : IUserAppService, IScopedDependency
 {
-    private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<UserRole> _userRoleRepository;
+    private readonly ISugarRepository<User> _userRepository;
+    private readonly ISugarRepository<Role> _roleRepository;
+    private readonly ISugarRepository<UserRole> _userRoleRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly AppCacheInvalidator _cacheInvalidator;
@@ -22,9 +21,9 @@ public class UserAppService : IUserAppService, IScopedDependency
     private readonly RealtimePublisher _realtimePublisher;
 
     public UserAppService(
-        IRepository<User> userRepository,
-        IRepository<Role> roleRepository,
-        IRepository<UserRole> userRoleRepository,
+        ISugarRepository<User> userRepository,
+        ISugarRepository<Role> roleRepository,
+        ISugarRepository<UserRole> userRoleRepository,
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         AppCacheInvalidator cacheInvalidator,
@@ -43,10 +42,7 @@ public class UserAppService : IUserAppService, IScopedDependency
 
     public async Task<PagedResultDto<UserDto>> GetListAsync(UserQueryDto input, CancellationToken cancellationToken = default)
     {
-        var query = _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .AsQueryable();
+        var query = _userRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -62,13 +58,15 @@ public class UserAppService : IUserAppService, IScopedDependency
             query = query.Where(x => x.IsEnabled == input.IsEnabled.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderByDescending(x => x.CreationTime)
             .Skip(skip)
             .Take(take)
             .ToListAsync(cancellationToken);
+
+        await PopulateUserRolesAsync(items, cancellationToken);
 
         return new PagedResultDto<UserDto>
         {
@@ -167,17 +165,52 @@ public class UserAppService : IUserAppService, IScopedDependency
 
     private async Task<User> FindUserWithRolesAsync(long id, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var user = await _userRepository.FindAsync(x => x.Id == id, cancellationToken);
 
         if (user == null)
         {
             throw new BusinessException($"用户不存在: {id}");
         }
 
+        await PopulateUserRolesAsync([user], cancellationToken);
         return user;
+    }
+
+    private async Task PopulateUserRolesAsync(List<User> users, CancellationToken cancellationToken)
+    {
+        if (users.Count == 0)
+        {
+            return;
+        }
+
+        var userIds = users.Select(x => x.Id).Distinct().ToList();
+        var userRoles = await _userRoleRepository.GetSugarQueryable()
+            .Where(x => userIds.Contains(x.UserId))
+            .ToListAsync(cancellationToken);
+        var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
+        var roles = roleIds.Count == 0
+            ? []
+            : await _roleRepository.GetSugarQueryable()
+                .Where(x => roleIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
+        var roleMap = roles.ToDictionary(x => x.Id);
+
+        foreach (var userRole in userRoles)
+        {
+            if (roleMap.TryGetValue(userRole.RoleId, out var role))
+            {
+                userRole.Role = role;
+            }
+        }
+
+        var userRoleMap = userRoles
+            .GroupBy(x => x.UserId)
+            .ToDictionary(x => x.Key, x => (ICollection<UserRole>)x.ToList());
+
+        foreach (var user in users)
+        {
+            user.UserRoles = userRoleMap.TryGetValue(user.Id, out var items) ? items : [];
+        }
     }
 
     private async Task ReplaceUserRolesAsync(long userId, IEnumerable<long> roleIds, CancellationToken cancellationToken)

@@ -6,9 +6,8 @@ using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Users;
-using Microsoft.EntityFrameworkCore;
+using BeaverX.Data.SqlSugar.Repositories;
 
 namespace BeaverX.Admin.Application.Exports;
 
@@ -20,7 +19,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         WriteIndented = false
     };
 
-    private readonly IRepository<ExportTask> _exportTaskRepository;
+    private readonly ISugarRepository<ExportTask> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
     private readonly IExportTaskPublisher _exportTaskPublisher;
     private readonly IBlobStorage _blobStorage;
@@ -28,7 +27,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     private readonly ICurrentUser _currentUser;
 
     public ExportTaskAppService(
-        IRepository<ExportTask> exportTaskRepository,
+        ISugarRepository<ExportTask> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
         IExportTaskPublisher exportTaskPublisher,
         IBlobStorage blobStorage,
@@ -78,7 +77,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     public async Task<List<ExportTaskDto>> GetListAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var items = await _exportTaskRepository.GetQueryable()
+        var items = await _exportTaskRepository.GetSugarQueryable()
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreationTime)
             .Take(50)
@@ -90,8 +89,8 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     public async Task<int> GetActiveCountAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var count = await _exportTaskRepository.GetQueryable()
-            .LongCountAsync(
+        var count = await _exportTaskRepository.GetSugarQueryable()
+            .CountAsync(
                 x => x.UserId == userId &&
                      (x.Status == ExportTaskStatus.Pending || x.Status == ExportTaskStatus.Processing),
                 cancellationToken);

@@ -10,5 +10,6 @@ public class UserRefreshToken : FullAuditedEntity
     public DateTime? RevokedAt { get; set; }
     public string? ReplacedByTokenHash { get; set; }
 
+    [Navigate(NavigateType.OneToOne, nameof(UserId))]
     public User User { get; set; } = null!;
 }

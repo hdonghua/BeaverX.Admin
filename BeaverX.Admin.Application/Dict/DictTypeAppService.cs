@@ -5,20 +5,20 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BeaverX.Data.SqlSugar.Repositories;
+using SqlSugar;
 
 namespace BeaverX.Admin.Application.Dict;
 
 public class DictTypeAppService : IDictTypeAppService, IScopedDependency
 {
-    private readonly IRepository<DictType> _dictTypeRepository;
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly ISugarRepository<DictType> _dictTypeRepository;
+    private readonly ISugarRepository<DictData> _dictDataRepository;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public DictTypeAppService(
-        IRepository<DictType> dictTypeRepository,
-        IRepository<DictData> dictDataRepository,
+        ISugarRepository<DictType> dictTypeRepository,
+        ISugarRepository<DictData> dictDataRepository,
         AppCacheInvalidator cacheInvalidator)
     {
         _dictTypeRepository = dictTypeRepository;
@@ -30,7 +30,7 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
         DictTypeQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _dictTypeRepository.GetQueryable().AsQueryable();
+        var query = _dictTypeRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -45,7 +45,7 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
             query = query.Where(x => x.IsEnabled == input.IsEnabled.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        RefAsync<int> total = 0;
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderByDescending(x => x.CreationTime)

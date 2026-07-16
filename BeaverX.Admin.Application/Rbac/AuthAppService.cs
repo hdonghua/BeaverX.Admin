@@ -9,13 +9,12 @@ using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Uow;
 using BeaverX.Domain.Users;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class AuthAppService : IAuthAppService, IScopedDependency
 {
-    private readonly IRepository<User> _userRepository;
+    private readonly ISugarRepository<User> _userRepository;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly RefreshTokenService _refreshTokenService;
@@ -27,7 +26,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private readonly ICurrentUser _currentUser;
 
     public AuthAppService(
-        IRepository<User> userRepository,
+        ISugarRepository<User> userRepository,
         IJwtTokenService jwtTokenService,
         IPasswordHasher passwordHasher,
         RefreshTokenService refreshTokenService,
@@ -222,20 +221,26 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private async Task<User?> LoadUserWithAccessAsync(string userName, CancellationToken cancellationToken)
     {
-        return await _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .ThenInclude(x => x.RoleMenus)
-            .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken);
+        var user = await _userRepository.FindAsync(x => x.UserName == userName, cancellationToken);
+        if (user == null)
+        {
+            return null;
+        }
+
+        await PopulateUserAccessAsync(user, cancellationToken);
+        return user;
     }
 
     private async Task<User?> LoadUserWithAccessByIdAsync(long userId, CancellationToken cancellationToken)
     {
-        return await _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .ThenInclude(x => x.RoleMenus)
-            .FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        var user = await _userRepository.FindAsync(x => x.Id == userId, cancellationToken);
+        if (user == null)
+        {
+            return null;
+        }
+
+        await PopulateUserAccessAsync(user, cancellationToken);
+        return user;
     }
 
     private static List<string> GetRoleCodes(User user) =>
@@ -250,6 +255,47 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private static string? NormalizeOptionalString(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task PopulateUserAccessAsync(User user, CancellationToken cancellationToken)
+    {
+        var userRoles = await _userRepository.Client.Queryable<UserRole>()
+            .Where(x => x.UserId == user.Id)
+            .ToListAsync(cancellationToken);
+
+        var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
+        if (roleIds.Count == 0)
+        {
+            user.UserRoles = [];
+            return;
+        }
+
+        var roles = await _userRepository.Client.Queryable<Role>()
+            .Where(x => roleIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+        var roleMap = roles.ToDictionary(x => x.Id);
+
+        var roleMenus = await _userRepository.Client.Queryable<RoleMenu>()
+            .Where(x => roleIds.Contains(x.RoleId))
+            .ToListAsync(cancellationToken);
+        var roleMenuMap = roleMenus
+            .GroupBy(x => x.RoleId)
+            .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
+
+        foreach (var role in roles)
+        {
+            role.RoleMenus = roleMenuMap.TryGetValue(role.Id, out var items) ? items : [];
+        }
+
+        foreach (var userRole in userRoles)
+        {
+            if (roleMap.TryGetValue(userRole.RoleId, out var role))
+            {
+                userRole.Role = role;
+            }
+        }
+
+        user.UserRoles = userRoles;
+    }
 
     private async Task<TokenResultDto> IssueTokensAsync(
         User user,

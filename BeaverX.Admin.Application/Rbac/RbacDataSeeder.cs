@@ -3,28 +3,26 @@ using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class RbacDataSeeder : IScopedDependency, IDataSeeder
 {
-    private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<Menu> _menuRepository;
-    private readonly IRepository<UserRole> _userRoleRepository;
-    private readonly IRepository<RoleMenu> _roleMenuRepository;
+    private readonly ISugarRepository<User> _userRepository;
+    private readonly ISugarRepository<Role> _roleRepository;
+    private readonly ISugarRepository<Menu> _menuRepository;
+    private readonly ISugarRepository<UserRole> _userRoleRepository;
+    private readonly ISugarRepository<RoleMenu> _roleMenuRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ILogger<RbacDataSeeder> _logger;
 
     public RbacDataSeeder(
-        IRepository<User> userRepository,
-        IRepository<Role> roleRepository,
-        IRepository<Menu> menuRepository,
-        IRepository<UserRole> userRoleRepository,
-        IRepository<RoleMenu> roleMenuRepository,
+        ISugarRepository<User> userRepository,
+        ISugarRepository<Role> roleRepository,
+        ISugarRepository<Menu> menuRepository,
+        ISugarRepository<UserRole> userRoleRepository,
+        ISugarRepository<RoleMenu> roleMenuRepository,
         IPasswordHasher passwordHasher,
         ILogger<RbacDataSeeder> logger)
     {
@@ -48,8 +46,8 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
         List<long> newMenuIds,
         CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetQueryable()
-            .FirstOrDefaultAsync(x => x.Code == RbacPermissionCodes.SuperAdmin, cancellationToken);
+        var role = await _roleRepository.GetSugarQueryable()
+            .FirstAsync(x => x.Code == RbacPermissionCodes.SuperAdmin, cancellationToken);
 
         if (role == null)
         {
@@ -65,8 +63,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             };
             await _roleRepository.InsertAsync(role, cancellationToken: cancellationToken);
 
-            var allMenuIds = await _menuRepository.GetQueryable()
-                .AsNoTracking()
+            var allMenuIds = await _menuRepository.GetSugarQueryable()
                 .Select(x => x.Id)
                 .ToListAsync(cancellationToken);
             await InsertRoleMenusIfMissingAsync(role.Id, allMenuIds, cancellationToken);
@@ -83,8 +80,8 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
 
     private async Task EnsureAdminUserAsync(Role adminRole, CancellationToken cancellationToken)
     {
-        var adminUser = await _userRepository.GetQueryable()
-            .FirstOrDefaultAsync(x => x.UserName == "admin", cancellationToken);
+        var adminUser = await _userRepository.GetSugarQueryable()
+            .FirstAsync(x => x.UserName == "admin", cancellationToken);
 
         if (adminUser == null)
         {
@@ -126,8 +123,7 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
             return;
         }
 
-        var existingMenuIds = await _roleMenuRepository.GetQueryable()
-            .AsNoTracking()
+        var existingMenuIds = await _roleMenuRepository.GetSugarQueryable()
             .Where(x => x.RoleId == roleId && menuIdList.Contains(x.MenuId))
             .Select(x => x.MenuId)
             .ToListAsync(cancellationToken);
@@ -169,11 +165,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     private async Task<(long DirectoryId, List<long> NewMenuIds)> EnsureSystemDirectoryAsync(
         CancellationToken cancellationToken)
     {
-        var existingId = await _menuRepository.GetQueryable()
-            .AsNoTracking()
+        var existingId = await _menuRepository.GetSugarQueryable()
             .Where(x => x.Path == "/system" && x.MenuType == MenuType.Directory)
             .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstAsync(cancellationToken);
 
         if (existingId > 0)
         {
@@ -426,8 +421,8 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     {
         var newMenuIds = new List<long>();
 
-        var page = await _menuRepository.GetQueryable()
-            .FirstOrDefaultAsync(
+        var page = await _menuRepository.GetSugarQueryable()
+            .FirstAsync(
                 x => x.Perms == RbacPermissionCodes.System.OnlineUser.List,
                 cancellationToken);
 
@@ -483,11 +478,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     private async Task<(long DirectoryId, List<long> NewMenuIds)> EnsurePaymentDirectoryAsync(
         CancellationToken cancellationToken)
     {
-        var existingId = await _menuRepository.GetQueryable()
-            .AsNoTracking()
+        var existingId = await _menuRepository.GetSugarQueryable()
             .Where(x => x.Path == "/payment" && x.MenuType == MenuType.Directory)
             .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstAsync(cancellationToken);
 
         if (existingId > 0)
         {
@@ -621,11 +615,10 @@ public class RbacDataSeeder : IScopedDependency, IDataSeeder
     private async Task<(long DirectoryId, List<long> NewMenuIds)> EnsureTicketDirectoryAsync(
         CancellationToken cancellationToken)
     {
-        var existingId = await _menuRepository.GetQueryable()
-            .AsNoTracking()
+        var existingId = await _menuRepository.GetSugarQueryable()
             .Where(x => x.Path == "/ticket" && x.MenuType == MenuType.Directory)
             .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstAsync(cancellationToken);
 
         if (existingId > 0)
         {
