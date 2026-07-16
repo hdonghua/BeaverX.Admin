@@ -11,6 +11,8 @@ public class ScheduledJobLog : CreationAuditedEntity
     public DateTime? FinishedAt { get; set; }
     public int? DurationMs { get; set; }
     public int? HttpStatusCode { get; set; }
+
+    [SugarColumn(ColumnDataType = "text")]
     public string? ResponseBody { get; set; }
     public string? ErrorMessage { get; set; }
     public bool IsManualTrigger { get; set; }

@@ -186,9 +186,20 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             return;
         }
 
-        var exists = await _menuRepository.AnyAsync(
-            x => x.Perms == perms && (!excludeId.HasValue || x.Id != excludeId.Value),
-            cancellationToken);
+        // 合成一个表达式SqlSugar报错
+        var exists = false;
+        if (excludeId.HasValue)
+        {
+            exists = await _menuRepository.AnyAsync(
+                x => x.Perms == perms && x.Id != excludeId.Value,
+                cancellationToken);
+        }
+        else
+        {
+            exists = await _menuRepository.AnyAsync(
+                x => x.Perms == perms,
+                cancellationToken);
+        }
 
         if (exists)
         {

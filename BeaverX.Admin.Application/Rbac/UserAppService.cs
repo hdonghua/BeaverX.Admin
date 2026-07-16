@@ -184,15 +184,11 @@ public class UserAppService : IUserAppService, IScopedDependency
         }
 
         var userIds = users.Select(x => x.Id).Distinct().ToList();
-        var userRoles = await _userRoleRepository.GetSugarQueryable()
-            .Where(x => userIds.Contains(x.UserId))
-            .ToListAsync(cancellationToken);
+        var userRoles = await _userRoleRepository.GetListAsync(x => userIds.Contains(x.UserId), cancellationToken);
         var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
         var roles = roleIds.Count == 0
             ? []
-            : await _roleRepository.GetSugarQueryable()
-                .Where(x => roleIds.Contains(x.Id))
-                .ToListAsync(cancellationToken);
+            : await _roleRepository.GetListAsync(x => roleIds.Contains(x.Id), cancellationToken);
         var roleMap = roles.ToDictionary(x => x.Id);
 
         foreach (var userRole in userRoles)
