@@ -56,9 +56,8 @@ public class MessageAppService : IMessageAppService, IScopedDependency
 
         var userId = GetCurrentUserId();
         var idSet = input.Ids.ToHashSet();
-        var messages = await _messageRepository.GetSugarQueryable()
-            .Where(x => x.UserId == userId && idSet.Contains(x.Id) && !x.IsRead)
-            .ToListAsync(cancellationToken);
+        var messages = await _messageRepository.GetListAsync(x => x.UserId == userId 
+            && idSet.Contains(x.Id) && !x.IsRead, cancellationToken);
 
         if (messages.Count == 0)
         {
@@ -77,10 +76,9 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     public async Task MarkAllReadAsync(MarkAllReadDto input, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var messages = await _messageRepository.GetSugarQueryable()
-            .Where(x => x.UserId == userId && !x.IsRead &&
-                 (string.IsNullOrWhiteSpace(input.Type) || x.Type == input.Type))
-            .ToListAsync(cancellationToken);
+        var messages = await _messageRepository.GetListAsync(
+            x => x.UserId == userId && !x.IsRead 
+            && (string.IsNullOrWhiteSpace(input.Type) || x.Type == input.Type), cancellationToken);
 
         if (messages.Count == 0)
         {

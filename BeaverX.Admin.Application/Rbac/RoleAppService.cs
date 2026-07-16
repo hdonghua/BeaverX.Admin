@@ -204,9 +204,8 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         }
 
         var roleIds = roles.Select(x => x.Id).Distinct().ToList();
-        var roleMenus = await _roleMenuRepository.GetSugarQueryable()
-            .Where(x => roleIds.Contains(x.RoleId))
-            .ToListAsync(cancellationToken);
+        var roleMenus = await _roleMenuRepository.GetListAsync(x => roleIds.Contains(x.RoleId)
+            , cancellationToken);
         var roleMenuMap = roleMenus
             .GroupBy(x => x.RoleId)
             .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
