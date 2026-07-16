@@ -4,16 +4,14 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentRefund> _refundRepository;
+    private readonly ISugarRepository<PaymentRefund> _refundRepository;
 
-    public PaymentRefundAppService(IRepository<PaymentRefund> refundRepository)
+    public PaymentRefundAppService(ISugarRepository<PaymentRefund> refundRepository)
     {
         _refundRepository = refundRepository;
     }
@@ -22,7 +20,7 @@ public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependen
       PaymentRefundQueryDto input,
       CancellationToken cancellationToken = default)
     {
-        var query = _refundRepository.GetQueryable();
+        var query = _refundRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.OrderNo))
         {
@@ -41,7 +39,7 @@ public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependen
             query = query.Where(x => x.Status == input.Status.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
           .OrderByDescending(x => x.CreationTime)

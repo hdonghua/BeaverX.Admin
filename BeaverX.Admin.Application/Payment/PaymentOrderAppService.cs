@@ -5,26 +5,24 @@ using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentOrder> _orderRepository;
-    private readonly IRepository<PaymentChannel> _channelRepository;
-    private readonly IRepository<PaymentRefund> _refundRepository;
+    private readonly ISugarRepository<PaymentOrder> _orderRepository;
+    private readonly ISugarRepository<PaymentChannel> _channelRepository;
+    private readonly ISugarRepository<PaymentRefund> _refundRepository;
     private readonly IPaymentProviderResolver _providerResolver;
     private readonly PaymentNotifyUrlBuilder _notifyUrlBuilder;
     private readonly PaymentOptions _paymentOptions;
     private readonly IPaymentChannelContextBuilder _channelContextBuilder;
 
     public PaymentOrderAppService(
-      IRepository<PaymentOrder> orderRepository,
-      IRepository<PaymentChannel> channelRepository,
-      IRepository<PaymentRefund> refundRepository,
+      ISugarRepository<PaymentOrder> orderRepository,
+      ISugarRepository<PaymentChannel> channelRepository,
+      ISugarRepository<PaymentRefund> refundRepository,
       IPaymentProviderResolver providerResolver,
       PaymentNotifyUrlBuilder notifyUrlBuilder,
       IOptions<PaymentOptions> paymentOptions,
@@ -43,7 +41,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
       PaymentOrderQueryDto input,
       CancellationToken cancellationToken = default)
     {
-        var query = _orderRepository.GetQueryable();
+        var query = _orderRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.OrderNo))
         {
@@ -72,7 +70,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
             query = query.Where(x => x.CreationTime <= input.EndTime.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
           .OrderByDescending(x => x.CreationTime)
@@ -102,8 +100,8 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
             throw new BusinessException("订单号不能为空");
         }
 
-        var entity = await _orderRepository.GetQueryable()
-          .FirstOrDefaultAsync(x => x.OrderNo == orderNo.Trim(), cancellationToken);
+        var entity = await _orderRepository.GetSugarQueryable()
+          .FirstAsync(x => x.OrderNo == orderNo.Trim(), cancellationToken);
 
         if (entity == null)
         {
@@ -125,8 +123,8 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
         }
 
         var channelCode = input.ChannelCode.Trim();
-        var channel = await _channelRepository.GetQueryable()
-          .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
+        var channel = await _channelRepository.GetSugarQueryable()
+          .FirstAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)
         {
@@ -356,8 +354,8 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
       string channelCode,
       CancellationToken cancellationToken)
     {
-        var channel = await _channelRepository.GetQueryable()
-          .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
+        var channel = await _channelRepository.GetSugarQueryable()
+          .FirstAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)
         {

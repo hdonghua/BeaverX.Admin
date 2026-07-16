@@ -10,6 +10,9 @@ public class Role : AuditedEntity
     public int Sort { get; set; }
     public bool IsEnabled { get; set; } = true;
 
+    [Navigate(NavigateType.OneToMany, nameof(UserRole.RoleId))]
     public ICollection<UserRole> UserRoles { get; set; } = [];
+
+    [Navigate(NavigateType.OneToMany, nameof(RoleMenu.RoleId))]
     public ICollection<RoleMenu> RoleMenus { get; set; } = [];
 }

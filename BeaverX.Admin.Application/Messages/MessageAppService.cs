@@ -3,20 +3,18 @@ using BeaverX.Admin.Application.Contracts.Messages.Dtos;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Users;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Messages;
 
 public class MessageAppService : IMessageAppService, IScopedDependency
 {
-    private readonly IRepository<UserMessage> _messageRepository;
+    private readonly ISugarRepository<UserMessage> _messageRepository;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ICurrentUser _currentUser;
 
     public MessageAppService(
-        IRepository<UserMessage> messageRepository,
+        ISugarRepository<UserMessage> messageRepository,
         RealtimePublisher realtimePublisher,
         ICurrentUser currentUser)
     {
@@ -28,10 +26,10 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     public async Task<List<MessageDto>> GetListAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var messages = await _messageRepository.GetQueryable()
+        var messages = await _messageRepository.GetSugarQueryable()
             .Where(x => x.UserId == userId)
             .OrderBy(x => x.IsRead)
-            .ThenByDescending(x => x.CreationTime)
+            .OrderByDescending(x => x.CreationTime)
             .Take(50)
             .ToListAsync(cancellationToken);
 
@@ -58,9 +56,9 @@ public class MessageAppService : IMessageAppService, IScopedDependency
 
         var userId = GetCurrentUserId();
         var idSet = input.Ids.ToHashSet();
-        var messages = await _messageRepository.GetListAsync(
-            x => x.UserId == userId && idSet.Contains(x.Id) && !x.IsRead,
-            cancellationToken);
+        var messages = await _messageRepository.GetSugarQueryable()
+            .Where(x => x.UserId == userId && idSet.Contains(x.Id) && !x.IsRead)
+            .ToListAsync(cancellationToken);
 
         if (messages.Count == 0)
         {
@@ -79,10 +77,10 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     public async Task MarkAllReadAsync(MarkAllReadDto input, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var messages = await _messageRepository.GetListAsync(
-            x => x.UserId == userId && !x.IsRead &&
-                 (string.IsNullOrWhiteSpace(input.Type) || x.Type == input.Type),
-            cancellationToken);
+        var messages = await _messageRepository.GetSugarQueryable()
+            .Where(x => x.UserId == userId && !x.IsRead &&
+                 (string.IsNullOrWhiteSpace(input.Type) || x.Type == input.Type))
+            .ToListAsync(cancellationToken);
 
         if (messages.Count == 0)
         {

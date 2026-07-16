@@ -5,8 +5,6 @@ using BeaverX.Admin.Application.Contracts.Messaging.Dtos;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Messaging;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Messages;
 
@@ -18,11 +16,11 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
     };
 
     private readonly IMessageSender _messageSender;
-    private readonly IRepository<User> _userRepository;
+    private readonly ISugarRepository<User> _userRepository;
 
     public SiteMessageAdminAppService(
         IMessageSender messageSender,
-        IRepository<User> userRepository)
+        ISugarRepository<User> userRepository)
     {
         _messageSender = messageSender;
         _userRepository = userRepository;
@@ -107,7 +105,7 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
     {
         if (input.SendToAll)
         {
-            return await _userRepository.GetQueryable()
+            return await _userRepository.GetSugarQueryable()
                 .Where(x => x.IsEnabled)
                 .Select(x => x.Id)
                 .ToListAsync(cancellationToken);

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Admin.Domain.Shared.Scheduling;
+using BeaverX.Data.SqlSugar.Repositories;
 using BeaverX.Domain.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -33,8 +34,8 @@ public class HttpApiScheduledJobRunner
     public async Task ExecuteAsync(long jobId, bool isManualTrigger, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var jobRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
-        var logRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJobLog>>();
+        var jobRepository = scope.ServiceProvider.GetRequiredService<ISugarRepository<ScheduledJob>>();
+        var logRepository = scope.ServiceProvider.GetRequiredService<ISugarRepository<ScheduledJobLog>>();
 
         var job = await jobRepository.FindAsync(x => x.Id == jobId, cancellationToken);
         if (job == null)
@@ -172,8 +173,8 @@ public class HttpApiScheduledJobRunner
     }
 
     private static async Task WriteFailureAsync(
-        IRepository<ScheduledJob> jobRepository,
-        IRepository<ScheduledJobLog> logRepository,
+        ISugarRepository<ScheduledJob> jobRepository,
+        ISugarRepository<ScheduledJobLog> logRepository,
         ScheduledJob job,
         bool isManualTrigger,
         string message,

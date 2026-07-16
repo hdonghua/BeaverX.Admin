@@ -12,5 +12,6 @@ public class User : FullAuditedEntity
     public string? Avatar { get; set; }
     public bool IsEnabled { get; set; } = true;
 
+    [Navigate(NavigateType.OneToMany, nameof(UserRole.UserId))]
     public ICollection<UserRole> UserRoles { get; set; } = [];
 }

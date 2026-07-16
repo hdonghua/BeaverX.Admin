@@ -1,8 +1,7 @@
 using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BeaverX.Data.SqlSugar.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Dict;
@@ -12,13 +11,13 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
     private const string MenuTypeDictCode = "sys_menu_type";
     private const string WorkTicketStatusDictCode = "work_ticket_status";
 
-    private readonly IRepository<DictType> _dictTypeRepository;
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly ISugarRepository<DictType> _dictTypeRepository;
+    private readonly ISugarRepository<DictData> _dictDataRepository;
     private readonly ILogger<DictDataSeeder> _logger;
 
     public DictDataSeeder(
-      IRepository<DictType> dictTypeRepository,
-      IRepository<DictData> dictDataRepository,
+      ISugarRepository<DictType> dictTypeRepository,
+      ISugarRepository<DictData> dictDataRepository,
       ILogger<DictDataSeeder> logger)
     {
         _dictTypeRepository = dictTypeRepository;
@@ -28,8 +27,8 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var menuTypeDict = await _dictTypeRepository.GetQueryable()
-          .FirstOrDefaultAsync(x => x.Code == MenuTypeDictCode, cancellationToken);
+        var menuTypeDict = await _dictTypeRepository.GetSugarQueryable()
+          .FirstAsync(x => x.Code == MenuTypeDictCode, cancellationToken);
 
         if (menuTypeDict == null)
         {
@@ -80,8 +79,8 @@ public class DictDataSeeder : IScopedDependency, IDataSeeder
 
     private async Task EnsureWorkTicketStatusDictAsync(CancellationToken cancellationToken)
     {
-        var dictType = await _dictTypeRepository.GetQueryable()
-            .FirstOrDefaultAsync(x => x.Code == WorkTicketStatusDictCode, cancellationToken);
+        var dictType = await _dictTypeRepository.GetSugarQueryable()
+            .FirstAsync(x => x.Code == WorkTicketStatusDictCode, cancellationToken);
 
         if (dictType == null)
         {

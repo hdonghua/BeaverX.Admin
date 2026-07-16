@@ -9,11 +9,11 @@ namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentDataSeeder : IScopedDependency, IDataSeeder
 {
-    private readonly IRepository<PaymentChannel> _channelRepository;
+    private readonly ISugarRepository<PaymentChannel> _channelRepository;
     private readonly ILogger<PaymentDataSeeder> _logger;
 
     public PaymentDataSeeder(
-      IRepository<PaymentChannel> channelRepository,
+      ISugarRepository<PaymentChannel> channelRepository,
       ILogger<PaymentDataSeeder> logger)
     {
         _channelRepository = channelRepository;

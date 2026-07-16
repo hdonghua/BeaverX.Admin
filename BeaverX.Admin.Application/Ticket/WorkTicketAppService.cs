@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Linq.Expressions;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Contracts.Ticket;
 using BeaverX.Admin.Application.Contracts.Ticket.Dtos;
@@ -7,9 +8,7 @@ using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Ticket;
 using BeaverX.Admin.Domain.Shared.Ticket;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
 using BeaverX.Domain.Users;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Ticket;
 
@@ -23,13 +22,13 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         WriteIndented = false
     };
 
-    private readonly IRepository<WorkTicket> _workTicketRepository;
-    private readonly IRepository<User> _userRepository;
+    private readonly ISugarRepository<WorkTicket> _workTicketRepository;
+    private readonly ISugarRepository<User> _userRepository;
     private readonly ICurrentUser _currentUser;
 
     public WorkTicketAppService(
-        IRepository<WorkTicket> workTicketRepository,
-        IRepository<User> userRepository,
+        ISugarRepository<WorkTicket> workTicketRepository,
+        ISugarRepository<User> userRepository,
         ICurrentUser currentUser)
     {
         _workTicketRepository = workTicketRepository;
@@ -47,9 +46,9 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         CancellationToken cancellationToken = default)
         => QueryPageAsync(
             input,
-            query => query.Where(x =>
+            x =>
                 x.Status == WorkTicketStatus.Pending ||
-                x.Status == WorkTicketStatus.Processing),
+                x.Status == WorkTicketStatus.Processing,
             cancellationToken);
 
     public async Task<WorkTicketDto> GetAsync(long id, CancellationToken cancellationToken = default)
@@ -177,13 +176,13 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
 
     private async Task<PagedResultDto<WorkTicketDto>> QueryPageAsync(
         WorkTicketQueryDto input,
-        Func<IQueryable<WorkTicket>, IQueryable<WorkTicket>>? filter,
+        Expression<Func<WorkTicket, bool>>? filter,
         CancellationToken cancellationToken)
     {
-        var query = _workTicketRepository.GetQueryable().AsQueryable();
+        var query = _workTicketRepository.GetSugarQueryable();
         if (filter != null)
         {
-            query = filter(query);
+            query = query.Where(filter);
         }
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
@@ -201,7 +200,7 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
             query = query.Where(x => x.Status == input.Status.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderByDescending(x => x.CreationTime)
@@ -259,14 +258,14 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
             return [];
         }
 
-        return await _userRepository.GetQueryable()
-            .AsNoTracking()
+        var users = await _userRepository.GetSugarQueryable()
             .Where(x => ids.Contains(x.Id))
             .Select(x => new { x.Id, x.NickName, x.UserName })
-            .ToDictionaryAsync(
-                x => x.Id,
-                x => x.NickName ?? x.UserName,
-                cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        return users.ToDictionary(
+            x => x.Id,
+            x => x.NickName ?? x.UserName);
     }
 
     private static string GenerateTicketNo() =>

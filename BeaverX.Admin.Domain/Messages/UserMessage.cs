@@ -18,5 +18,6 @@ public class UserMessage : CreationAuditedEntity
     public int? MessageType { get; set; }
     public bool IsRead { get; set; }
 
+    [Navigate(NavigateType.OneToOne, nameof(UserId))]
     public User User { get; set; } = null!;
 }

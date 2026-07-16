@@ -7,15 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BeaverX.EntityFrameworkCore.PostgreSql" Version="1.0.0" />
     <PackageReference Include="IdGen" Version="3.0.7" />
     <PackageReference Include="IdGen.DependencyInjection" Version="3.0.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="BeaverX.Data.SqlSugar" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>

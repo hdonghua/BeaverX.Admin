@@ -5,8 +5,6 @@ using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Realtime;
 
@@ -14,14 +12,14 @@ public class RealtimePublisher : IScopedDependency
 {
     private readonly IRealtimeNotifier _notifier;
     private readonly IOnlineUserTracker _onlineUserTracker;
-    private readonly IRepository<ExportTask> _exportTaskRepository;
-    private readonly IRepository<UserMessage> _messageRepository;
+    private readonly ISugarRepository<ExportTask> _exportTaskRepository;
+    private readonly ISugarRepository<UserMessage> _messageRepository;
 
     public RealtimePublisher(
         IRealtimeNotifier notifier,
         IOnlineUserTracker onlineUserTracker,
-        IRepository<ExportTask> exportTaskRepository,
-        IRepository<UserMessage> messageRepository)
+        ISugarRepository<ExportTask> exportTaskRepository,
+        ISugarRepository<UserMessage> messageRepository)
     {
         _notifier = notifier;
         _onlineUserTracker = onlineUserTracker;
@@ -112,8 +110,8 @@ public class RealtimePublisher : IScopedDependency
 
     private async Task<int> GetActiveExportCountAsync(long userId, CancellationToken cancellationToken)
     {
-        var count = await _exportTaskRepository.GetQueryable()
-            .LongCountAsync(
+        var count = await _exportTaskRepository.GetSugarQueryable()
+            .CountAsync(
                 x => x.UserId == userId &&
                      (x.Status == ExportTaskStatus.Pending || x.Status == ExportTaskStatus.Processing),
                 cancellationToken);

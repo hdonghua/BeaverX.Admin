@@ -2,6 +2,7 @@ using System.Security.Claims;
 using BeaverX.Admin.Application.Contracts.Realtime;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Rbac;
+using BeaverX.Data.SqlSugar.Repositories;
 using BeaverX.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -47,7 +48,7 @@ public class AdminNotificationHub : Hub
 
         using (var scope = _scopeFactory.CreateScope())
         {
-            var userRepository = scope.ServiceProvider.GetRequiredService<IRepository<User>>();
+            var userRepository = scope.ServiceProvider.GetRequiredService<ISugarRepository<User>>();
             var user = await userRepository.FindAsync(x => x.Id == userId);
             nickName = user?.NickName;
         }

@@ -6,19 +6,20 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Config;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BeaverX.Data.SqlSugar.Repositories;
+using SqlSugar;
+using ICacheService = BeaverX.Admin.Application.Contracts.Caching.ICacheService;
 
 namespace BeaverX.Admin.Application.Config;
 
 public class ConfigAppService : IConfigAppService, IScopedDependency
 {
-    private readonly IRepository<SysConfig> _configRepository;
+    private readonly ISugarRepository<SysConfig> _configRepository;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public ConfigAppService(
-        IRepository<SysConfig> configRepository,
+        ISugarRepository<SysConfig> configRepository,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -31,37 +32,21 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         ConfigQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _configRepository.GetQueryable().AsQueryable();
+        var query = _configRepository.GetSugarQueryable()
+            .WhereIF(!string.IsNullOrWhiteSpace(input.Keyword), x =>
+                x.Key.Contains(input.Keyword!) ||
+                x.Label.Contains(input.Keyword!) ||
+                x.Value.Contains(input.Keyword!))
+            .WhereIF(!string.IsNullOrWhiteSpace(input.Group), x => x.Group == input.Group!.Trim())
+            .WhereIF(input.IsEnabled.HasValue, x => x.IsEnabled == input.IsEnabled!.Value);
 
-        if (!string.IsNullOrWhiteSpace(input.Keyword))
-        {
-            var keyword = input.Keyword.Trim();
-            query = query.Where(x =>
-                x.Key.Contains(keyword) ||
-                x.Label.Contains(keyword) ||
-                x.Value.Contains(keyword));
-        }
-
-        if (!string.IsNullOrWhiteSpace(input.Group))
-        {
-            var group = input.Group.Trim();
-            query = query.Where(x => x.Group == group);
-        }
-
-        if (input.IsEnabled.HasValue)
-        {
-            query = query.Where(x => x.IsEnabled == input.IsEnabled.Value);
-        }
-
-        var total = await query.LongCountAsync(cancellationToken);
+        RefAsync<int> total = 0;
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
             .OrderBy(x => x.Group)
-            .ThenBy(x => x.Sort)
-            .ThenByDescending(x => x.CreationTime)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync(cancellationToken);
+            .OrderBy(x => x.Sort)
+            .OrderByDescending(x => x.CreationTime)
+            .ToOffsetPageAsync(input.Page, input.PageSize, total, cancellationToken);
 
         return new PagedResultDto<ConfigDto>
         {
@@ -73,11 +58,11 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
     public Task<List<string>> GetGroupsAsync(CancellationToken cancellationToken = default) =>
         _cache.GetOrSetAsync(
             CacheKeys.ConfigGroups,
-            async ct => await _configRepository.GetQueryable()
-                .Where(x => x.Group != null && x.Group != string.Empty)
+            async ct => await _configRepository.GetSugarQueryable()
+                .Where(x => !string.IsNullOrEmpty(x.Group))
+                .OrderBy(x => x.Group)
                 .Select(x => x.Group!)
                 .Distinct()
-                .OrderBy(x => x)
                 .ToListAsync(ct),
             CacheDurations.Config,
             cancellationToken);
@@ -100,8 +85,8 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
             CacheKeys.ConfigByKey(normalizedKey),
             async ct =>
             {
-                var entity = await _configRepository.GetQueryable()
-                    .FirstOrDefaultAsync(x => x.Key == normalizedKey, ct);
+                var entity = await _configRepository.GetSugarQueryable()
+                    .FirstAsync(x => x.Key == normalizedKey, ct);
 
                 return entity == null ? null : ToDto(entity);
             },

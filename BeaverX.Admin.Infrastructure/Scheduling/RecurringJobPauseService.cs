@@ -1,5 +1,6 @@
 using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Core.Dependency;
+using BeaverX.Data.SqlSugar.Repositories;
 using BeaverX.Domain.Repositories;
 using Hangfire;
 using Hangfire.Storage;
@@ -226,7 +227,7 @@ public class RecurringJobPauseService : IRecurringJobPauseService, ISingletonDep
         }
 
         using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
+        var repository = scope.ServiceProvider.GetRequiredService<ISugarRepository<ScheduledJob>>();
         var job = await repository.FindAsync(x => x.Id == jobId, cancellationToken);
         if (job == null)
         {
@@ -345,7 +346,7 @@ public class RecurringJobPauseService : IRecurringJobPauseService, ISingletonDep
         }
 
         using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
+        var repository = scope.ServiceProvider.GetRequiredService<ISugarRepository<ScheduledJob>>();
         var job = repository.FindAsync(x => x.Id == jobId).GetAwaiter().GetResult();
         if (job == null ||
             string.IsNullOrWhiteSpace(job.CronExpression) ||
@@ -398,7 +399,7 @@ public class RecurringJobPauseService : IRecurringJobPauseService, ISingletonDep
         }
 
         using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
+        var repository = scope.ServiceProvider.GetRequiredService<ISugarRepository<ScheduledJob>>();
         var job = await repository.FindAsync(x => x.Id == jobId, cancellationToken);
         if (job == null)
         {

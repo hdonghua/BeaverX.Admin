@@ -4,20 +4,18 @@ using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class RefreshTokenService : IScopedDependency
 {
-    private readonly IRepository<UserRefreshToken> _refreshTokenRepository;
+    private readonly ISugarRepository<UserRefreshToken> _refreshTokenRepository;
     private readonly ICacheService _cache;
     private readonly JwtOptions _options;
 
     public RefreshTokenService(
-        IRepository<UserRefreshToken> refreshTokenRepository,
+        ISugarRepository<UserRefreshToken> refreshTokenRepository,
         ICacheService cache,
         IOptions<JwtOptions> options)
     {
@@ -82,15 +80,14 @@ public class RefreshTokenService : IScopedDependency
             return affected > 0 ? cached.UserId : null;
         }
 
-        var token = await _refreshTokenRepository.GetQueryable()
-            .AsNoTracking()
+        var token = await _refreshTokenRepository.GetSugarQueryable()
             .Where(x =>
                 x.TokenHash == hash &&
                 x.RevokedAt == null &&
                 !x.IsDeleted &&
                 x.ExpiresAt > now)
             .Select(x => new { x.Id, x.UserId, x.ExpiresAt })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstAsync(cancellationToken);
 
         if (token == null)
         {
@@ -112,14 +109,12 @@ public class RefreshTokenService : IScopedDependency
         await RemoveAllCachedTokensForUserAsync(userId, cancellationToken);
 
         var now = DateTime.UtcNow;
-        await _refreshTokenRepository.GetQueryable()
+        await _refreshTokenRepository.AsUpdateable()
             .Where(x => x.UserId == userId && x.RevokedAt == null && !x.IsDeleted)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.RevokedAt, now)
-                    .SetProperty(x => x.IsDeleted, true)
-                    .SetProperty(x => x.DeletionTime, now),
-                cancellationToken);
+            .SetColumns(x => x.RevokedAt == now)
+            .SetColumns(x => x.IsDeleted == true)
+            .SetColumns(x => x.DeletionTime == now)
+            .ExecuteCommandAsync(cancellationToken);
     }
 
     private async Task CacheTokenAsync(
@@ -209,15 +204,13 @@ public class RefreshTokenService : IScopedDependency
         DateTime now,
         string? replacedByTokenHash,
         CancellationToken cancellationToken) =>
-        _refreshTokenRepository.GetQueryable()
+        _refreshTokenRepository.AsUpdateable()
             .Where(x => x.TokenHash == hash && x.RevokedAt == null && !x.IsDeleted)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.RevokedAt, now)
-                    .SetProperty(x => x.IsDeleted, true)
-                    .SetProperty(x => x.DeletionTime, now)
-                    .SetProperty(x => x.ReplacedByTokenHash, replacedByTokenHash),
-                cancellationToken);
+            .SetColumns(x => x.RevokedAt == now)
+            .SetColumns(x => x.IsDeleted == true)
+            .SetColumns(x => x.DeletionTime == now)
+            .SetColumns(x => x.ReplacedByTokenHash == replacedByTokenHash)
+            .ExecuteCommandAsync(cancellationToken);
 
     private async Task<bool> RevokeByIdAsync(
         long tokenId,
@@ -225,15 +218,13 @@ public class RefreshTokenService : IScopedDependency
         string? replacedByTokenHash,
         CancellationToken cancellationToken)
     {
-        var affected = await _refreshTokenRepository.GetQueryable()
+        var affected = await _refreshTokenRepository.AsUpdateable()
             .Where(x => x.Id == tokenId && x.RevokedAt == null && !x.IsDeleted)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.RevokedAt, now)
-                    .SetProperty(x => x.IsDeleted, true)
-                    .SetProperty(x => x.DeletionTime, now)
-                    .SetProperty(x => x.ReplacedByTokenHash, replacedByTokenHash),
-                cancellationToken);
+            .SetColumns(x => x.RevokedAt == now)
+            .SetColumns(x => x.IsDeleted == true)
+            .SetColumns(x => x.DeletionTime == now)
+            .SetColumns(x => x.ReplacedByTokenHash == replacedByTokenHash)
+            .ExecuteCommandAsync(cancellationToken);
 
         return affected > 0;
     }

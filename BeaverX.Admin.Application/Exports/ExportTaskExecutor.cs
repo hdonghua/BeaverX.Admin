@@ -3,21 +3,21 @@ using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using BeaverX.Data.SqlSugar.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Exports;
 
 public class ExportTaskExecutor : IScopedDependency
 {
-    private readonly IRepository<ExportTask> _exportTaskRepository;
+    private readonly ISugarRepository<ExportTask> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
     private readonly IBlobStorage _blobStorage;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ILogger<ExportTaskExecutor> _logger;
 
     public ExportTaskExecutor(
-        IRepository<ExportTask> exportTaskRepository,
+        ISugarRepository<ExportTask> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
         IBlobStorage blobStorage,
         RealtimePublisher realtimePublisher,

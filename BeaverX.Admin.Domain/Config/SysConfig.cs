@@ -11,4 +11,9 @@ public class SysConfig : FullAuditedEntity
     public string? Remark { get; set; }
     public int Sort { get; set; }
     public bool IsEnabled { get; set; } = true;
+
+    public SysConfig()
+    {
+        
+    }
 }

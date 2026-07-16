@@ -4,16 +4,14 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentChannel> _channelRepository;
+    private readonly ISugarRepository<PaymentChannel> _channelRepository;
 
-    public PaymentChannelAppService(IRepository<PaymentChannel> channelRepository)
+    public PaymentChannelAppService(ISugarRepository<PaymentChannel> channelRepository)
     {
         _channelRepository = channelRepository;
     }
@@ -22,7 +20,7 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
       PaymentChannelQueryDto input,
       CancellationToken cancellationToken = default)
     {
-        var query = _channelRepository.GetQueryable();
+        var query = _channelRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -37,11 +35,11 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
             query = query.Where(x => x.IsEnabled == input.IsEnabled.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
         var (skip, take) = RbacQueryHelper.GetPaging(input.Page, input.PageSize);
         var items = await query
           .OrderBy(x => x.Sort)
-          .ThenByDescending(x => x.CreationTime)
+          .OrderByDescending(x => x.CreationTime)
           .Skip(skip)
           .Take(take)
           .ToListAsync(cancellationToken);
@@ -56,7 +54,7 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
     public async Task<List<PaymentChannelDto>> GetEnabledListAsync(
       CancellationToken cancellationToken = default)
     {
-        var items = await _channelRepository.GetQueryable()
+        var items = await _channelRepository.GetSugarQueryable()
           .Where(x => x.IsEnabled)
           .OrderBy(x => x.Sort)
           .ToListAsync(cancellationToken);

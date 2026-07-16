@@ -28,7 +28,7 @@ public class PaymentChannel : FullAuditedEntity
     public string? Remark { get; private set; }
     public int Sort { get; private set; }
 
-    private PaymentChannel()
+    public PaymentChannel()
     {
     }
 

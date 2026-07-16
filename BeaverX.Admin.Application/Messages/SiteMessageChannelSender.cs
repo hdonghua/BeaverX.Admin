@@ -14,12 +14,12 @@ namespace BeaverX.Admin.Application.Messages;
 /// </summary>
 public class SiteMessageChannelSender : IMessageChannelSender, IScopedDependency
 {
-    private readonly IRepository<UserMessage> _messageRepository;
+    private readonly ISugarRepository<UserMessage> _messageRepository;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ILogger<SiteMessageChannelSender> _logger;
 
     public SiteMessageChannelSender(
-        IRepository<UserMessage> messageRepository,
+        ISugarRepository<UserMessage> messageRepository,
         RealtimePublisher realtimePublisher,
         ILogger<SiteMessageChannelSender> logger)
     {

@@ -4,7 +4,6 @@ using BeaverX.Admin.Domain.Dict;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
 using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 
 namespace BeaverX.Admin.Application.Exports.Handlers;
@@ -13,9 +12,9 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
 {
     private const int MaxRows = 100_000;
 
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly ISugarRepository<DictData> _dictDataRepository;
 
-    public DictDataExportHandler(IRepository<DictData> dictDataRepository)
+    public DictDataExportHandler(ISugarRepository<DictData> dictDataRepository)
     {
         _dictDataRepository = dictDataRepository;
     }
@@ -28,9 +27,7 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
         string? parametersJson,
         CancellationToken cancellationToken = default)
     {
-        var query = _dictDataRepository.GetQueryable()
-            .Include(x => x.DictType)
-            .AsQueryable();
+        var query = _dictDataRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(parametersJson))
         {
@@ -47,7 +44,11 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
             if (!string.IsNullOrWhiteSpace(parameters?.TypeCode))
             {
                 var typeCode = parameters.TypeCode.Trim();
-                query = query.Where(x => x.DictType.Code == typeCode);
+                var dictTypeId = await _dictDataRepository.Client.Queryable<DictType>()
+                    .Where(x => x.Code == typeCode)
+                    .Select(x => x.Id)
+                    .FirstAsync(cancellationToken);
+                query = query.Where(x => x.DictTypeId == dictTypeId);
             }
 
             if (!string.IsNullOrWhiteSpace(parameters?.Keyword))
@@ -57,21 +58,34 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
             }
         }
 
-        var rows = await query
-            .OrderBy(x => x.DictType.Code)
-            .ThenBy(x => x.Sort)
+        var items = await query
+            .OrderBy(x => x.DictTypeId)
+            .OrderBy(x => x.Sort)
             .Take(MaxRows)
-            .Select(x => new
+            .ToListAsync(cancellationToken);
+
+        var dictTypeIds = items.Select(x => x.DictTypeId).Distinct().ToList();
+        var dictTypes = dictTypeIds.Count == 0
+            ? []
+            : await _dictDataRepository.Client.Queryable<DictType>()
+                .Where(x => dictTypeIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
+        var dictTypeMap = dictTypes.ToDictionary(x => x.Id);
+
+        var rows = items.Select(x =>
+        {
+            dictTypeMap.TryGetValue(x.DictTypeId, out var dictType);
+            return new
             {
-                字典类型 = x.DictType.Name,
-                类型编码 = x.DictType.Code,
+                字典类型 = dictType?.Name ?? string.Empty,
+                类型编码 = dictType?.Code ?? string.Empty,
                 标签 = x.Label,
                 值 = x.Value,
                 排序 = x.Sort,
                 状态 = x.IsEnabled ? "启用" : "禁用",
                 备注 = x.Remark ?? string.Empty
-            })
-            .ToListAsync(cancellationToken);
+            };
+        }).ToList();
 
         var stream = new MemoryStream();
         await stream.SaveAsAsync(rows, cancellationToken: cancellationToken);

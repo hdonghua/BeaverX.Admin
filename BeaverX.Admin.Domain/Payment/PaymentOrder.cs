@@ -45,7 +45,7 @@ public class PaymentOrder : FullAuditedEntity
     public string? ErrorCode { get; private set; }
     public string? ErrorMessage { get; private set; }
 
-    private PaymentOrder()
+    public PaymentOrder()
     {
     }
 

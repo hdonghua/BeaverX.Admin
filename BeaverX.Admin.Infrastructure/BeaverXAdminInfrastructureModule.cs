@@ -21,7 +21,7 @@ using Savorboard.CAP.InMemoryMessageQueue;
 namespace BeaverX.Admin.Infrastructure;
 
 [DependsOn(
-    typeof(BeaverXAdminEntityFrameworkCoreModule),
+    typeof(BeaverXAdminSqlSugarModule),
     typeof(BeaverXAdminApplicationModule)
 )]
 public class BeaverXAdminInfrastructureModule : BeaverXModule

@@ -2,21 +2,19 @@ using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messages;
 
 public class MessageDataSeeder : IScopedDependency, IDataSeeder
 {
-    private readonly IRepository<UserMessage> _messageRepository;
-    private readonly IRepository<User> _userRepository;
+    private readonly ISugarRepository<UserMessage> _messageRepository;
+    private readonly ISugarRepository<User> _userRepository;
     private readonly ILogger<MessageDataSeeder> _logger;
 
     public MessageDataSeeder(
-      IRepository<UserMessage> messageRepository,
-      IRepository<User> userRepository,
+      ISugarRepository<UserMessage> messageRepository,
+      ISugarRepository<User> userRepository,
       ILogger<MessageDataSeeder> logger)
     {
         _messageRepository = messageRepository;
@@ -26,8 +24,8 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var adminUser = await _userRepository.GetQueryable()
-          .FirstOrDefaultAsync(x => x.UserName == "admin", cancellationToken);
+        var adminUser = await _userRepository.GetSugarQueryable()
+          .FirstAsync(x => x.UserName == "admin", cancellationToken);
 
         if (adminUser == null)
         {

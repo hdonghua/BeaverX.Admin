@@ -27,7 +27,6 @@
   <ItemGroup>
     <ProjectReference Include="..\BeaverX.Admin.Application\BeaverX.Admin.Application.csproj" />
     <ProjectReference Include="..\BeaverX.Admin.Domain.Shared\BeaverX.Admin.Domain.Shared.csproj" />
-    <ProjectReference Include="..\BeaverX.Admin.EntityFrameworkCore\BeaverX.Admin.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

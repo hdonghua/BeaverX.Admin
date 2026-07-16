@@ -3,8 +3,7 @@ using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Exports;
 using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BeaverX.Data.SqlSugar.Repositories;
 using MiniExcelLibs;
 
 namespace BeaverX.Admin.Application.Exports.Handlers;
@@ -13,9 +12,9 @@ public class UserExportHandler : IExportHandler, IScopedDependency
 {
     private const int MaxRows = 100_000;
 
-    private readonly IRepository<User> _userRepository;
+    private readonly ISugarRepository<User> _userRepository;
 
-    public UserExportHandler(IRepository<User> userRepository)
+    public UserExportHandler(ISugarRepository<User> userRepository)
     {
         _userRepository = userRepository;
     }
@@ -28,10 +27,7 @@ public class UserExportHandler : IExportHandler, IScopedDependency
         string? parametersJson,
         CancellationToken cancellationToken = default)
     {
-        var query = _userRepository.GetQueryable()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .AsQueryable();
+        var query = _userRepository.GetSugarQueryable();
 
         if (!string.IsNullOrWhiteSpace(parametersJson))
         {
@@ -54,20 +50,43 @@ public class UserExportHandler : IExportHandler, IScopedDependency
             }
         }
 
-        var rows = await query
+        var users = await query
             .OrderByDescending(x => x.CreationTime)
             .Take(MaxRows)
+            .ToListAsync(cancellationToken);
+
+        var userIds = users.Select(x => x.Id).ToList();
+        var roleLinks = userIds.Count == 0
+            ? []
+            : await _userRepository.Client.Queryable<UserRole>()
+                .Where(x => userIds.Contains(x.UserId))
+                .ToListAsync(cancellationToken);
+        var roleIds = roleLinks.Select(x => x.RoleId).Distinct().ToList();
+        var roles = roleIds.Count == 0
+            ? []
+            : await _userRepository.Client.Queryable<Role>()
+                .Where(x => roleIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
+        var roleMap = roles.ToDictionary(x => x.Id, x => x.Name);
+        var userRoleNames = roleLinks
+            .Where(x => roleMap.ContainsKey(x.RoleId))
+            .GroupBy(x => x.UserId)
+            .ToDictionary(
+                x => x.Key,
+                x => string.Join("、", x.Select(link => roleMap[link.RoleId])));
+
+        var rows = users
             .Select(x => new
             {
                 账号 = x.UserName,
                 昵称 = x.NickName ?? string.Empty,
                 邮箱 = x.Email ?? string.Empty,
                 手机 = x.Phone ?? string.Empty,
-                角色 = string.Join("、", x.UserRoles.Select(r => r.Role.Name)),
+                角色 = userRoleNames.GetValueOrDefault(x.Id, string.Empty),
                 状态 = x.IsEnabled ? "启用" : "禁用",
                 创建时间 = x.CreationTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         var stream = new MemoryStream();
         await stream.SaveAsAsync(rows, cancellationToken: cancellationToken);

@@ -1,5 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Scheduling;
 using BeaverX.Admin.Domain.Scheduling;
+using BeaverX.Data.SqlSugar.Repositories;
 using BeaverX.Domain.Repositories;
 using Hangfire;
 using Hangfire.Storage;
@@ -36,11 +37,11 @@ public class ScheduledJobSyncHostedService : IHostedService
         }
 
         using var scope = _scopeFactory.CreateScope();
-        var jobRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
+        var jobRepository = scope.ServiceProvider.GetRequiredService<ISugarRepository<ScheduledJob>>();
         var registrar = scope.ServiceProvider.GetRequiredService<IHangfireScheduledJobRegistrar>();
         var pauseService = scope.ServiceProvider.GetRequiredService<IRecurringJobPauseService>();
 
-        var jobs = await jobRepository.GetQueryable()
+        var jobs = await jobRepository.AsQueryable()
             .OrderBy(x => x.Id)
             .ToListAsync(cancellationToken);
 

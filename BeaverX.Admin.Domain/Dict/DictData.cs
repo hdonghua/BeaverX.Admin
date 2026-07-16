@@ -13,5 +13,6 @@ public class DictData : FullAuditedEntity
     public string? ListClass { get; set; }
     public string? Remark { get; set; }
 
+    [Navigate(NavigateType.OneToOne, nameof(DictTypeId))]
     public DictType DictType { get; set; } = null!;
 }
