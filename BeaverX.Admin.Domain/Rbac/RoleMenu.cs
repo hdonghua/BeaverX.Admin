@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
+[SugarTable("sys_role_menus")]
 public class RoleMenu : Entity
 {
     public long RoleId { get; set; }

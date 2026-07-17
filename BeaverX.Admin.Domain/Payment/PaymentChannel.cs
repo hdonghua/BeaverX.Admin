@@ -5,6 +5,7 @@ using BeaverX.Domain.Entities;
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>支付渠道配置（密钥、证书等存于 <see cref="ConfigJson"/>）</summary>
+[SugarTable("pay_channels")]
 public class PaymentChannel : FullAuditedEntity
 {
     /// <summary>渠道编码，见 <see cref="PaymentChannelCodes"/></summary>

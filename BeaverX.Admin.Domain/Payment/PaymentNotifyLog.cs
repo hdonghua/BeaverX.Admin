@@ -5,6 +5,7 @@ namespace BeaverX.Admin.Domain.Payment;
 /// <summary>
 /// 支付/退款回调日志
 /// </summary>
+[SugarTable("pay_notify_logs")]
 public class PaymentNotifyLog : Entity
 {
   public string NotifyType { get; set; } = null!;

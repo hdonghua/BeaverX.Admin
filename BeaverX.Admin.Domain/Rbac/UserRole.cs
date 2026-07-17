@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
+[SugarTable("sys_user_roles")]
 public class UserRole : Entity
 {
     public long UserId { get; set; }

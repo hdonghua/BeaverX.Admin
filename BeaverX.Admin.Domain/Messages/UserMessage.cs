@@ -3,6 +3,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Messages;
 
+[SugarTable("sys_user_messages")]
 public class UserMessage : CreationAuditedEntity
 {
     public long UserId { get; set; }

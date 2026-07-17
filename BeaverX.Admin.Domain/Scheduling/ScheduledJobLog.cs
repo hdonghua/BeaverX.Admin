@@ -3,6 +3,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Scheduling;
 
+[SugarTable("sys_scheduled_job_logs")]
 public class ScheduledJobLog : CreationAuditedEntity
 {
     public long JobId { get; set; }

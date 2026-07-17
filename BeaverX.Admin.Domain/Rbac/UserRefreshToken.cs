@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
+[SugarTable("sys_user_refresh_tokens")]
 public class UserRefreshToken : FullAuditedEntity
 {
     public long UserId { get; set; }

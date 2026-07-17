@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Dict;
 
+[SugarTable("sys_dict_types")]
 public class DictType : FullAuditedEntity
 {
     public string Code { get; set; } = null!;

@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
+[SugarTable("sys_users")]
 public class User : FullAuditedEntity
 {
     public string UserName { get; set; } = null!;

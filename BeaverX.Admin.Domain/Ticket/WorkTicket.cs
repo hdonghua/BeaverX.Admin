@@ -3,6 +3,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Ticket;
 
+[SugarTable("biz_work_tickets")]
 public class WorkTicket : FullAuditedEntity
 {
     public string TicketNo { get; set; } = null!;
