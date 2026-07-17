@@ -5,6 +5,7 @@ using BeaverX.Domain.Entities;
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>支付订单（付款单）聚合根。</summary>
+[SugarTable("pay_orders")]
 public class PaymentOrder : FullAuditedEntity
 {
     /// <summary>系统订单号（商户侧 out_trade_no）</summary>

@@ -3,6 +3,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Exports;
 
+[SugarTable("export_tasks")]
 public class ExportTask : FullAuditedEntity
 {
     public long UserId { get; set; }

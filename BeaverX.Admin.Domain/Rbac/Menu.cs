@@ -3,6 +3,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
+[SugarTable("sys_menus")]
 public class Menu : FullAuditedEntity
 {
     public long? ParentId { get; set; }

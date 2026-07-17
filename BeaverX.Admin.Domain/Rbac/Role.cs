@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
+[SugarTable("sys_roles")]
 public class Role : AuditedEntity
 {
     public string Code { get; set; } = null!;

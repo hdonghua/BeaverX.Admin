@@ -3,6 +3,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Scheduling;
 
+[SugarTable("sys_scheduled_jobs")]
 public class ScheduledJob : FullAuditedEntity
 {
     public string JobCode { get; set; } = null!;

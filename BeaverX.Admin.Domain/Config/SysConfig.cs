@@ -2,6 +2,7 @@ using BeaverX.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Config;
 
+[SugarTable("sys_configs")]
 public class SysConfig : FullAuditedEntity
 {
     public string Key { get; set; } = null!;

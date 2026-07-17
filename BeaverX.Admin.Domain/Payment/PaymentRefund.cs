@@ -5,6 +5,7 @@ using BeaverX.Domain.Entities;
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>退款单</summary>
+[SugarTable("pay_refunds")]
 public class PaymentRefund : FullAuditedEntity
 {
     public string RefundNo { get; private set; } = null!;
