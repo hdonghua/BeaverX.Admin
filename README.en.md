@@ -19,7 +19,7 @@ ASP.NET Core admin API built on the modular [BeaverX](https://www.nuget.org/pack
 |----------|------------|
 | Runtime | .NET 10 |
 | Web | ASP.NET Core + BeaverX.WebMvc |
-| ORM | Entity Framework Core + **PostgreSQL** (default branch) / **MySQL** (`master-mysql` branch) |
+| ORM | Entity Framework Core + **PostgreSQL** (`master`) / **MySQL** (`master-mysql`); SqlSugar + **PostgreSQL** (`sqlsugar`) / **MySQL** (`sqlsugar-mysql`) |
 | Auth | JWT Bearer + Refresh Token |
 | Logging | Serilog (console + local files) |
 | Object storage | MinIO (optional) |
@@ -27,18 +27,20 @@ ASP.NET Core admin API built on the modular [BeaverX](https://www.nuget.org/pack
 ## Requirements
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- **PostgreSQL 14+** (`master` default branch) or **MySQL 8+** (`master-mysql` branch—see below)
+- **PostgreSQL 14+** (`master` / `sqlsugar`) or **MySQL 8+** (`master-mysql` / `sqlsugar-mysql`—see below)
 - (Optional) MinIO for file uploads
 - Frontend: [beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
-## Database Choice (PostgreSQL / MySQL)
+## Database Choice (EF Core / SqlSugar)
 
-The backend uses **Git branches** for database drivers. **No frontend changes** are required.
+The backend uses **Git branches** for ORM / database drivers. **No frontend changes** are required.
 
-| Branch | Database | Notes |
-|--------|----------|-------|
-| `master` (default) | PostgreSQL | Main development branch; CAP / Hangfire use PostgreSQL |
-| `master-mysql` | MySQL 8+ | MySQL variant—switch branch manually |
+| Branch | ORM / Database | Notes |
+|--------|----------------|-------|
+| `master` (default) | EF Core + PostgreSQL | Main development branch; CAP / Hangfire use PostgreSQL |
+| `master-mysql` | EF Core + MySQL 8+ | MySQL variant—switch branch manually |
+| `sqlsugar` | **SqlSugar** + PostgreSQL | CodeFirst auto-syncs tables; **create an empty database first**; change `DbType` for other DBs |
+| `sqlsugar-mysql` | **SqlSugar** + MySQL 8+ | SqlSugar MySQL preset; also requires an empty database first |
 
 ### Switch to MySQL (`master-mysql`)
 
@@ -73,6 +75,85 @@ Migration and startup commands are the same as PostgreSQL (see Quick Start). **D
 
 The demo site [beaverxadmin.com](https://beaverxadmin.com/) is deployed on the **MySQL** branch.
 
+### Switch to SqlSugar (`sqlsugar`)
+
+```bash
+git fetch origin
+git checkout sqlsugar
+```
+
+Edit `BeaverX.Admin.Http.Host/appsettings.Development.json` (PostgreSQL connection string, same format as `master`):
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=your_password"
+  }
+}
+```
+
+> **Create the database manually first.** The SqlSugar branch does **not** use `dotnet ef database update` to create the database. Hangfire connects on startup and will fail if the database does not exist.
+>
+> Create an empty PostgreSQL database (e.g. `beaverx-admin`), then start the API. Business tables are **synced automatically** via CodeFirst (`InitTables`); you usually do not need hand-written DDL.
+
+Summary of differences:
+
+- ORM: SqlSugar (`BeaverX.Data.SqlSugar`); no EF Core migrations project
+- Database: create an empty database manually
+- Tables: auto-synced from entities on startup
+- Hangfire / CAP: same business connection string (database must already exist)
+
+```bash
+# Create empty DB beaverx-admin first, then:
+dotnet run --project BeaverX.Admin.Http.Host
+```
+
+### Switch to SqlSugar + MySQL (`sqlsugar-mysql`)
+
+```bash
+git fetch origin
+git checkout sqlsugar-mysql
+```
+
+Edit the connection string (similar to `master-mysql`):
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Server=localhost;Port=3306;Database=beaverx-admin;User=root;Password=your_password;Allow User Variables=True;"
+  }
+}
+```
+
+> Also **create an empty database first**; tables sync on startup. `Allow User Variables=True` is required by Hangfire.MySql.
+
+### Switch to other databases (SQL Server / Oracle, etc.)
+
+Official branches only preset **PostgreSQL** and **MySQL**. For **SQL Server**, **Oracle**, and others:
+
+#### EF Core (`master` / `master-mysql`)
+
+BeaverX does **not** ship official SQL Server / Oracle driver packages (only `BeaverX.EntityFrameworkCore.PostgreSql` / `BeaverX.EntityFrameworkCore.MySql`).
+
+You must implement them yourself (follow the existing PostgreSQL / MySQL drivers and Admin `IDbDriverOptionsBuilder`):
+
+1. **BeaverX.EntityFrameworkCore.\***: implement `IDbDriverOptionsBuilder` (`UseSqlServer` / `UseOracle`, etc.) and register the module
+2. **BeaverX.Domain / Admin**: wire DbContext, repositories, migrations; also adapt Hangfire / CAP storage for the target database
+3. Recreate and apply **EF Migrations** (do not mix migration histories across databases)
+
+Application/domain entities can be reused; drivers and infrastructure must be adapted by you.
+
+#### SqlSugar (`sqlsugar` / `sqlsugar-mysql`)
+
+Change `BeaverXSqlSugarOptions.DbType` (or `AddBeaverXSqlSugar(..., DbType.Xxx, ...)`) to the target database, for example:
+
+```csharp
+options.DbType = DbType.SqlServer; // or DbType.Oracle, DbType.MySql, etc.
+options.ConnectionString = "your connection string";
+```
+
+Also update the connection string and **create an empty database first**; tables still sync via CodeFirst. Adapt Hangfire / CAP storage if no built-in provider exists for that database.
+
 ## Quick Start
 
 ### 1. Configure Database
@@ -87,7 +168,11 @@ Edit `BeaverX.Admin.Http.Host/appsettings.Development.json`:
 }
 ```
 
+> On `sqlsugar` / `sqlsugar-mysql`: **create the empty database first**, then start the API (tables sync automatically).
+
 ### 2. Run Migrations
+
+`master` / `master-mysql` (EF Core):
 
 ```bash
 cd BeaverX.Admin
@@ -96,6 +181,8 @@ dotnet ef database update \
   --project BeaverX.Admin.EntityFrameworkCore \
   --startup-project BeaverX.Admin.Http.Host
 ```
+
+`sqlsugar` / `sqlsugar-mysql`: **skip this step** (no EF migrations); ensure the empty database already exists.
 
 ### 3. Start API
 
