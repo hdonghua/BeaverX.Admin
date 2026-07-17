@@ -11,8 +11,8 @@ public class Role : AuditedEntity
     public bool IsEnabled { get; set; } = true;
 
     [Navigate(NavigateType.OneToMany, nameof(UserRole.RoleId))]
-    public ICollection<UserRole> UserRoles { get; set; } = [];
+    public List<UserRole> UserRoles { get; set; } = null!;
 
     [Navigate(NavigateType.OneToMany, nameof(RoleMenu.RoleId))]
-    public ICollection<RoleMenu> RoleMenus { get; set; } = [];
+    public List<RoleMenu> RoleMenus { get; set; } = null!;
 }

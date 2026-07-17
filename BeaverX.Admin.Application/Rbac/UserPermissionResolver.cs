@@ -70,8 +70,9 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
             return RbacMenuHelper.CollectPerms(allMenus);
         }
 
-        var roleMenuIds = user.UserRoles
-            .SelectMany(x => x.Role.RoleMenus)
+        var roleMenuIds = (user.UserRoles ?? [])
+            .Where(x => x.Role != null)
+            .SelectMany(x => x.Role.RoleMenus ?? [])
             .Select(x => x.MenuId)
             .ToHashSet();
 
@@ -85,8 +86,8 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
     }
 
     private static List<string> GetRoleCodes(User user) =>
-        user.UserRoles
-            .Where(x => x.Role.IsEnabled)
+        (user.UserRoles ?? [])
+            .Where(x => x.Role is { IsEnabled: true })
             .Select(x => x.Role.Code)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -117,7 +118,7 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
             .ToListAsync(cancellationToken);
         var roleMenuMap = roleMenus
             .GroupBy(x => x.RoleId)
-            .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
+            .ToDictionary(x => x.Key, x => x.ToList());
 
         foreach (var role in roles)
         {
