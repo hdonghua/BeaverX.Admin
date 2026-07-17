@@ -17,7 +17,7 @@
 |------|------|
 | 运行时 | .NET 10 |
 | Web | ASP.NET Core + BeaverX.WebMvc |
-| ORM | Entity Framework Core + **PostgreSQL**（默认分支）/ **MySQL**（`master-mysql` 分支） |
+| ORM | Entity Framework Core + **PostgreSQL**（`master`）/ **MySQL**（`master-mysql`）；SqlSugar + **PostgreSQL**（`sqlsugar`）/ **MySQL**（`sqlsugar-mysql`） |
 | 认证 | JWT Bearer + Refresh Token |
 | 日志 | Serilog（控制台 + 本地文件） |
 | 对象存储 | MinIO（可选） |
@@ -25,18 +25,20 @@
 ## 环境要求
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- **PostgreSQL 14+**（`master` 默认分支）或 **MySQL 8+**（`master-mysql` 分支，见下文）
+- **PostgreSQL 14+**（`master` / `sqlsugar`）或 **MySQL 8+**（`master-mysql` / `sqlsugar-mysql`，见下文）
 - （可选）MinIO，用于文件上传
 - 前端项目：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
-## 数据库选型（PostgreSQL / MySQL）
+## 数据库选型（EF Core / SqlSugar）
 
-后端按 **Git 分支** 区分数据库驱动，**前端无需改动**。
+后端按 **Git 分支** 区分 ORM / 数据库驱动，**前端无需改动**。
 
-| 分支 | 数据库 | 说明 |
-|------|--------|------|
-| `master`（默认） | PostgreSQL | 主开发分支，CAP / Hangfire 使用 PostgreSQL |
-| `master-mysql` | MySQL 8+ | MySQL 版本，需手动切换分支 |
+| 分支 | ORM / 数据库 | 说明 |
+|------|--------------|------|
+| `master`（默认） | EF Core + PostgreSQL | 主开发分支，CAP / Hangfire 使用 PostgreSQL |
+| `master-mysql` | EF Core + MySQL 8+ | MySQL 版本，需手动切换分支 |
+| `sqlsugar` | **SqlSugar** + PostgreSQL | CodeFirst 自动同步表；**须先手动建空库**；改 `DbType` 可接其它库 |
+| `sqlsugar-mysql` | **SqlSugar** + MySQL 8+ | SqlSugar 的 MySQL 预置分支；同样须先手动建空库 |
 
 ### 切换到 MySQL（`master-mysql`）
 
@@ -71,6 +73,85 @@ MySQL 分支差异摘要：
 
 演示站点 [beaverxadmin.com](https://beaverxadmin.com/) 使用 **MySQL** 分支部署。
 
+### 切换到 SqlSugar（`sqlsugar`）
+
+```bash
+git fetch origin
+git checkout sqlsugar
+```
+
+编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`（PostgreSQL 连接串，与 `master` 相同格式）：
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=你的密码"
+  }
+}
+```
+
+> **必须先手动建库**：SqlSugar 分支启动时 Hangfire 会立刻连库，若库不存在会直接报错。
+>
+> 请先在 PostgreSQL 中**手动创建空库**（例如 `beaverx-admin`），再启动 API。业务表会在启动时 **CodeFirst 自动同步**（`InitTables`），一般无需手写 DDL。
+
+差异摘要：
+
+- ORM：SqlSugar（`BeaverX.Data.SqlSugar`）
+- 建库：手动创建空数据库
+- 建表：启动自动同步实体到表结构
+- Hangfire / CAP：仍使用同一业务连接串（库必须已存在）
+
+```bash
+# 先手动建空库 beaverx-admin，再启动
+dotnet run --project BeaverX.Admin.Http.Host
+```
+
+### 切换到 SqlSugar + MySQL（`sqlsugar-mysql`）
+
+```bash
+git fetch origin
+git checkout sqlsugar-mysql
+```
+
+编辑连接串（与 `master-mysql` 类似）：
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Server=localhost;Port=3306;Database=beaverx-admin;User=root;Password=你的密码;Allow User Variables=True;"
+  }
+}
+```
+
+> 同样**必须先手动创建空库**；表启动时自动同步。`Allow User Variables=True` 为 Hangfire.MySql 所需。
+
+### 切换到其它数据库（SQL Server / Oracle 等）
+
+官方分支目前只预置 **PostgreSQL** 与 **MySQL**。若要接 **SQL Server、Oracle** 等，按所用 ORM 不同：
+
+#### EF Core（`master` / `master-mysql`）
+
+BeaverX **未封装** SQL Server / Oracle 等驱动包（目前仅有 `BeaverX.EntityFrameworkCore.PostgreSql` / `BeaverX.EntityFrameworkCore.MySql`）。
+
+需要自行实现（可参考现有 PostgreSQL / MySQL 驱动与 Admin 侧 `IDbDriverOptionsBuilder`）：
+
+1. **BeaverX.EntityFrameworkCore.\***：实现 `IDbDriverOptionsBuilder`（`UseSqlServer` / `UseOracle` 等），并注册对应 Module
+2. **BeaverX.Domain / Admin 侧**：按现有分层接线 DbContext、仓储、迁移；Hangfire、CAP 等中间件也需换成目标库存储
+3. 重新生成并执行 **EF Migrations**（不要混用其它库的迁移历史）
+
+业务实体与 Application 层可复用，但驱动与基础设施需自行适配。
+
+#### SqlSugar（`sqlsugar` / `sqlsugar-mysql`）
+
+将 `BeaverXSqlSugarOptions.DbType`（或 `AddBeaverXSqlSugar(..., DbType.Xxx, ...)`）改为目标库即可，例如：
+
+```csharp
+options.DbType = DbType.SqlServer; // 或 DbType.Oracle、DbType.MySql 等
+options.ConnectionString = "你的连接串";
+```
+
+同时更换连接串，并**先手动建空库**；业务表仍由 CodeFirst 同步。Hangfire / CAP 若目标库无现成适配，需自行换成对应存储。
+
 ## 快速开始
 
 ### 1. 配置数据库
@@ -85,7 +166,11 @@ MySQL 分支差异摘要：
 }
 ```
 
+> `sqlsugar` / `sqlsugar-mysql`：请先**手动创建**连接串中的空库，再启动（表会自动同步）。
+
 ### 2. 执行迁移
+
+`master` / `master-mysql`（EF Core）：
 
 ```bash
 cd BeaverX.Admin
@@ -94,6 +179,8 @@ dotnet ef database update \
   --project BeaverX.Admin.EntityFrameworkCore \
   --startup-project BeaverX.Admin.Http.Host
 ```
+
+`sqlsugar` / `sqlsugar-mysql`：**跳过本步**（无 EF 迁移）；确保空库已创建即可。
 
 ### 3. 启动 API
 
