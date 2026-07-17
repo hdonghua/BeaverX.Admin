@@ -201,7 +201,7 @@ public class UserAppService : IUserAppService, IScopedDependency
 
         var userRoleMap = userRoles
             .GroupBy(x => x.UserId)
-            .ToDictionary(x => x.Key, x => (ICollection<UserRole>)x.ToList());
+            .ToDictionary(x => x.Key, x => x.ToList());
 
         foreach (var user in users)
         {

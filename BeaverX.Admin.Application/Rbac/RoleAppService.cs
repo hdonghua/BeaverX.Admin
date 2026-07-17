@@ -208,7 +208,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
             , cancellationToken);
         var roleMenuMap = roleMenus
             .GroupBy(x => x.RoleId)
-            .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
+            .ToDictionary(x => x.Key, x => x.ToList());
 
         foreach (var role in roles)
         {

@@ -209,8 +209,9 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         var roles = GetRoleCodes(user);
         var isSuperAdmin = IsSuperAdmin(roles);
         var allMenus = await _menuCacheService.GetAllMenusAsync(cancellationToken);
-        var roleMenuIds = user.UserRoles
-            .SelectMany(x => x.Role.RoleMenus)
+        var roleMenuIds = (user.UserRoles ?? [])
+            .Where(x => x.Role != null)
+            .SelectMany(x => x.Role.RoleMenus ?? [])
             .Select(x => x.MenuId)
             .ToHashSet();
 
@@ -221,31 +222,23 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private async Task<User?> LoadUserWithAccessAsync(string userName, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.FindAsync(x => x.UserName == userName, cancellationToken);
-        if (user == null)
-        {
-            return null;
-        }
-
-        await PopulateUserAccessAsync(user, cancellationToken);
-        return user;
+        return await _userRepository.GetSugarQueryable()
+            .Includes(x => x.UserRoles, ur => ur.Role, role => role.RoleMenus)
+            .Where(x => x.UserName == userName)
+            .FirstAsync(cancellationToken);
     }
 
     private async Task<User?> LoadUserWithAccessByIdAsync(long userId, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.FindAsync(x => x.Id == userId, cancellationToken);
-        if (user == null)
-        {
-            return null;
-        }
-
-        await PopulateUserAccessAsync(user, cancellationToken);
-        return user;
+        return await _userRepository.GetSugarQueryable()
+            .Includes(x => x.UserRoles, ur => ur.Role, role => role.RoleMenus)
+            .Where(x => x.Id == userId)
+            .FirstAsync(cancellationToken);
     }
 
     private static List<string> GetRoleCodes(User user) =>
-        user.UserRoles
-            .Where(x => x.Role.IsEnabled)
+        (user.UserRoles ?? [])
+            .Where(x => x.Role is { IsEnabled: true })
             .Select(x => x.Role.Code)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -255,47 +248,6 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private static string? NormalizeOptionalString(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private async Task PopulateUserAccessAsync(User user, CancellationToken cancellationToken)
-    {
-        var userRoles = await _userRepository.Client.Queryable<UserRole>()
-            .Where(x => x.UserId == user.Id)
-            .ToListAsync(cancellationToken);
-
-        var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
-        if (roleIds.Count == 0)
-        {
-            user.UserRoles = [];
-            return;
-        }
-
-        var roles = await _userRepository.Client.Queryable<Role>()
-            .Where(x => roleIds.Contains(x.Id))
-            .ToListAsync(cancellationToken);
-        var roleMap = roles.ToDictionary(x => x.Id);
-
-        var roleMenus = await _userRepository.Client.Queryable<RoleMenu>()
-            .Where(x => roleIds.Contains(x.RoleId))
-            .ToListAsync(cancellationToken);
-        var roleMenuMap = roleMenus
-            .GroupBy(x => x.RoleId)
-            .ToDictionary(x => x.Key, x => (ICollection<RoleMenu>)x.ToList());
-
-        foreach (var role in roles)
-        {
-            role.RoleMenus = roleMenuMap.TryGetValue(role.Id, out var items) ? items : [];
-        }
-
-        foreach (var userRole in userRoles)
-        {
-            if (roleMap.TryGetValue(userRole.RoleId, out var role))
-            {
-                userRole.Role = role;
-            }
-        }
-
-        user.UserRoles = userRoles;
-    }
 
     private async Task<TokenResultDto> IssueTokensAsync(
         User user,

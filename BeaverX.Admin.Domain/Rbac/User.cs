@@ -13,5 +13,5 @@ public class User : FullAuditedEntity
     public bool IsEnabled { get; set; } = true;
 
     [Navigate(NavigateType.OneToMany, nameof(UserRole.UserId))]
-    public ICollection<UserRole> UserRoles { get; set; } = [];
+    public List<UserRole> UserRoles { get; set; } = null!;
 }

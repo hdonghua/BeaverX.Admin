@@ -10,5 +10,5 @@ public class DictType : FullAuditedEntity
     public bool IsEnabled { get; set; } = true;
 
     [Navigate(NavigateType.OneToMany, "DictTypeId")]
-    public ICollection<DictData> DictData { get; set; } = [];
+    public List<DictData> DictData { get; set; } = null!;
 }

@@ -22,8 +22,8 @@ public class Menu : FullAuditedEntity
     public Menu? Parent { get; set; }
 
     [Navigate(NavigateType.OneToMany, nameof(ParentId))]
-    public ICollection<Menu> Children { get; set; } = [];
+    public List<Menu> Children { get; set; } = null!;
 
     [Navigate(NavigateType.OneToMany, nameof(RoleMenu.MenuId))]
-    public ICollection<RoleMenu> RoleMenus { get; set; } = [];
+    public List<RoleMenu> RoleMenus { get; set; } = null!;
 }

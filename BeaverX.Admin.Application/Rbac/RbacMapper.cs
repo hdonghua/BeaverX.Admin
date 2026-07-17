@@ -7,7 +7,8 @@ internal static class RbacMapper
 {
     public static UserDto ToUserDto(User user, IEnumerable<Role>? roles = null)
     {
-        var roleList = roles?.ToList() ?? user.UserRoles.Select(x => x.Role).ToList();
+        var roleList = roles?.ToList()
+            ?? (user.UserRoles ?? []).Where(x => x.Role != null).Select(x => x.Role).ToList();
         return new UserDto
         {
             Id = user.Id,
@@ -32,7 +33,7 @@ internal static class RbacMapper
         Sort = role.Sort,
         IsEnabled = role.IsEnabled,
         CreationTime = role.CreationTime,
-        MenuIds = role.RoleMenus.Select(x => x.MenuId).ToList()
+        MenuIds = (role.RoleMenus ?? []).Select(x => x.MenuId).ToList()
     };
 
     public static MenuDto ToMenuDto(Menu menu) => new()
