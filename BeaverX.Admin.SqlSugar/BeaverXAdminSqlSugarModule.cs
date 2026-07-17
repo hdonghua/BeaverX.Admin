@@ -30,7 +30,7 @@ namespace BeaverX.Admin.EntityFrameworkCore
             services.AddBeaverXSqlSugar(options =>
             {
                 options.ConnectionString = configuration.GetConnectionString("Default")!;
-                options.DbType = global::SqlSugar.DbType.PostgreSQL;
+                options.DbType = global::SqlSugar.DbType.MySql;
                 options.AddEntitiesFromAssembly(typeof(BeaverXAdminDomainModule).Assembly);
                 options.NormalizeEntityBeforeWrite = UtcDateTimeSaveChangesInterceptor.NormalizeDateTimes;
             });
