@@ -3,23 +3,23 @@ using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
 {
-    private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Menu> _menuRepository;
+    private readonly IRepository<User, Guid> _userRepository;
+    private readonly IRepository<Menu, Guid> _menuRepository;
     private readonly MenuCacheService _menuCacheService;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public UserPermissionResolver(
-        IRepository<User> userRepository,
-        IRepository<Menu> menuRepository,
+        IRepository<User, Guid> userRepository,
+        IRepository<Menu, Guid> menuRepository,
         MenuCacheService menuCacheService,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator)
@@ -32,7 +32,7 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
     }
 
     public async Task<IReadOnlyCollection<string>> GetPermissionsAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         var accessVersion = await _cacheInvalidator.GetAccessVersionAsync(cancellationToken);
@@ -46,10 +46,10 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
     }
 
     private async Task<List<string>> LoadPermissionsFromDatabaseAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetQueryable()
+        var user = await (await _userRepository.GetQueryableAsync())
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .ThenInclude(x => x.RoleMenus)
@@ -84,7 +84,9 @@ public class UserPermissionResolver : IUserPermissionResolver, IScopedDependency
             return [];
         }
 
-        var menus = await _menuRepository.GetListAsync(x => roleMenuIds.Contains(x.Id), cancellationToken);
+        var menus = await _menuRepository.GetListAsync(
+            x => roleMenuIds.Contains(x.Id),
+            cancellationToken: cancellationToken);
         return RbacMenuHelper.CollectPerms(menus);
     }
 

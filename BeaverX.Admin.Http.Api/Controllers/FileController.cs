@@ -1,13 +1,12 @@
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Application.Contracts.Storage.Dtos;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class FileController : BeaverXControllerBase
+public class FileController : AdminControllerBase
 {
     private readonly IFileAppService _fileAppService;
 
@@ -42,7 +41,7 @@ public class FileController : BeaverXControllerBase
     [Authorize]
     [HttpDelete]
     public Task DeleteAsync([FromQuery] string objectKey, CancellationToken cancellationToken)
-        => _fileAppService.DeleteAsync(objectKey, cancellationToken);
+        => _fileAppService.DeleteAsync(objectKey, cancellationToken: cancellationToken);
 
     /// <summary>
     /// 通过后端代理访问 MinIO 文件，适用于 img 标签等无法携带 JWT 的场景。
@@ -58,7 +57,7 @@ public class FileController : BeaverXControllerBase
 
         try
         {
-            var blob = await _fileAppService.GetAsync(objectKey, cancellationToken);
+            var blob = await _fileAppService.GetAsync(objectKey, cancellationToken: cancellationToken);
             return File(blob.Content, blob.ContentType, blob.FileName, enableRangeProcessing: true);
         }
         catch (StorageNotFoundException ex)

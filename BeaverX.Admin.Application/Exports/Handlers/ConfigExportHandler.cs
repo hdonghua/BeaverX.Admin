@@ -2,8 +2,8 @@ using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Domain.Config;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 
@@ -13,9 +13,9 @@ public class ConfigExportHandler : IExportHandler, IScopedDependency
 {
     private const int MaxRows = 100_000;
 
-    private readonly IRepository<SysConfig> _configRepository;
+    private readonly IRepository<SysConfig, Guid> _configRepository;
 
-    public ConfigExportHandler(IRepository<SysConfig> configRepository)
+    public ConfigExportHandler(IRepository<SysConfig, Guid> configRepository)
     {
         _configRepository = configRepository;
     }
@@ -28,7 +28,7 @@ public class ConfigExportHandler : IExportHandler, IScopedDependency
         string? parametersJson,
         CancellationToken cancellationToken = default)
     {
-        var query = _configRepository.GetQueryable().AsQueryable();
+        var query = (await _configRepository.GetQueryableAsync()).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(parametersJson))
         {

@@ -2,22 +2,22 @@ using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Exports;
 
 public class ExportTaskExecutor : IScopedDependency
 {
-    private readonly IRepository<ExportTask> _exportTaskRepository;
+    private readonly IRepository<ExportTask, Guid> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
     private readonly IBlobStorage _blobStorage;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ILogger<ExportTaskExecutor> _logger;
 
     public ExportTaskExecutor(
-        IRepository<ExportTask> exportTaskRepository,
+        IRepository<ExportTask, Guid> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
         IBlobStorage blobStorage,
         RealtimePublisher realtimePublisher,
@@ -30,9 +30,9 @@ public class ExportTaskExecutor : IScopedDependency
         _logger = logger;
     }
 
-    public async Task ExecuteAsync(long taskId, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(Guid taskId, CancellationToken cancellationToken = default)
     {
-        var task = await _exportTaskRepository.FindAsync(x => x.Id == taskId, cancellationToken);
+        var task = await _exportTaskRepository.GetAsync(x => x.Id == taskId, cancellationToken: cancellationToken);
         if (task == null)
         {
             _logger.LogWarning("Export task {TaskId} not found", taskId);

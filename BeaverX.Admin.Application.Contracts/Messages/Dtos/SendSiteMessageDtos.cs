@@ -3,7 +3,7 @@ namespace BeaverX.Admin.Application.Contracts.Messages.Dtos;
 public class SendSiteMessageDto
 {
     /// <summary>接收用户；SendToAll=true 时可空</summary>
-    public long? UserId { get; set; }
+    public Guid? UserId { get; set; }
 
     /// <summary>发送给全部启用用户</summary>
     public bool SendToAll { get; set; }

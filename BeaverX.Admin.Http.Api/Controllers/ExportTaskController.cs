@@ -1,13 +1,12 @@
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Application.Contracts.Exports.Dtos;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
 [Authorize]
-public class ExportTaskController : BeaverXControllerBase
+public class ExportTaskController : AdminControllerBase
 {
     private readonly IExportTaskAppService _exportTaskAppService;
 
@@ -24,13 +23,13 @@ public class ExportTaskController : BeaverXControllerBase
 
     [HttpGet("list")]
     public Task<List<ExportTaskDto>> GetListAsync(CancellationToken cancellationToken)
-        => _exportTaskAppService.GetListAsync(cancellationToken);
+        => _exportTaskAppService.GetListAsync(cancellationToken: cancellationToken);
 
     [HttpGet("active-count")]
     public Task<int> GetActiveCountAsync(CancellationToken cancellationToken)
         => _exportTaskAppService.GetActiveCountAsync(cancellationToken);
 
-    [HttpGet("{id:long}/download-url")]
-    public Task<ExportDownloadUrlDto> GetDownloadUrlAsync(long id, CancellationToken cancellationToken)
+    [HttpGet("{id:guid}/download-url")]
+    public Task<ExportDownloadUrlDto> GetDownloadUrlAsync(Guid id, CancellationToken cancellationToken)
         => _exportTaskAppService.GetDownloadUrlAsync(id, cancellationToken);
 }

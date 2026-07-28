@@ -12,11 +12,11 @@ public interface IDictDataAppService
         string typeCode,
         CancellationToken cancellationToken = default);
 
-    Task<DictDataDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<DictDataDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<DictDataDto> CreateAsync(CreateDictDataDto input, CancellationToken cancellationToken = default);
 
-    Task<DictDataDto> UpdateAsync(long id, UpdateDictDataDto input, CancellationToken cancellationToken = default);
+    Task<DictDataDto> UpdateAsync(Guid id, UpdateDictDataDto input, CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

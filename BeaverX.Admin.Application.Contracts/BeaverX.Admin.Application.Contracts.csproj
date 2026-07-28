@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="10.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BeaverX.Admin.Domain.Shared\BeaverX.Admin.Domain.Shared.csproj" />
   </ItemGroup>
 

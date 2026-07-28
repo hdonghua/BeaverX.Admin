@@ -9,5 +9,5 @@ public interface IPaymentRefundAppService
       PaymentRefundQueryDto input,
       CancellationToken cancellationToken = default);
 
-    Task<PaymentRefundDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<PaymentRefundDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 }

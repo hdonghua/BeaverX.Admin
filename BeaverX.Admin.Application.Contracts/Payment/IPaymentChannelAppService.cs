@@ -11,16 +11,16 @@ public interface IPaymentChannelAppService
 
     Task<List<PaymentChannelDto>> GetEnabledListAsync(CancellationToken cancellationToken = default);
 
-    Task<PaymentChannelDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<PaymentChannelDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PaymentChannelDto> CreateAsync(
       CreatePaymentChannelDto input,
       CancellationToken cancellationToken = default);
 
     Task<PaymentChannelDto> UpdateAsync(
-      long id,
+      Guid id,
       UpdatePaymentChannelDto input,
       CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

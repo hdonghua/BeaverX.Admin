@@ -2,8 +2,8 @@ using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Domain.Dict;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 
@@ -13,9 +13,9 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
 {
     private const int MaxRows = 100_000;
 
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly IRepository<DictData, Guid> _dictDataRepository;
 
-    public DictDataExportHandler(IRepository<DictData> dictDataRepository)
+    public DictDataExportHandler(IRepository<DictData, Guid> dictDataRepository)
     {
         _dictDataRepository = dictDataRepository;
     }
@@ -28,7 +28,7 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
         string? parametersJson,
         CancellationToken cancellationToken = default)
     {
-        var query = _dictDataRepository.GetQueryable()
+        var query = (await _dictDataRepository.GetQueryableAsync())
             .Include(x => x.DictType)
             .AsQueryable();
 
@@ -38,9 +38,8 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
                 parametersJson,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (parameters?.DictTypeId is > 0)
+            if (parameters?.DictTypeId is Guid dictTypeId && dictTypeId != Guid.Empty)
             {
-                var dictTypeId = parameters.DictTypeId.Value;
                 query = query.Where(x => x.DictTypeId == dictTypeId);
             }
 
@@ -86,7 +85,7 @@ public class DictDataExportHandler : IExportHandler, IScopedDependency
 
     private sealed class DictDataExportParameters
     {
-        public long? DictTypeId { get; set; }
+        public Guid? DictTypeId { get; set; }
         public string? TypeCode { get; set; }
         public string? Keyword { get; set; }
     }

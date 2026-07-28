@@ -1,12 +1,11 @@
 using BeaverX.Admin.Application.Contracts.Messages;
 using BeaverX.Admin.Application.Contracts.Messages.Dtos;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class MessageController : BeaverXControllerBase
+public class MessageController : AdminControllerBase
 {
     private readonly IMessageAppService _messageAppService;
 
@@ -18,7 +17,7 @@ public class MessageController : BeaverXControllerBase
     [Authorize]
     [HttpGet("list")]
     public Task<List<MessageDto>> GetListAsync(CancellationToken cancellationToken)
-        => _messageAppService.GetListAsync(cancellationToken);
+        => _messageAppService.GetListAsync(cancellationToken: cancellationToken);
 
     [Authorize]
     [HttpGet("unread-count")]

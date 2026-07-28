@@ -3,12 +3,11 @@ using BeaverX.Admin.Application.Contracts.Dict.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class DictTypeController : BeaverXControllerBase
+public class DictTypeController : AdminControllerBase
 {
     private readonly IDictTypeAppService _dictTypeAppService;
 
@@ -25,9 +24,9 @@ public class DictTypeController : BeaverXControllerBase
         => _dictTypeAppService.GetListAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Dict.List)]
-    [HttpGet("{id:long}")]
-    public Task<DictTypeDto> GetAsync(long id, CancellationToken cancellationToken)
-        => _dictTypeAppService.GetAsync(id, cancellationToken);
+    [HttpGet("{id:guid}")]
+    public Task<DictTypeDto> GetAsync(Guid id, CancellationToken cancellationToken)
+        => _dictTypeAppService.GetAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Dict.Type.Create)]
     [HttpPost]
@@ -37,15 +36,15 @@ public class DictTypeController : BeaverXControllerBase
         => _dictTypeAppService.CreateAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Dict.Type.Update)]
-    [HttpPut("{id:long}")]
+    [HttpPut("{id:guid}")]
     public Task<DictTypeDto> UpdateAsync(
-        long id,
+        Guid id,
         [FromBody] UpdateDictTypeDto input,
         CancellationToken cancellationToken)
         => _dictTypeAppService.UpdateAsync(id, input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Dict.Type.Delete)]
-    [HttpDelete("{id:long}")]
-    public Task DeleteAsync(long id, CancellationToken cancellationToken)
-        => _dictTypeAppService.DeleteAsync(id, cancellationToken);
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        => _dictTypeAppService.DeleteAsync(id, cancellationToken: cancellationToken);
 }

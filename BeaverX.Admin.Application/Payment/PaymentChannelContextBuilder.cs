@@ -1,6 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 
 namespace BeaverX.Admin.Application.Payment;
 
@@ -14,7 +14,7 @@ public class PaymentChannelContextBuilder : IPaymentChannelContextBuilder, IScop
     }
 
     public async Task<PaymentProviderChannelContext> BuildAsync(
-      long channelId,
+      Guid channelId,
       string channelCode,
       PaymentProviderType providerType,
       string configJson,

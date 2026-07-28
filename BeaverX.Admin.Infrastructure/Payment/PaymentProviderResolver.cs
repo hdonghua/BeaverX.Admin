@@ -1,6 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Domain.Shared;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 
 namespace BeaverX.Admin.Infrastructure.Payment;
 

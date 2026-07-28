@@ -5,20 +5,20 @@ using BeaverX.Admin.Application.Contracts.Config.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Config;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Config;
 
 public class ConfigAppService : IConfigAppService, IScopedDependency
 {
-    private readonly IRepository<SysConfig> _configRepository;
+    private readonly IRepository<SysConfig, Guid> _configRepository;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public ConfigAppService(
-        IRepository<SysConfig> configRepository,
+        IRepository<SysConfig, Guid> configRepository,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -31,7 +31,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         ConfigQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _configRepository.GetQueryable().AsQueryable();
+        var query = (await _configRepository.GetQueryableAsync()).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -73,7 +73,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
     public Task<List<string>> GetGroupsAsync(CancellationToken cancellationToken = default) =>
         _cache.GetOrSetAsync(
             CacheKeys.ConfigGroups,
-            async ct => await _configRepository.GetQueryable()
+            async ct => await (await _configRepository.GetQueryableAsync())
                 .Where(x => x.Group != null && x.Group != string.Empty)
                 .Select(x => x.Group!)
                 .Distinct()
@@ -82,7 +82,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
             CacheDurations.Config,
             cancellationToken);
 
-    public async Task<ConfigDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<ConfigDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindAsync(id, cancellationToken);
         return ToDto(entity);
@@ -100,7 +100,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
             CacheKeys.ConfigByKey(normalizedKey),
             async ct =>
             {
-                var entity = await _configRepository.GetQueryable()
+                var entity = await (await _configRepository.GetQueryableAsync())
                     .FirstOrDefaultAsync(x => x.Key == normalizedKey, ct);
 
                 return entity == null ? null : ToDto(entity);
@@ -143,7 +143,7 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
     }
 
     public async Task<ConfigDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateConfigDto input,
         CancellationToken cancellationToken = default)
     {
@@ -184,16 +184,16 @@ public class ConfigAppService : IConfigAppService, IScopedDependency
         return ToDto(entity);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindAsync(id, cancellationToken);
         await _configRepository.DeleteAsync(id, cancellationToken: cancellationToken);
         await _cacheInvalidator.InvalidateConfigAsync(entity.Key, cancellationToken);
     }
 
-    private async Task<SysConfig> FindAsync(long id, CancellationToken cancellationToken)
+    private async Task<SysConfig> FindAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await _configRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _configRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
             throw new BusinessException($"配置不存在: {id}");

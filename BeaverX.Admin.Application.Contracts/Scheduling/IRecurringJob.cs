@@ -1,4 +1,4 @@
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 
 namespace BeaverX.Admin.Application.Contracts.Scheduling;
 

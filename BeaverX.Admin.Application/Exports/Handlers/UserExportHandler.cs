@@ -2,8 +2,8 @@ using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 
@@ -13,9 +13,9 @@ public class UserExportHandler : IExportHandler, IScopedDependency
 {
     private const int MaxRows = 100_000;
 
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<User, Guid> _userRepository;
 
-    public UserExportHandler(IRepository<User> userRepository)
+    public UserExportHandler(IRepository<User, Guid> userRepository)
     {
         _userRepository = userRepository;
     }
@@ -28,7 +28,7 @@ public class UserExportHandler : IExportHandler, IScopedDependency
         string? parametersJson,
         CancellationToken cancellationToken = default)
     {
-        var query = _userRepository.GetQueryable()
+        var query = (await _userRepository.GetQueryableAsync())
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .AsQueryable();

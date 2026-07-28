@@ -10,7 +10,7 @@ public interface IPaymentOrderAppService
       PaymentOrderQueryDto input,
       CancellationToken cancellationToken = default);
 
-    Task<PaymentOrderDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<PaymentOrderDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PaymentOrderDto> GetByOrderNoAsync(string orderNo, CancellationToken cancellationToken = default);
 
@@ -18,12 +18,12 @@ public interface IPaymentOrderAppService
     Task<CreatePaymentOrderResultDto> CreatePayOrderAsync(
       CreatePaymentOrderDto input,
       string? clientIp,
-      long? userId,
+      Guid? userId,
       CancellationToken cancellationToken = default);
 
-    Task<PaymentOrderDto> SyncOrderAsync(long id, CancellationToken cancellationToken = default);
+    Task<PaymentOrderDto> SyncOrderAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<PaymentOrderDto> CloseOrderAsync(long id, CancellationToken cancellationToken = default);
+    Task<PaymentOrderDto> CloseOrderAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PaymentRefundDto> RefundAsync(
       CreatePaymentRefundDto input,

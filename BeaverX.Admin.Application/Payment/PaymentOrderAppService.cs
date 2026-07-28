@@ -4,8 +4,8 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -13,18 +13,18 @@ namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentOrder> _orderRepository;
-    private readonly IRepository<PaymentChannel> _channelRepository;
-    private readonly IRepository<PaymentRefund> _refundRepository;
+    private readonly IRepository<PaymentOrder, Guid> _orderRepository;
+    private readonly IRepository<PaymentChannel, Guid> _channelRepository;
+    private readonly IRepository<PaymentRefund, Guid> _refundRepository;
     private readonly IPaymentProviderResolver _providerResolver;
     private readonly PaymentNotifyUrlBuilder _notifyUrlBuilder;
     private readonly PaymentOptions _paymentOptions;
     private readonly IPaymentChannelContextBuilder _channelContextBuilder;
 
     public PaymentOrderAppService(
-      IRepository<PaymentOrder> orderRepository,
-      IRepository<PaymentChannel> channelRepository,
-      IRepository<PaymentRefund> refundRepository,
+      IRepository<PaymentOrder, Guid> orderRepository,
+      IRepository<PaymentChannel, Guid> channelRepository,
+      IRepository<PaymentRefund, Guid> refundRepository,
       IPaymentProviderResolver providerResolver,
       PaymentNotifyUrlBuilder notifyUrlBuilder,
       IOptions<PaymentOptions> paymentOptions,
@@ -43,7 +43,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
       PaymentOrderQueryDto input,
       CancellationToken cancellationToken = default)
     {
-        var query = _orderRepository.GetQueryable();
+        var query = await _orderRepository.GetQueryableAsync();
 
         if (!string.IsNullOrWhiteSpace(input.OrderNo))
         {
@@ -87,7 +87,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
         };
     }
 
-    public async Task<PaymentOrderDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<PaymentOrderDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindOrderAsync(id, cancellationToken);
         return PaymentMapper.ToOrderDto(entity);
@@ -102,7 +102,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
             throw new BusinessException("订单号不能为空");
         }
 
-        var entity = await _orderRepository.GetQueryable()
+        var entity = await (await _orderRepository.GetQueryableAsync())
           .FirstOrDefaultAsync(x => x.OrderNo == orderNo.Trim(), cancellationToken);
 
         if (entity == null)
@@ -116,7 +116,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     public async Task<CreatePaymentOrderResultDto> CreatePayOrderAsync(
       CreatePaymentOrderDto input,
       string? clientIp,
-      long? userId,
+      Guid? userId,
       CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(input.ChannelCode))
@@ -125,7 +125,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
         }
 
         var channelCode = input.ChannelCode.Trim();
-        var channel = await _channelRepository.GetQueryable()
+        var channel = await (await _channelRepository.GetQueryableAsync())
           .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)
@@ -219,7 +219,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     }
 
     public async Task<PaymentOrderDto> SyncOrderAsync(
-      long id,
+      Guid id,
       CancellationToken cancellationToken = default)
     {
         var order = await FindOrderAsync(id, cancellationToken);
@@ -246,7 +246,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
     }
 
     public async Task<PaymentOrderDto> CloseOrderAsync(
-      long id,
+      Guid id,
       CancellationToken cancellationToken = default)
     {
         var order = await FindOrderAsync(id, cancellationToken);
@@ -341,9 +341,9 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
         await _orderRepository.UpdateAsync(order, cancellationToken: cancellationToken);
     }
 
-    private async Task<PaymentOrder> FindOrderAsync(long id, CancellationToken cancellationToken)
+    private async Task<PaymentOrder> FindOrderAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await _orderRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _orderRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
             throw new BusinessException($"支付订单不存在: {id}");
@@ -356,7 +356,7 @@ public class PaymentOrderAppService : IPaymentOrderAppService, IScopedDependency
       string channelCode,
       CancellationToken cancellationToken)
     {
-        var channel = await _channelRepository.GetQueryable()
+        var channel = await (await _channelRepository.GetQueryableAsync())
           .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)

@@ -3,12 +3,11 @@ using BeaverX.Admin.Application.Contracts.Payment.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class PaymentChannelController : BeaverXControllerBase
+public class PaymentChannelController : AdminControllerBase
 {
   private readonly IPaymentChannelAppService _channelAppService;
 
@@ -30,9 +29,9 @@ public class PaymentChannelController : BeaverXControllerBase
     => _channelAppService.GetEnabledListAsync(cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Channel.List)]
-  [HttpGet("{id:long}")]
-  public Task<PaymentChannelDto> GetAsync(long id, CancellationToken cancellationToken)
-    => _channelAppService.GetAsync(id, cancellationToken);
+  [HttpGet("{id:guid}")]
+  public Task<PaymentChannelDto> GetAsync(Guid id, CancellationToken cancellationToken)
+    => _channelAppService.GetAsync(id, cancellationToken: cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Channel.Create)]
   [HttpPost]
@@ -42,15 +41,15 @@ public class PaymentChannelController : BeaverXControllerBase
     => _channelAppService.CreateAsync(input, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Channel.Update)]
-  [HttpPut("{id:long}")]
+  [HttpPut("{id:guid}")]
   public Task<PaymentChannelDto> UpdateAsync(
-    long id,
+    Guid id,
     [FromBody] UpdatePaymentChannelDto input,
     CancellationToken cancellationToken)
     => _channelAppService.UpdateAsync(id, input, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Channel.Delete)]
-  [HttpDelete("{id:long}")]
-  public Task DeleteAsync(long id, CancellationToken cancellationToken)
-    => _channelAppService.DeleteAsync(id, cancellationToken);
+  [HttpDelete("{id:guid}")]
+  public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    => _channelAppService.DeleteAsync(id, cancellationToken: cancellationToken);
 }

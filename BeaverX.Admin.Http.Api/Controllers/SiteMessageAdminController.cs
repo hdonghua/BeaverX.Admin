@@ -2,12 +2,11 @@ using BeaverX.Admin.Application.Contracts.Messages;
 using BeaverX.Admin.Application.Contracts.Messages.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class SiteMessageAdminController : BeaverXControllerBase
+public class SiteMessageAdminController : AdminControllerBase
 {
     private readonly ISiteMessageAdminAppService _siteMessageAdminAppService;
 

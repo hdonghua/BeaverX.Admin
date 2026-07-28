@@ -4,8 +4,8 @@ using BeaverX.Admin.Application.Contracts.Messaging;
 using BeaverX.Admin.Application.Contracts.Messaging.Dtos;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Messaging;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Messages;
@@ -18,11 +18,11 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
     };
 
     private readonly IMessageSender _messageSender;
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<User, Guid> _userRepository;
 
     public SiteMessageAdminAppService(
         IMessageSender messageSender,
-        IRepository<User> userRepository)
+        IRepository<User, Guid> userRepository)
     {
         _messageSender = messageSender;
         _userRepository = userRepository;
@@ -89,7 +89,7 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
             throw new BusinessException("消息内容不能为空");
         }
 
-        if (!input.SendToAll && input.UserId is not > 0)
+        if (!input.SendToAll && input.UserId is null)
         {
             throw new BusinessException("请选择接收用户或勾选发送给全部用户");
         }
@@ -97,17 +97,17 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
         var type = input.Type?.Trim();
         if (string.IsNullOrWhiteSpace(type) || !AllowedTypes.Contains(type))
         {
-            throw new BusinessException("消息分类无效，可选 message / notice / todo");
+            throw new BusinessException("消息分类无效，可�?message / notice / todo");
         }
     }
 
-    private async Task<List<long>> ResolveTargetUserIdsAsync(
+    private async Task<List<Guid>> ResolveTargetUserIdsAsync(
         SendSiteMessageDto input,
         CancellationToken cancellationToken)
     {
         if (input.SendToAll)
         {
-            return await _userRepository.GetQueryable()
+            return await (await _userRepository.GetQueryableAsync())
                 .Where(x => x.IsEnabled)
                 .Select(x => x.Id)
                 .ToListAsync(cancellationToken);
@@ -115,8 +115,7 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
 
         var userId = input.UserId!.Value;
         var exists = await _userRepository.AnyAsync(
-            x => x.Id == userId && x.IsEnabled,
-            cancellationToken);
+            x => x.Id == userId && x.IsEnabled, cancellationToken);
 
         if (!exists)
         {

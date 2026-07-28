@@ -13,6 +13,6 @@ public interface IExportTaskAppService
     Task<int> GetActiveCountAsync(CancellationToken cancellationToken = default);
 
     Task<ExportDownloadUrlDto> GetDownloadUrlAsync(
-        long id,
+        Guid id,
         CancellationToken cancellationToken = default);
 }

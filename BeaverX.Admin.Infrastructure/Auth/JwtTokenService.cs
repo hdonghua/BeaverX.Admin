@@ -2,7 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BeaverX.Admin.Application.Contracts.Rbac;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -18,7 +18,7 @@ public class JwtTokenService : IJwtTokenService, IScopedDependency
     }
 
     public (string Token, int ExpiresIn) CreateToken(
-        long userId,
+        Guid userId,
         string userName,
         IEnumerable<string> roles)
     {

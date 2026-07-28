@@ -5,17 +5,17 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Shared.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using BeaverX.Domain.Uow;
-using BeaverX.Domain.Users;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Uow;
+using Volo.Abp.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class AuthAppService : IAuthAppService, IScopedDependency
 {
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<User, Guid> _userRepository;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly RefreshTokenService _refreshTokenService;
@@ -23,11 +23,11 @@ public class AuthAppService : IAuthAppService, IScopedDependency
     private readonly IUserPermissionResolver _userPermissionResolver;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IUnitOfWorkManager _unitOfWork;
     private readonly ICurrentUser _currentUser;
 
     public AuthAppService(
-        IRepository<User> userRepository,
+        IRepository<User, Guid> userRepository,
         IJwtTokenService jwtTokenService,
         IPasswordHasher passwordHasher,
         RefreshTokenService refreshTokenService,
@@ -35,7 +35,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         IUserPermissionResolver userPermissionResolver,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator,
-        IUnitOfWork unitOfWork,
+        IUnitOfWorkManager unitOfWork,
         ICurrentUser currentUser)
     {
         _userRepository = userRepository;
@@ -135,7 +135,8 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         CancellationToken cancellationToken = default)
     {
         var userId = _currentUser.Id ?? throw new BusinessException("未登录");
-        var user = await _userRepository.GetAsync(userId, cancellationToken);
+        var user = await LoadUserWithAccessByIdAsync(userId, cancellationToken)
+            ?? throw new BusinessException("用户不存在");
 
         if (input.NickName != null)
         {
@@ -158,7 +159,10 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         }
 
         await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
-        return await GetProfileAsync(cancellationToken);
+
+        var roles = GetRoleCodes(user);
+        var permissions = await _userPermissionResolver.GetPermissionsAsync(user.Id, cancellationToken);
+        return BuildProfile(user, roles, permissions);
     }
 
     public async Task ChangePasswordAsync(
@@ -173,7 +177,7 @@ public class AuthAppService : IAuthAppService, IScopedDependency
         PasswordInputValidator.Validate(input.NewPassword);
 
         var userId = _currentUser.Id ?? throw new BusinessException("未登录");
-        var user = await _userRepository.GetAsync(userId, cancellationToken);
+        var user = await _userRepository.GetAsync(userId, cancellationToken: cancellationToken);
 
         if (!_passwordHasher.Verify(input.OldPassword, user.PasswordHash))
         {
@@ -222,16 +226,16 @@ public class AuthAppService : IAuthAppService, IScopedDependency
 
     private async Task<User?> LoadUserWithAccessAsync(string userName, CancellationToken cancellationToken)
     {
-        return await _userRepository.GetQueryable()
+        return await (await _userRepository.GetQueryableAsync())
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .ThenInclude(x => x.RoleMenus)
             .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken);
     }
 
-    private async Task<User?> LoadUserWithAccessByIdAsync(long userId, CancellationToken cancellationToken)
+    private async Task<User?> LoadUserWithAccessByIdAsync(Guid userId, CancellationToken cancellationToken)
     {
-        return await _userRepository.GetQueryable()
+        return await (await _userRepository.GetQueryableAsync())
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .ThenInclude(x => x.RoleMenus)

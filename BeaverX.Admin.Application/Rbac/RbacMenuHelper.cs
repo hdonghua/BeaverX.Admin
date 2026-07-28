@@ -15,7 +15,7 @@ internal static class RbacMenuHelper
             .ToList();
     }
 
-    public static List<Menu> FilterRouters(IEnumerable<Menu> menus, HashSet<long> roleMenuIds, bool isSuperAdmin)
+    public static List<Menu> FilterRouters(IEnumerable<Menu> menus, HashSet<Guid> roleMenuIds, bool isSuperAdmin)
     {
         var list = menus
             .Where(m => m.IsEnabled)
@@ -33,7 +33,7 @@ internal static class RbacMenuHelper
         }
 
         var idMap = menus.ToDictionary(m => m.Id);
-        var allowedIds = new HashSet<long>(roleMenuIds);
+        var allowedIds = new HashSet<Guid>(roleMenuIds);
         foreach (var menuId in roleMenuIds)
         {
             IncludeAncestors(menuId, idMap, allowedIds);
@@ -42,7 +42,7 @@ internal static class RbacMenuHelper
         return list.Where(m => allowedIds.Contains(m.Id)).ToList();
     }
 
-    private static void IncludeAncestors(long menuId, IReadOnlyDictionary<long, Menu> idMap, ISet<long> allowedIds)
+    private static void IncludeAncestors(Guid menuId, IReadOnlyDictionary<Guid, Menu> idMap, ISet<Guid> allowedIds)
     {
         if (!idMap.TryGetValue(menuId, out var current))
         {
@@ -56,7 +56,7 @@ internal static class RbacMenuHelper
         }
     }
 
-    public static List<MenuDto> ToRouterTree(IEnumerable<MenuDto> items, long? parentId = null)
+    public static List<MenuDto> ToRouterTree(IEnumerable<MenuDto> items, Guid? parentId = null)
     {
         return items
             .Where(x => x.ParentId == parentId)

@@ -3,8 +3,8 @@ using BeaverX.Admin.Application.Contracts.Messaging.Dtos;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Shared.Messaging;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messages;
@@ -14,12 +14,12 @@ namespace BeaverX.Admin.Application.Messages;
 /// </summary>
 public class SiteMessageChannelSender : IMessageChannelSender, IScopedDependency
 {
-    private readonly IRepository<UserMessage> _messageRepository;
+    private readonly IRepository<UserMessage, Guid> _messageRepository;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ILogger<SiteMessageChannelSender> _logger;
 
     public SiteMessageChannelSender(
-        IRepository<UserMessage> messageRepository,
+        IRepository<UserMessage, Guid> messageRepository,
         RealtimePublisher realtimePublisher,
         ILogger<SiteMessageChannelSender> logger)
     {

@@ -1,13 +1,13 @@
-﻿using BeaverX.Admin.Application.Contracts;
-using BeaverX.Core.Modules;
-using BeaverX.WebMvc;
+using BeaverX.Admin.Application.Contracts;
+using Volo.Abp.AspNetCore.Mvc;
+using Volo.Abp.Modularity;
 
 namespace BeaverX.Admin.Http.Api;
 
 [DependsOn(
     typeof(BeaverXAdminApplicationContractModule),
-    typeof(BeaverXWebMvcModule)
+    typeof(AbpAspNetCoreMvcModule)
 )]
-public class BeaverXAdminHttpApiModule : BeaverXModule
+public class BeaverXAdminHttpApiModule : AbpModule
 {
 }

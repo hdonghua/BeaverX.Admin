@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BeaverX.Admin.Application.Contracts.Caching;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 

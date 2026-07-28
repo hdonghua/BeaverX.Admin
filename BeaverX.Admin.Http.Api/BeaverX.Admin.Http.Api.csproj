@@ -1,21 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Volo.Abp.AspNetCore.Mvc" Version="10.6.0" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="BeaverX.WebMvc" Version="1.0.0" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BeaverX.Admin.Application.Contracts\BeaverX.Admin.Application.Contracts.csproj" />
+    <ProjectReference Include="..\BeaverX.Admin.Domain.Shared\BeaverX.Admin.Domain.Shared.csproj" />
+  </ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\BeaverX.Admin.Application.Contracts\BeaverX.Admin.Application.Contracts.csproj" />
-	  <ProjectReference Include="..\BeaverX.Admin.Domain.Shared\BeaverX.Admin.Domain.Shared.csproj" />
-	</ItemGroup>
 </Project>

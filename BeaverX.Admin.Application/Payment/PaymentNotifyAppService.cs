@@ -1,27 +1,27 @@
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentChannel> _channelRepository;
-    private readonly IRepository<PaymentOrder> _orderRepository;
-    private readonly IRepository<PaymentRefund> _refundRepository;
-    private readonly IRepository<PaymentNotifyLog> _notifyLogRepository;
+    private readonly IRepository<PaymentChannel, Guid> _channelRepository;
+    private readonly IRepository<PaymentOrder, Guid> _orderRepository;
+    private readonly IRepository<PaymentRefund, Guid> _refundRepository;
+    private readonly IRepository<PaymentNotifyLog, Guid> _notifyLogRepository;
     private readonly IPaymentProviderResolver _providerResolver;
     private readonly PaymentOrderAppService _orderAppService;
     private readonly IPaymentChannelContextBuilder _channelContextBuilder;
 
     public PaymentNotifyAppService(
-      IRepository<PaymentChannel> channelRepository,
-      IRepository<PaymentOrder> orderRepository,
-      IRepository<PaymentRefund> refundRepository,
-      IRepository<PaymentNotifyLog> notifyLogRepository,
+      IRepository<PaymentChannel, Guid> channelRepository,
+      IRepository<PaymentOrder, Guid> orderRepository,
+      IRepository<PaymentRefund, Guid> refundRepository,
+      IRepository<PaymentNotifyLog, Guid> notifyLogRepository,
       IPaymentProviderResolver providerResolver,
       PaymentOrderAppService orderAppService,
       IPaymentChannelContextBuilder channelContextBuilder)
@@ -63,7 +63,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
         var orderNo = ExtractAlipayOutTradeNo(context.RawBody);
         if (!string.IsNullOrWhiteSpace(orderNo))
         {
-            var order = await _orderRepository.GetQueryable()
+            var order = await (await _orderRepository.GetQueryableAsync())
               .FirstOrDefaultAsync(x => x.OrderNo == orderNo, cancellationToken);
 
             if (order != null && PaymentChannelCodes.IsAlipay(order.ChannelCode))
@@ -74,7 +74,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
 
         foreach (var channelCode in new[] { PaymentChannelCodes.AlipayQrcode, PaymentChannelCodes.AlipayAppPay })
         {
-            var channel = await _channelRepository.GetQueryable()
+            var channel = await (await _channelRepository.GetQueryableAsync())
               .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
             if (channel != null)
@@ -130,7 +130,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
 
         if (result.Success && !string.IsNullOrWhiteSpace(result.OrderNo))
         {
-            var order = await _orderRepository.GetQueryable()
+            var order = await (await _orderRepository.GetQueryableAsync())
               .FirstOrDefaultAsync(x => x.OrderNo == result.OrderNo, cancellationToken);
 
             if (order != null && order.TryMarkPaidFromNotify())
@@ -172,12 +172,12 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
 
         if (result.Success && !string.IsNullOrWhiteSpace(result.RefundNo))
         {
-            var refund = await _refundRepository.GetQueryable()
+            var refund = await (await _refundRepository.GetQueryableAsync())
               .FirstOrDefaultAsync(x => x.RefundNo == result.RefundNo, cancellationToken);
 
             if (refund != null && refund.CanApplyNotifySuccess)
             {
-                var order = await _orderRepository.FindAsync(x => x.Id == refund.PaymentOrderId, cancellationToken);
+                var order = await _orderRepository.GetAsync(x => x.Id == refund.PaymentOrderId, cancellationToken: cancellationToken);
                 if (order != null)
                 {
                     await _orderAppService.ApplyRefundSuccess(order, refund, cancellationToken);
@@ -192,7 +192,7 @@ public class PaymentNotifyAppService : IPaymentNotifyAppService, IScopedDependen
       string channelCode,
       CancellationToken cancellationToken)
     {
-        var channel = await _channelRepository.GetQueryable()
+        var channel = await (await _channelRepository.GetQueryableAsync())
           .FirstOrDefaultAsync(x => x.ChannelCode == channelCode, cancellationToken);
 
         if (channel == null)

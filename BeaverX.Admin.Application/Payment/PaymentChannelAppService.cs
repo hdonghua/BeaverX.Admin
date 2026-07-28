@@ -3,17 +3,17 @@ using BeaverX.Admin.Application.Contracts.Payment.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentChannel> _channelRepository;
+    private readonly IRepository<PaymentChannel, Guid> _channelRepository;
 
-    public PaymentChannelAppService(IRepository<PaymentChannel> channelRepository)
+    public PaymentChannelAppService(IRepository<PaymentChannel, Guid> channelRepository)
     {
         _channelRepository = channelRepository;
     }
@@ -22,7 +22,7 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
       PaymentChannelQueryDto input,
       CancellationToken cancellationToken = default)
     {
-        var query = _channelRepository.GetQueryable();
+        var query = await _channelRepository.GetQueryableAsync();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -56,7 +56,7 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
     public async Task<List<PaymentChannelDto>> GetEnabledListAsync(
       CancellationToken cancellationToken = default)
     {
-        var items = await _channelRepository.GetQueryable()
+        var items = await (await _channelRepository.GetQueryableAsync())
           .Where(x => x.IsEnabled)
           .OrderBy(x => x.Sort)
           .ToListAsync(cancellationToken);
@@ -64,7 +64,7 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
         return items.Select(PaymentMapper.ToChannelDto).ToList();
     }
 
-    public async Task<PaymentChannelDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<PaymentChannelDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindAsync(id, cancellationToken);
         return PaymentMapper.ToChannelDto(entity);
@@ -105,7 +105,7 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
     }
 
     public async Task<PaymentChannelDto> UpdateAsync(
-      long id,
+      Guid id,
       UpdatePaymentChannelDto input,
       CancellationToken cancellationToken = default)
     {
@@ -148,14 +148,14 @@ public class PaymentChannelAppService : IPaymentChannelAppService, IScopedDepend
         return PaymentMapper.ToChannelDto(entity);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await _channelRepository.DeleteAsync(id, cancellationToken: cancellationToken);
     }
 
-    private async Task<PaymentChannel> FindAsync(long id, CancellationToken cancellationToken)
+    private async Task<PaymentChannel> FindAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await _channelRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _channelRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
             throw new BusinessException($"支付渠道不存在: {id}");

@@ -11,7 +11,7 @@ internal static class RbacQueryHelper
         return ((page - 1) * pageSize, pageSize);
     }
 
-    public static List<MenuDto>? BuildMenuTree(IEnumerable<MenuDto> items, long? parentId = null)
+    public static List<MenuDto>? BuildMenuTree(IEnumerable<MenuDto> items, Guid? parentId = null)
     {
         var list = items
             .Where(x => x.ParentId == parentId)

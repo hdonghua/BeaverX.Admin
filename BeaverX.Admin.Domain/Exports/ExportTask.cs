@@ -1,11 +1,12 @@
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Exports;
 
-public class ExportTask : FullAuditedEntity
+public class ExportTask : FullAuditedEntity<Guid>
 {
-    public long UserId { get; set; }
+    public Guid UserId { get; set; }
     public string ExportType { get; set; } = null!;
     public string? Parameters { get; set; }
     public string FileName { get; set; } = null!;

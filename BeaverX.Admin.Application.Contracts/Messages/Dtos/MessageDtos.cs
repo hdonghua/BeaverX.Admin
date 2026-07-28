@@ -2,7 +2,7 @@ namespace BeaverX.Admin.Application.Contracts.Messages.Dtos;
 
 public class MessageDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string Type { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string SubTitle { get; set; } = string.Empty;
@@ -15,7 +15,7 @@ public class MessageDto
 
 public class MarkMessagesReadDto
 {
-    public List<long> Ids { get; set; } = [];
+    public List<Guid> Ids { get; set; } = [];
 }
 
 public class MarkAllReadDto

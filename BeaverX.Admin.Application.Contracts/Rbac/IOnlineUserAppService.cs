@@ -7,5 +7,5 @@ public interface IOnlineUserAppService
 {
     Task<List<OnlineUserDto>> GetListAsync(CancellationToken cancellationToken = default);
 
-    Task KickAsync(long userId, CancellationToken cancellationToken = default);
+    Task KickAsync(Guid userId, CancellationToken cancellationToken = default);
 }

@@ -4,21 +4,21 @@ using BeaverX.Admin.Application.Contracts.Dict.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Dict;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Dict;
 
 public class DictTypeAppService : IDictTypeAppService, IScopedDependency
 {
-    private readonly IRepository<DictType> _dictTypeRepository;
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly IRepository<DictType, Guid> _dictTypeRepository;
+    private readonly IRepository<DictData, Guid> _dictDataRepository;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public DictTypeAppService(
-        IRepository<DictType> dictTypeRepository,
-        IRepository<DictData> dictDataRepository,
+        IRepository<DictType, Guid> dictTypeRepository,
+        IRepository<DictData, Guid> dictDataRepository,
         AppCacheInvalidator cacheInvalidator)
     {
         _dictTypeRepository = dictTypeRepository;
@@ -30,7 +30,7 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
         DictTypeQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _dictTypeRepository.GetQueryable().AsQueryable();
+        var query = (await _dictTypeRepository.GetQueryableAsync()).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -60,9 +60,9 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
         };
     }
 
-    public async Task<DictTypeDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<DictTypeDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken);
+        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken: cancellationToken);
         return DictMapper.ToDictTypeDto(entity);
     }
 
@@ -94,11 +94,11 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
     }
 
     public async Task<DictTypeDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateDictTypeDto input,
         CancellationToken cancellationToken = default)
     {
-        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken);
+        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken: cancellationToken);
 
         if (input.Name != null)
         {
@@ -120,9 +120,9 @@ public class DictTypeAppService : IDictTypeAppService, IScopedDependency
         return DictMapper.ToDictTypeDto(entity);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken);
+        var entity = await _dictTypeRepository.GetAsync(id, cancellationToken: cancellationToken);
 
         if (await _dictDataRepository.AnyAsync(x => x.DictTypeId == id, cancellationToken))
         {

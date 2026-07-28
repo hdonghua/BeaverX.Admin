@@ -1,8 +1,9 @@
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Dict;
 
-public class DictType : FullAuditedEntity
+public class DictType : FullAuditedEntity<Guid>
 {
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;

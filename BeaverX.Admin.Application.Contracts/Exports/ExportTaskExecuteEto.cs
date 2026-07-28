@@ -2,5 +2,5 @@ namespace BeaverX.Admin.Application.Contracts.Exports;
 
 public class ExportTaskExecuteEto
 {
-    public long TaskId { get; set; }
+    public Guid TaskId { get; set; }
 }

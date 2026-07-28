@@ -1,22 +1,22 @@
-using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.Data;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messages;
 
-public class MessageDataSeeder : IScopedDependency, IDataSeeder
+public class MessageDataSeeder : IDataSeedContributor, ITransientDependency
 {
-    private readonly IRepository<UserMessage> _messageRepository;
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<UserMessage, Guid> _messageRepository;
+    private readonly IRepository<User, Guid> _userRepository;
     private readonly ILogger<MessageDataSeeder> _logger;
 
     public MessageDataSeeder(
-      IRepository<UserMessage> messageRepository,
-      IRepository<User> userRepository,
+      IRepository<UserMessage, Guid> messageRepository,
+      IRepository<User, Guid> userRepository,
       ILogger<MessageDataSeeder> logger)
     {
         _messageRepository = messageRepository;
@@ -24,17 +24,16 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
         _logger = logger;
     }
 
-    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    public async Task SeedAsync(DataSeedContext context)
     {
-        var adminUser = await _userRepository.GetQueryable()
+        var cancellationToken = CancellationToken.None;
+        var adminUser = await (await _userRepository.GetQueryableAsync())
           .FirstOrDefaultAsync(x => x.UserName == "admin", cancellationToken);
 
         if (adminUser == null)
         {
             return;
         }
-
-        var now = DateTime.UtcNow;
 
         await EnsureMessageAsync(
           adminUser.Id,
@@ -48,7 +47,6 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
               Content = "您的产品使用期限即将截止，如需继续使用产品请前往续费",
               MessageType = 3,
               IsRead = false,
-              CreationTime = now.AddHours(-1),
           },
           cancellationToken);
 
@@ -64,7 +62,6 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
               Content = "内容屏蔽规则已开通成功并生效",
               MessageType = 1,
               IsRead = true,
-              CreationTime = now.AddDays(-2),
           },
           cancellationToken);
 
@@ -80,20 +77,18 @@ public class MessageDataSeeder : IScopedDependency, IDataSeeder
               Content = "内容质检队列已变更，请重新确认处理规则",
               MessageType = 0,
               IsRead = false,
-              CreationTime = now.AddMinutes(-90),
           },
           cancellationToken);
     }
 
     private async Task EnsureMessageAsync(
-      long userId,
+      Guid userId,
       string title,
       Func<UserMessage> factory,
       CancellationToken cancellationToken)
     {
         if (await _messageRepository.AnyAsync(
-            x => x.UserId == userId && x.Title == title,
-            cancellationToken))
+            x => x.UserId == userId && x.Title == title, cancellationToken))
         {
             return;
         }

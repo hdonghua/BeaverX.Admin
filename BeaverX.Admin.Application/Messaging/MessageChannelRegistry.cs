@@ -1,5 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Messaging;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 
 namespace BeaverX.Admin.Application.Messaging;
 

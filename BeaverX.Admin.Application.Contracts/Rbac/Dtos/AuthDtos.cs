@@ -30,7 +30,7 @@ public class TokenResultDto
 
 public class UserProfileDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string UserName { get; set; } = null!;
     public string? NickName { get; set; }
     public string? Email { get; set; }

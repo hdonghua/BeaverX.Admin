@@ -1,5 +1,4 @@
 using BeaverX.Admin.EntityFrameworkCore.Interceptors;
-using BeaverX.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -15,13 +14,10 @@ public class AdminDbContextFactory : IDesignTimeDbContextFactory<AdminDbContext>
             ?? throw new InvalidOperationException("Connection string 'Default' not found.");
 
         var optionsBuilder = new DbContextOptionsBuilder<AdminDbContext>();
-        optionsBuilder.UseNpgsql(connectionString, npgsqlOptions =>
-        {
-            npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
-        });
+        optionsBuilder.UseNpgsql(connectionString);
         optionsBuilder.AddInterceptors(new UtcDateTimeSaveChangesInterceptor());
 
-        return new AdminDbContext(optionsBuilder.Options, DesignTimeCurrentUser.Instance);
+        return new AdminDbContext(optionsBuilder.Options);
     }
 
     private static IConfiguration BuildConfiguration()
@@ -58,13 +54,5 @@ public class AdminDbContextFactory : IDesignTimeDbContextFactory<AdminDbContext>
         throw new InvalidOperationException(
             "Could not find BeaverX.Admin.Http.Host/appsettings.json. " +
             "Run migrations with --startup-project BeaverX.Admin.Http.Host.");
-    }
-
-    private sealed class DesignTimeCurrentUser : ICurrentUser
-    {
-        public static readonly DesignTimeCurrentUser Instance = new();
-
-        public long? Id => null;
-        public string? UserName => null;
     }
 }

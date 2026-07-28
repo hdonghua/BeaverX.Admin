@@ -9,7 +9,7 @@ public class PaymentProviderChannelContext
     public string ChannelCode { get; set; } = null!;
 
     /// <summary>渠道主键，用于证书本地缓存目录命名</summary>
-    public long ChannelId { get; set; }
+    public Guid ChannelId { get; set; }
 
     /// <summary>提供商类型</summary>
     public PaymentProviderType ProviderType { get; set; }

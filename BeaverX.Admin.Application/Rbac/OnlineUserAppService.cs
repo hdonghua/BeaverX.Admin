@@ -3,8 +3,8 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Contracts.Realtime;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Shared;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Users;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Users;
 
 namespace BeaverX.Admin.Application.Rbac;
 
@@ -29,7 +29,7 @@ public class OnlineUserAppService : IOnlineUserAppService, IScopedDependency
         return Task.FromResult(_tracker.GetOnlineUsers().ToList());
     }
 
-    public async Task KickAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task KickAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var currentUserId = _currentUser.Id ?? throw new BusinessException("未登录");
 

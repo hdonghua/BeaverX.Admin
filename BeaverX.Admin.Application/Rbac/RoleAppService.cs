@@ -2,26 +2,26 @@ using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using BeaverX.Domain.Uow;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Uow;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class RoleAppService : IRoleAppService, IScopedDependency
 {
-    private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<Menu> _menuRepository;
-    private readonly IRepository<RoleMenu> _roleMenuRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IRepository<Role, Guid> _roleRepository;
+    private readonly IRepository<Menu, Guid> _menuRepository;
+    private readonly IRepository<RoleMenu, Guid> _roleMenuRepository;
+    private readonly IUnitOfWorkManager _unitOfWork;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public RoleAppService(
-        IRepository<Role> roleRepository,
-        IRepository<Menu> menuRepository,
-        IRepository<RoleMenu> roleMenuRepository,
-        IUnitOfWork unitOfWork,
+        IRepository<Role, Guid> roleRepository,
+        IRepository<Menu, Guid> menuRepository,
+        IRepository<RoleMenu, Guid> roleMenuRepository,
+        IUnitOfWorkManager unitOfWork,
         AppCacheInvalidator cacheInvalidator)
     {
         _roleRepository = roleRepository;
@@ -33,7 +33,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
 
     public async Task<PagedResultDto<RoleDto>> GetListAsync(RoleQueryDto input, CancellationToken cancellationToken = default)
     {
-        var query = _roleRepository.GetQueryable()
+        var query = (await _roleRepository.GetQueryableAsync())
             .Include(x => x.RoleMenus)
             .AsQueryable();
 
@@ -70,7 +70,7 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         };
     }
 
-    public async Task<RoleDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<RoleDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var role = await FindRoleWithRelationsAsync(id, cancellationToken);
         return await ToRoleDtoAsync(role, cancellationToken);
@@ -101,9 +101,9 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         return RbacMapper.ToRoleDto(role);
     }
 
-    public async Task<RoleDto> UpdateAsync(long id, UpdateRoleDto input, CancellationToken cancellationToken = default)
+    public async Task<RoleDto> UpdateAsync(Guid id, UpdateRoleDto input, CancellationToken cancellationToken = default)
     {
-        var role = await _roleRepository.GetAsync(id, cancellationToken);
+        var role = await FindRoleWithRelationsAsync(id, cancellationToken);
 
         if (input.Name != null) role.Name = input.Name;
         if (input.Description != null) role.Description = input.Description;
@@ -116,18 +116,18 @@ public class RoleAppService : IRoleAppService, IScopedDependency
             await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
         }
 
-        return await GetAsync(id, cancellationToken);
+        return await ToRoleDtoAsync(role, cancellationToken);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await _roleRepository.DeleteAsync(id, cancellationToken: cancellationToken);
         await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
 
-    public async Task AssignMenusAsync(long id, AssignRoleMenusDto input, CancellationToken cancellationToken = default)
+    public async Task AssignMenusAsync(Guid id, AssignRoleMenusDto input, CancellationToken cancellationToken = default)
     {
-        var role = await _roleRepository.GetAsync(id, cancellationToken);
+        var role = await _roleRepository.GetAsync(id, cancellationToken: cancellationToken);
         var menuIds = RbacRoleHelper.IsSuperAdminRole(role.Code)
             ? await GetAllMenuIdsAsync(cancellationToken)
             : input.MenuIds;
@@ -140,9 +140,9 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
 
-    private async Task<Role> FindRoleWithRelationsAsync(long id, CancellationToken cancellationToken)
+    private async Task<Role> FindRoleWithRelationsAsync(Guid id, CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetQueryable()
+        var role = await (await _roleRepository.GetQueryableAsync())
             .Include(x => x.RoleMenus)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
@@ -165,24 +165,24 @@ public class RoleAppService : IRoleAppService, IScopedDependency
         return dto;
     }
 
-    private async Task<List<long>> GetAllMenuIdsAsync(CancellationToken cancellationToken) =>
-        await _menuRepository.GetQueryable()
+    private async Task<List<Guid>> GetAllMenuIdsAsync(CancellationToken cancellationToken) =>
+        await (await _menuRepository.GetQueryableAsync())
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
 
-    private async Task ReplaceRoleMenusAsync(long roleId, IEnumerable<long> menuIds, CancellationToken cancellationToken)
+    private async Task ReplaceRoleMenusAsync(Guid roleId, IEnumerable<Guid> menuIds, CancellationToken cancellationToken)
     {
         var distinctIds = menuIds.Distinct().ToList();
         if (distinctIds.Count > 0)
         {
-            var count = await _menuRepository.GetCountAsync(x => distinctIds.Contains(x.Id), cancellationToken);
+            var count = await _menuRepository.CountAsync(x => distinctIds.Contains(x.Id), cancellationToken);
             if (count != distinctIds.Count)
             {
                 throw new BusinessException("存在无效的菜单 ID");
             }
         }
 
-        await _roleMenuRepository.DeleteManyAsync(x => x.RoleId == roleId, cancellationToken);
+        await _roleMenuRepository.DeleteAsync(x => x.RoleId == roleId, cancellationToken: cancellationToken);
 
         if (distinctIds.Count == 0)
         {

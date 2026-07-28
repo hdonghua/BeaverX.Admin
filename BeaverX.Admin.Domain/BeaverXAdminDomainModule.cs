@@ -1,20 +1,13 @@
-﻿using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Shared;
-using BeaverX.Core.Modules;
-using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.Domain;
+using Volo.Abp.Modularity;
 
-namespace BeaverX.Admin.Domain
+namespace BeaverX.Admin.Domain;
+
+[DependsOn(
+    typeof(BeaverXAdminDomainSharedModule),
+    typeof(AbpDddDomainModule)
+)]
+public class BeaverXAdminDomainModule : AbpModule
 {
-    [DependsOn(
-        typeof(BeaverXAdminDomainSharedModule)
-    )]
-    public class BeaverXAdminDomainModule : BeaverXModule
-    {
-        public override void ConfigureServices(ServiceConfigurationContext context)
-        {
-            var services = context.Services;
-
-            services.AddHostedService<DataSeederHostService>();
-        }
-    }
 }

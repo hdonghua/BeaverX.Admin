@@ -1,12 +1,11 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class AuthController : BeaverXControllerBase
+public class AuthController : AdminControllerBase
 {
     private readonly IAuthAppService _authAppService;
 

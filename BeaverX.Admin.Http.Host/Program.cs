@@ -1,6 +1,6 @@
 using BeaverX.Admin.Http.Host;
-using BeaverX.Core;
 using Serilog;
+using Volo.Abp;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -11,19 +11,20 @@ try
     Log.Information("Starting BeaverX Admin host");
 
     var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseAutofac();
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
-    builder.AddBeaverX<BeaverXAdminHttpHostModule>();
+    await builder.AddApplicationAsync<BeaverXAdminHttpHostModule>();
 
     var app = builder.Build();
 
-    app.InitializeBeaverX();
+    await app.InitializeApplicationAsync();
 
-    app.Run();
+    await app.RunAsync();
 }
 catch (Exception ex)
 {

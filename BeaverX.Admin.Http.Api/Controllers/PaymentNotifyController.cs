@@ -1,5 +1,4 @@
 using BeaverX.Admin.Application.Contracts.Payment;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +8,7 @@ namespace BeaverX.Admin.Http.Api.Controllers;
 /// 支付/退款异步回调（供微信、支付宝等渠道调用，无需 JWT）
 /// </summary>
 [AllowAnonymous]
-public class PaymentNotifyController : BeaverXControllerBase
+public class PaymentNotifyController : AdminControllerBase
 {
   private readonly IPaymentNotifyAppService _notifyAppService;
 

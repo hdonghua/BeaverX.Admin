@@ -2,7 +2,7 @@ using System.Security.Claims;
 using BeaverX.Admin.Application.Contracts.Realtime;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +37,7 @@ public class AdminNotificationHub : Hub
     private async Task RegisterConnectionAsync()
     {
         var userIdStr = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!long.TryParse(userIdStr, out var userId))
+        if (!Guid.TryParse(userIdStr, out var userId))
         {
             return;
         }
@@ -45,12 +45,12 @@ public class AdminNotificationHub : Hub
         var userName = Context.User?.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
         string? nickName = null;
 
-        using (var scope = _scopeFactory.CreateScope())
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, _) =>
         {
-            var userRepository = scope.ServiceProvider.GetRequiredService<IRepository<User>>();
+            var userRepository = sp.GetRequiredService<IRepository<User, Guid>>();
             var user = await userRepository.FindAsync(x => x.Id == userId);
             nickName = user?.NickName;
-        }
+        });
 
         _tracker.AddConnection(userId, userName, nickName, Context.ConnectionId);
         await NotifyOnlineUsersChangedAsync();
@@ -58,8 +58,10 @@ public class AdminNotificationHub : Hub
 
     private async Task NotifyOnlineUsersChangedAsync()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var publisher = scope.ServiceProvider.GetRequiredService<RealtimePublisher>();
-        await publisher.NotifyOnlineUsersChangedAsync();
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, _) =>
+        {
+            var publisher = sp.GetRequiredService<RealtimePublisher>();
+            await publisher.NotifyOnlineUsersChangedAsync();
+        });
     }
 }

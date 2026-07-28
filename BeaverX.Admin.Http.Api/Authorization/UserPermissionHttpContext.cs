@@ -28,7 +28,7 @@ public static class UserPermissionHttpContext
             return cached;
         }
 
-        if (!long.TryParse(httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
             return [];
         }

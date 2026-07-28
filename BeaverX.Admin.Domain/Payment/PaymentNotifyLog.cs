@@ -1,11 +1,12 @@
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>
 /// 支付/退款回调日志
 /// </summary>
-public class PaymentNotifyLog : Entity
+public class PaymentNotifyLog : Entity<Guid>
 {
   public string NotifyType { get; set; } = null!;
   public string ChannelCode { get; set; } = null!;

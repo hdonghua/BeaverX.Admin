@@ -1,5 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Storage;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel.Args;

@@ -4,11 +4,11 @@ namespace BeaverX.Admin.Application.Contracts.Realtime;
 
 public interface IOnlineUserTracker
 {
-    void AddConnection(long userId, string userName, string? nickName, string connectionId);
+    void AddConnection(Guid userId, string userName, string? nickName, string connectionId);
 
     void RemoveConnection(string connectionId);
 
-    int RemoveUserConnections(long userId);
+    int RemoveUserConnections(Guid userId);
 
     IReadOnlyList<OnlineUserDto> GetOnlineUsers();
 

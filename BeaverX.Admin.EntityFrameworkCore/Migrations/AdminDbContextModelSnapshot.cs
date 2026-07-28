@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Volo.Abp.EntityFrameworkCore;
 
 #nullable disable
 
@@ -17,34 +18,42 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("_Abp_DatabaseProvider", EfCoreDatabaseProvider.PostgreSql)
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Config.SysConfig", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("Group")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
@@ -60,10 +69,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("Remark")
                         .HasMaxLength(256)
@@ -87,30 +98,37 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Dict.DictData", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
                     b.Property<string>("CssClass")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
-                    b.Property<long>("DictTypeId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("DictTypeId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
@@ -121,10 +139,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("ListClass")
                         .HasMaxLength(64)
@@ -152,8 +172,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Dict.DictType", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -161,28 +181,37 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -203,23 +232,27 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Exports.ExportTask", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CompletedTime")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(1024)
@@ -240,13 +273,18 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(2048)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("ObjectKey")
                         .HasMaxLength(512)
@@ -259,8 +297,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -273,8 +311,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Messages.UserMessage", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Avatar")
                         .HasMaxLength(512)
@@ -286,10 +324,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(1024)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
@@ -311,8 +351,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -325,8 +365,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Messaging.LocalMessageOutbox", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("CapMessageId")
                         .IsRequired()
@@ -346,8 +386,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentChannel", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ChannelCode")
                         .IsRequired()
@@ -365,28 +405,37 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(8000)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("NotifyUrl")
                         .HasMaxLength(512)
@@ -412,8 +461,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentNotifyLog", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ChannelCode")
                         .IsRequired()
@@ -457,8 +506,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentOrder", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<long>("Amount")
                         .HasColumnType("bigint");
@@ -497,21 +546,25 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(256)
@@ -529,13 +582,18 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("OrderNo")
                         .IsRequired()
@@ -560,8 +618,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -577,8 +635,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Payment.PaymentRefund", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<long>("Amount")
                         .HasColumnType("bigint");
@@ -597,16 +655,20 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("ErrorCode")
                         .HasMaxLength(64)
@@ -617,21 +679,26 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(512)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("OrderNo")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<long>("PaymentOrderId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("PaymentOrderId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(256)
@@ -665,31 +732,38 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Menu", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Component")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("Icon")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
@@ -703,10 +777,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<int>("MenuType")
                         .HasColumnType("integer");
@@ -716,8 +792,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<long?>("ParentId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Path")
                         .HasMaxLength(256)
@@ -743,8 +819,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.Role", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -752,10 +828,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
                     b.Property<string>("Description")
                         .HasMaxLength(256)
@@ -765,10 +843,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -788,14 +868,14 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.RoleMenu", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
-                    b.Property<long>("MenuId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("MenuId")
+                        .HasColumnType("uuid");
 
-                    b.Property<long>("RoleId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -809,40 +889,49 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.User", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Avatar")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("Email")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("NickName")
                         .HasMaxLength(64)
@@ -872,32 +961,41 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRefreshToken", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("ReplacedByTokenHash")
                         .HasMaxLength(128)
@@ -911,8 +1009,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -926,14 +1024,14 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRole", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
-                    b.Property<long>("RoleId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -947,25 +1045,29 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Scheduling.ScheduledJob", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
                     b.Property<string>("CronExpression")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(512)
@@ -988,7 +1090,10 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(2048)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
@@ -1002,10 +1107,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("LastRunMessage")
                         .HasMaxLength(1024)
@@ -1040,14 +1147,16 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Scheduling.ScheduledJobLog", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
                     b.Property<int?>("DurationMs")
                         .HasColumnType("integer");
@@ -1065,8 +1174,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<bool>("IsManualTrigger")
                         .HasColumnType("boolean");
 
-                    b.Property<long>("JobId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ResponseBody")
                         .HasMaxLength(4000)
@@ -1087,8 +1196,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Ticket.WorkTicket", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -1096,32 +1205,41 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
 
-                    b.Property<long?>("CreatorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
 
-                    b.Property<long?>("DeleterId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
 
                     b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
 
-                    b.Property<long?>("HandlerUserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("HandlerUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ImagesJson")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
 
                     b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
 
-                    b.Property<long?>("LastModifierId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
 
                     b.Property<string>("ProcessResult")
                         .HasMaxLength(2000)
@@ -1147,8 +1265,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

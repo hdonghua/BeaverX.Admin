@@ -5,21 +5,21 @@ using BeaverX.Admin.Application.Contracts.Scheduling.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Admin.Domain.Shared.Scheduling;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Scheduling;
 
 public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
 {
-    private readonly IRepository<ScheduledJob> _jobRepository;
-    private readonly IRepository<ScheduledJobLog> _logRepository;
+    private readonly IRepository<ScheduledJob, Guid> _jobRepository;
+    private readonly IRepository<ScheduledJobLog, Guid> _logRepository;
     private readonly IHangfireScheduledJobRegistrar _registrar;
 
     public ScheduledJobAppService(
-        IRepository<ScheduledJob> jobRepository,
-        IRepository<ScheduledJobLog> logRepository,
+        IRepository<ScheduledJob, Guid> jobRepository,
+        IRepository<ScheduledJobLog, Guid> logRepository,
         IHangfireScheduledJobRegistrar registrar)
     {
         _jobRepository = jobRepository;
@@ -31,7 +31,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         ScheduledJobQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _jobRepository.GetQueryable().AsQueryable();
+        var query = (await _jobRepository.GetQueryableAsync()).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
@@ -62,7 +62,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         };
     }
 
-    public async Task<ScheduledJobDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<ScheduledJobDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindAsync(id, cancellationToken);
         return ToDto(entity);
@@ -77,7 +77,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         var jobCode = input.JobCode.Trim();
         if (await _jobRepository.AnyAsync(x => x.JobCode == jobCode, cancellationToken))
         {
-            throw new BusinessException($"任务编码已存在: {jobCode}");
+            throw new BusinessException($"任务编码已存�? {jobCode}");
         }
 
         var entity = new ScheduledJob
@@ -103,7 +103,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
     }
 
     public async Task<ScheduledJobDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateScheduledJobDto input,
         CancellationToken cancellationToken = default)
     {
@@ -170,27 +170,27 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         return ToDto(entity);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindAsync(id, cancellationToken);
         _registrar.Remove(entity.Id);
         await _jobRepository.DeleteAsync(entity, cancellationToken: cancellationToken);
     }
 
-    public async Task TriggerAsync(long id, CancellationToken cancellationToken = default)
+    public async Task TriggerAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _ = await FindAsync(id, cancellationToken);
         _registrar.Enqueue(id);
     }
 
     public async Task<PagedResultDto<ScheduledJobLogDto>> GetLogsAsync(
-        long id,
+        Guid id,
         ScheduledJobLogQueryDto input,
         CancellationToken cancellationToken = default)
     {
         _ = await FindAsync(id, cancellationToken);
 
-        var query = _logRepository.GetQueryable()
+        var query = (await _logRepository.GetQueryableAsync())
             .Where(x => x.JobId == id)
             .AsQueryable();
 
@@ -236,7 +236,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
 
         if (input.JobType != ScheduledJobType.HttpApi)
         {
-            throw new BusinessException("当前仅支持 HTTP API 类型任务");
+            throw new BusinessException("当前仅支�?HTTP API 类型任务");
         }
 
         CronExpressionHelper.EnsureValid(input.CronExpression);
@@ -264,12 +264,12 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         });
     }
 
-    private async Task<ScheduledJob> FindAsync(long id, CancellationToken cancellationToken)
+    private async Task<ScheduledJob> FindAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await _jobRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _jobRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
-            throw new BusinessException($"定时任务不存在: {id}");
+            throw new BusinessException($"定时任务不存�? {id}");
         }
 
         return entity;

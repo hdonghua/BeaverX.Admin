@@ -1,9 +1,10 @@
 using BeaverX.Admin.Domain.Shared.Scheduling;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Scheduling;
 
-public class ScheduledJob : FullAuditedEntity
+public class ScheduledJob : FullAuditedEntity<Guid>
 {
     public string JobCode { get; set; } = null!;
     public string Name { get; set; } = null!;

@@ -3,22 +3,22 @@ using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Dict;
 using BeaverX.Admin.Application.Contracts.Dict.Dtos;
 using BeaverX.Admin.Domain.Dict;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Dict;
 
 public class DictDataAppService : IDictDataAppService, IScopedDependency
 {
-    private readonly IRepository<DictType> _dictTypeRepository;
-    private readonly IRepository<DictData> _dictDataRepository;
+    private readonly IRepository<DictType, Guid> _dictTypeRepository;
+    private readonly IRepository<DictData, Guid> _dictDataRepository;
     private readonly ICacheService _cache;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public DictDataAppService(
-        IRepository<DictType> dictTypeRepository,
-        IRepository<DictData> dictDataRepository,
+        IRepository<DictType, Guid> dictTypeRepository,
+        IRepository<DictData, Guid> dictDataRepository,
         ICacheService cache,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -32,7 +32,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         DictDataQueryDto input,
         CancellationToken cancellationToken = default)
     {
-        var query = _dictDataRepository.GetQueryable()
+        var query = (await _dictDataRepository.GetQueryableAsync())
             .Include(x => x.DictType)
             .AsQueryable();
 
@@ -80,7 +80,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         var code = typeCode.Trim();
         return _cache.GetOrSetAsync(
             CacheKeys.DictOptions(code),
-            async ct => await _dictDataRepository.GetQueryable()
+            async ct => await (await _dictDataRepository.GetQueryableAsync())
                 .Include(x => x.DictType)
                 .Where(x => x.DictType.Code == code && x.IsEnabled && x.DictType.IsEnabled)
                 .OrderBy(x => x.Sort)
@@ -96,7 +96,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
             cancellationToken);
     }
 
-    public async Task<DictDataDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<DictDataDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindWithTypeAsync(id, cancellationToken);
         return DictMapper.ToDictDataDto(entity);
@@ -111,12 +111,11 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
             throw new BusinessException("字典标签和值不能为空");
         }
 
-        await EnsureDictTypeExistsAsync(input.DictTypeId, cancellationToken);
+        var dictType = await _dictTypeRepository.GetAsync(input.DictTypeId, cancellationToken: cancellationToken);
 
         var value = input.Value.Trim();
         if (await _dictDataRepository.AnyAsync(
-                x => x.DictTypeId == input.DictTypeId && x.Value == value,
-                cancellationToken))
+                x => x.DictTypeId == input.DictTypeId && x.Value == value, cancellationToken))
         {
             throw new BusinessException("该字典类型下已存在相同的字典值");
         }
@@ -124,6 +123,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         var entity = new DictData
         {
             DictTypeId = input.DictTypeId,
+            DictType = dictType,
             Label = input.Label.Trim(),
             Value = value,
             Sort = input.Sort,
@@ -134,13 +134,13 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         };
 
         await _dictDataRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-        var result = DictMapper.ToDictDataDto(await FindWithTypeAsync(entity.Id, cancellationToken));
+        var result = DictMapper.ToDictDataDto(entity);
         await _cacheInvalidator.InvalidateDictOptionsAsync(result.DictTypeCode, cancellationToken);
         return result;
     }
 
     public async Task<DictDataDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateDictDataDto input,
         CancellationToken cancellationToken = default)
     {
@@ -156,8 +156,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         {
             var value = input.Value.Trim();
             if (await _dictDataRepository.AnyAsync(
-                    x => x.DictTypeId == entity.DictTypeId && x.Value == value && x.Id != id,
-                    cancellationToken))
+                    x => x.DictTypeId == entity.DictTypeId && x.Value == value && x.Id != id, cancellationToken))
             {
                 throw new BusinessException("该字典类型下已存在相同的字典值");
             }
@@ -195,7 +194,7 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         return DictMapper.ToDictDataDto(entity);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindWithTypeAsync(id, cancellationToken);
         var typeCode = entity.DictType.Code;
@@ -203,17 +202,9 @@ public class DictDataAppService : IDictDataAppService, IScopedDependency
         await _cacheInvalidator.InvalidateDictOptionsAsync(typeCode, cancellationToken);
     }
 
-    private async Task EnsureDictTypeExistsAsync(long dictTypeId, CancellationToken cancellationToken)
+    private async Task<DictData> FindWithTypeAsync(Guid id, CancellationToken cancellationToken)
     {
-        if (!await _dictTypeRepository.AnyAsync(x => x.Id == dictTypeId, cancellationToken))
-        {
-            throw new BusinessException("字典类型不存在");
-        }
-    }
-
-    private async Task<DictData> FindWithTypeAsync(long id, CancellationToken cancellationToken)
-    {
-        var entity = await _dictDataRepository.GetQueryable()
+        var entity = await (await _dictDataRepository.GetQueryableAsync())
             .Include(x => x.DictType)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 

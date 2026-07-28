@@ -9,25 +9,25 @@ public interface IWorkTicketAppService
         WorkTicketQueryDto input,
         CancellationToken cancellationToken = default);
 
-    Task<WorkTicketDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<WorkTicketDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<WorkTicketDto> CreateAsync(
         CreateWorkTicketDto input,
         CancellationToken cancellationToken = default);
 
     Task<WorkTicketDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateWorkTicketDto input,
         CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PagedResultDto<WorkTicketDto>> GetProcessListAsync(
         WorkTicketQueryDto input,
         CancellationToken cancellationToken = default);
 
     Task<WorkTicketDto> ProcessAsync(
-        long id,
+        Guid id,
         ProcessWorkTicketDto input,
         CancellationToken cancellationToken = default);
 }

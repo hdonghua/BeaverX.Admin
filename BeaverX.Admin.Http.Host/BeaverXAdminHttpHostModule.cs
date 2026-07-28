@@ -3,21 +3,27 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Http.Api;
 using BeaverX.Admin.Http.Api.Authorization;
 using BeaverX.Admin.Http.Api.Filters;
-using BeaverX.Admin.Domain.Shared.Json;
 using BeaverX.Admin.Infrastructure;
 using BeaverX.Admin.Infrastructure.Realtime;
-using BeaverX.Core.Modules;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Volo.Abp;
+using Volo.Abp.AspNetCore.Mvc;
+using Volo.Abp.Autofac;
+using Volo.Abp.Data;
+using Volo.Abp.Modularity;
+using Volo.Abp.Threading;
 
 namespace BeaverX.Admin.Http.Host;
 
 [DependsOn(
+    typeof(AbpAutofacModule),
     typeof(BeaverXAdminInfrastructureModule),
-    typeof(BeaverXAdminHttpApiModule)
+    typeof(BeaverXAdminHttpApiModule),
+    typeof(AbpAspNetCoreMvcModule)
 )]
-public class BeaverXAdminHttpHostModule : BeaverXModule
+public class BeaverXAdminHttpHostModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
@@ -30,8 +36,7 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
         services.AddControllers(options =>
         {
             options.Filters.Add<BusinessExceptionFilter>();
-        })
-        .AddJsonOptions(options => JsonIdSerializationExtensions.ConfigureSnowflakeIdJsonSerialization(options.JsonSerializerOptions));
+        });
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -82,14 +87,31 @@ public class BeaverXAdminHttpHostModule : BeaverXModule
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
-        var app = (WebApplication)context.App;
+        var app = context.GetApplicationBuilder();
+        var configuration = context.GetConfiguration();
 
-        app.UseSerilogRequestLogging();
+        if (app is WebApplication webApp)
+        {
+            webApp.UseSerilogRequestLogging();
+        }
+
+        app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseBeaverXHangfire(app.Configuration);
-        app.MapControllers();
-        app.MapHub<AdminNotificationHub>("/hubs/notifications");
+        app.UseBeaverXHangfire(configuration);
+        app.UseConfiguredEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            endpoints.MapHub<AdminNotificationHub>("/hubs/notifications");
+        });
+
+        AsyncHelper.RunSync(async () =>
+        {
+            using var scope = context.ServiceProvider.CreateScope();
+            await scope.ServiceProvider
+                .GetRequiredService<IDataSeeder>()
+                .SeedAsync();
+        });
     }
 }

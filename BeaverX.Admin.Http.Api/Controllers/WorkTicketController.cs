@@ -4,12 +4,11 @@ using BeaverX.Admin.Application.Contracts.Ticket;
 using BeaverX.Admin.Application.Contracts.Ticket.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class WorkTicketController : BeaverXControllerBase
+public class WorkTicketController : AdminControllerBase
 {
     private readonly IWorkTicketAppService _workTicketAppService;
 
@@ -26,9 +25,9 @@ public class WorkTicketController : BeaverXControllerBase
         => _workTicketAppService.GetListAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Ticket.Work.List)]
-    [HttpGet("{id:long}")]
-    public Task<WorkTicketDto> GetAsync(long id, CancellationToken cancellationToken)
-        => _workTicketAppService.GetAsync(id, cancellationToken);
+    [HttpGet("{id:guid}")]
+    public Task<WorkTicketDto> GetAsync(Guid id, CancellationToken cancellationToken)
+        => _workTicketAppService.GetAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Ticket.Work.Create)]
     [HttpPost]
@@ -38,17 +37,17 @@ public class WorkTicketController : BeaverXControllerBase
         => _workTicketAppService.CreateAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Ticket.Work.Update)]
-    [HttpPut("{id:long}")]
+    [HttpPut("{id:guid}")]
     public Task<WorkTicketDto> UpdateAsync(
-        long id,
+        Guid id,
         [FromBody] UpdateWorkTicketDto input,
         CancellationToken cancellationToken)
         => _workTicketAppService.UpdateAsync(id, input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Ticket.Work.Delete)]
-    [HttpDelete("{id:long}")]
-    public Task DeleteAsync(long id, CancellationToken cancellationToken)
-        => _workTicketAppService.DeleteAsync(id, cancellationToken);
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        => _workTicketAppService.DeleteAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Ticket.Work.Process)]
     [HttpGet("process-list")]
@@ -58,9 +57,9 @@ public class WorkTicketController : BeaverXControllerBase
         => _workTicketAppService.GetProcessListAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Ticket.Work.Process)]
-    [HttpPost("{id:long}/process")]
+    [HttpPost("{id:guid}/process")]
     public Task<WorkTicketDto> ProcessAsync(
-        long id,
+        Guid id,
         [FromBody] ProcessWorkTicketDto input,
         CancellationToken cancellationToken)
         => _workTicketAppService.ProcessAsync(id, input, cancellationToken);

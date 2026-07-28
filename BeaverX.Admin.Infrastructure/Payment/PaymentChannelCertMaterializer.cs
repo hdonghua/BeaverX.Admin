@@ -2,7 +2,7 @@ using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Payment;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Infrastructure.Payment.Alipay;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace BeaverX.Admin.Infrastructure.Payment;
@@ -26,7 +26,7 @@ public class PaymentChannelCertMaterializer : IPaymentChannelCertMaterializer, I
     }
 
     public async Task<string> ResolveAlipayConfigJsonAsync(
-      long channelId,
+      Guid channelId,
       string configJson,
       CancellationToken cancellationToken = default)
     {

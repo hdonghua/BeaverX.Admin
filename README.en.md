@@ -1,8 +1,8 @@
 # BeaverX.Admin (Backend)
 
-> **Language**: [简体中文](README.md) | English
+> **Language**: [绠€浣撲腑鏂嘳(README.md) | English
 
-ASP.NET Core admin API built on the modular [BeaverX](https://www.nuget.org/packages/BeaverX.Core) framework—RBAC, dictionaries, system configuration, messaging, file storage, and more.
+ASP.NET Core admin API built on the official [ABP Framework](https://abp.io/) (`Volo.Abp.*` packages)鈥擱BAC, dictionaries, system configuration, messaging, file storage, and more. Entity primary keys are **Guid**.
 
 ## Live Demo
 
@@ -18,8 +18,9 @@ ASP.NET Core admin API built on the modular [BeaverX](https://www.nuget.org/pack
 | Category | Technology |
 |----------|------------|
 | Runtime | .NET 10 |
-| Web | ASP.NET Core + BeaverX.WebMvc |
+| Web | ASP.NET Core + Volo.Abp.AspNetCore.Mvc |
 | ORM | Entity Framework Core + **PostgreSQL** (`master`) / **MySQL** (`master-mysql`); SqlSugar + **PostgreSQL** (`sqlsugar`) / **MySQL** (`sqlsugar-mysql`) |
+| Primary key | **Guid** (ABP `Entity<Guid>` / `FullAuditedEntity<Guid>`, etc.) |
 | Auth | JWT Bearer + Refresh Token |
 | Logging | Serilog (console + local files) |
 | Object storage | MinIO (optional) |
@@ -27,7 +28,7 @@ ASP.NET Core admin API built on the modular [BeaverX](https://www.nuget.org/pack
 ## Requirements
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- **PostgreSQL 14+** (`master` / `sqlsugar`) or **MySQL 8+** (`master-mysql` / `sqlsugar-mysql`—see below)
+- **PostgreSQL 14+** (`master` / `sqlsugar`) or **MySQL 8+** (`master-mysql` / `sqlsugar-mysql`鈥攕ee below)
 - (Optional) MinIO for file uploads
 - Frontend: [beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
@@ -38,7 +39,7 @@ The backend uses **Git branches** for ORM / database drivers. **No frontend chan
 | Branch | ORM / Database | Notes |
 |--------|----------------|-------|
 | `master` (default) | EF Core + PostgreSQL | Main development branch; CAP / Hangfire use PostgreSQL |
-| `master-mysql` | EF Core + MySQL 8+ | MySQL variant—switch branch manually |
+| `master-mysql` | EF Core + MySQL 8+ | MySQL variant鈥攕witch branch manually |
 | `sqlsugar` | **SqlSugar** + PostgreSQL | CodeFirst auto-syncs tables; **create an empty database first**; change `DbType` for other DBs |
 | `sqlsugar-mysql` | **SqlSugar** + MySQL 8+ | SqlSugar MySQL preset; also requires an empty database first |
 
@@ -62,11 +63,11 @@ Edit `BeaverX.Admin.Http.Host/appsettings.Development.json`:
 }
 ```
 
-> `Allow User Variables=True` is required by Hangfire.MySql—do not omit it.
+> `Allow User Variables=True` is required by Hangfire.MySql鈥攄o not omit it.
 
 MySQL branch differences (summary):
 
-- EF Core: `BeaverX.EntityFrameworkCore.MySql` + `AdminMySqlDbDriverOptionsBuilder`
+- EF Core: `Volo.Abp.EntityFrameworkCore.MySql` (see `master-mysql` branch)
 - Hangfire storage: MySQL (table prefix in `Hangfire:SchemaName`)
 - CAP message storage: MySQL (same `ConnectionStrings:Default` as the app DB)
 - API datetime: global UTC JSON serialization + UTC normalization before save (MySQL `DATETIME` compatibility)
@@ -133,12 +134,12 @@ Official branches only preset **PostgreSQL** and **MySQL**. For **SQL Server**, 
 
 #### EF Core (`master` / `master-mysql`)
 
-BeaverX does **not** ship official SQL Server / Oracle driver packages (only `BeaverX.EntityFrameworkCore.PostgreSql` / `BeaverX.EntityFrameworkCore.MySql`).
+This repo does **not** preset SQL Server / Oracle drivers (`master` uses `Volo.Abp.EntityFrameworkCore.PostgreSql`).
 
-You must implement them yourself (follow the existing PostgreSQL / MySQL drivers and Admin `IDbDriverOptionsBuilder`):
+You must implement them yourself (follow the existing PostgreSQL / MySQL branches and `AbpDbContextOptions`):
 
-1. **BeaverX.EntityFrameworkCore.\***: implement `IDbDriverOptionsBuilder` (`UseSqlServer` / `UseOracle`, etc.) and register the module
-2. **BeaverX.Domain / Admin**: wire DbContext, repositories, migrations; also adapt Hangfire / CAP storage for the target database
+1. **EF Core driver**: configure `UseSqlServer` / `UseOracle` in `BeaverXAdminEntityFrameworkCoreModule` and add the matching ABP / EF packages
+2. **Admin**: wire DbContext, repositories, migrations; also adapt Hangfire / CAP storage for the target database
 3. Recreate and apply **EF Migrations** (do not mix migration histories across databases)
 
 Application/domain entities can be reused; drivers and infrastructure must be adapted by you.
@@ -194,7 +195,7 @@ Default URL: `http://localhost:5216` (see `Properties/launchSettings.json`)
 
 ### 4. Seed Data
 
-On startup, `DataSeederHostService` runs all `IDataSeeder` implementations, including:
+On startup, ABP `IDataSeeder` runs all `IDataSeedContributor` implementations, including:
 
 - RBAC (users, roles, menus, super admin `super_admin`)
 - Dictionary, config, message demo data
@@ -211,7 +212,7 @@ BeaverX.Admin/
 ├── BeaverX.Admin.Infrastructure/        # MinIO, CAP, JWT signing, password hashing
 ├── BeaverX.Admin.Application/           # AppServices, seeders, orchestration
 ├── BeaverX.Admin.Application.Contracts/ # DTOs, IAppService, infrastructure interfaces
-├── BeaverX.Admin.Domain/                # Entities, IDataSeeder
+├── BeaverX.Admin.Domain/                # Entities
 ├── BeaverX.Admin.Domain.Shared/         # Permission codes, enums
 └── BeaverX.Admin.EntityFrameworkCore/   # DbContext, migrations
 ```
@@ -231,11 +232,12 @@ BeaverX.Admin/
 
 ### Dependency Injection
 
-Classes implementing `IScopedDependency` (or `ITransientDependency` / `ISingletonDependency`) are auto-registered by BeaverX. AppServices implement their interface and are injected into controllers.
+Classes implementing `IScopedDependency` (or `ITransientDependency` / `ISingletonDependency`) are auto-registered by **ABP**. AppServices implement their interface and are injected into controllers.
 
 ## API Conventions
 
-- Route prefix: `/api/[Controller]` (inherit `BeaverXController`)
+- Route prefix: `/api/[Controller]` (inherit `AdminControllerBase` 鈫?`AbpControllerBase`)
+- Entity / DTO primary keys: `Guid` (route constraint `{id:guid}`)
 - Permissions: `[RequirePermission("system:xxx:yyy")]` on controller actions
 - Permission codes: `BeaverX.Admin.Domain.Shared/Rbac/RbacPermissionCodes.cs`
 - Business errors: throw `BusinessException` (`Domain.Shared`); `BusinessExceptionFilter` returns JSON
@@ -278,7 +280,7 @@ Example: **System Configuration**.
 
 ### 1. Domain Entity
 
-`BeaverX.Admin.Domain/Config/SysConfig.cs`, inherit `FullAuditedEntity`.
+`BeaverX.Admin.Domain/Config/SysConfig.cs`, inherit `FullAuditedEntity<Guid>`.
 
 ### 2. DbContext
 
@@ -315,7 +317,7 @@ public static class Config
 `Http.Api/Controllers/ConfigController.cs`:
 
 ```csharp
-public class ConfigController : BeaverXController
+public class ConfigController : AdminControllerBase
 {
     [RequirePermission(RbacPermissionCodes.System.Config.List)]
     [HttpGet("list")]
@@ -327,7 +329,7 @@ public class ConfigController : BeaverXController
 
 - `ConfigMenuSeeder`: insert menu, `path`, `component`, button permissions; assign to `super_admin`
 - `ConfigDataSeeder` (optional): demo data
-- Implement `IDataSeeder` + `IScopedDependency` for auto-run by `DataSeederHostService`
+- Implement `IDataSeedContributor` + `ITransientDependency`; ABP `IDataSeeder` runs them on startup
 
 Menu fields must align with the frontend:
 
@@ -352,9 +354,9 @@ See [beaverx-vue-admin README](https://github.com/hdonghua/beaverx-vue-admin):
 
 ## RBAC Notes
 
-- Super admin role code: `super_admin`—full menu access (auto full set on query/assign)
+- Super admin role code: `super_admin`鈥攆ull menu access (auto full set on query/assign)
 - Menu types: directory / menu / button; buttons use `IsVisible = false` for API permissions
-- Hidden menus: `IsVisible = false`—not in sidebar, but routable when authorized
+- Hidden menus: `IsVisible = false`鈥攏ot in sidebar, but routable when authorized
 
 ## Site Messages (Admin Send)
 
@@ -362,7 +364,7 @@ See [beaverx-vue-admin README](https://github.com/hdonghua/beaverx-vue-admin):
 |-----|------------|-------------|
 | `POST /api/SiteMessageAdmin/send` | `system:message:send` | Send to specific users or all enabled users |
 
-Sending uses `IMessageSender` → `site` channel (`SiteMessageChannelSender`), writes `user_messages`, and pushes `message.unread.changed` via SignalR.
+Sending uses `IMessageSender` 鈫?`site` channel (`SiteMessageChannelSender`), writes `user_messages`, and pushes `message.unread.changed` via SignalR.
 
 Frontend page: `/system/message` (send site message); menu seeded by `MessageMenuSeeder` on startup.
 
@@ -429,7 +431,7 @@ await _messageSender.SendAsync(new SendMessageRequest
 
 | Style | Description | Hangfire Job Id |
 |-------|-------------|-----------------|
-| **HTTP API jobs** | Admin UI “System → Scheduled Jobs” or `POST /api/ScheduledJob`—HTTP URL on cron | `scheduled-job:{id}` |
+| **HTTP API jobs** | Admin UI 鈥淪ystem 鈫?Scheduled Jobs鈥?or `POST /api/ScheduledJob`鈥擧TTP URL on cron | `scheduled-job:{id}` |
 | **Code `IRecurringJob`** | Implement interface + DI; synced to Hangfire on startup | Type full name |
 
 ### Style 1: HTTP API Jobs
@@ -486,8 +488,8 @@ Reference: `Application/Scheduling/Jobs/SampleDailyRecurringJob.cs`
 }
 ```
 
-- Dashboard: `/hangfire` (HTTP Basic—not business JWT)
-- Multi-instance: Hangfire uses DB persistence (PostgreSQL or MySQL); multiple workers OK—**jobs must be idempotent**
+- Dashboard: `/hangfire` (HTTP Basic鈥攏ot business JWT)
+- Multi-instance: Hangfire uses DB persistence (PostgreSQL or MySQL); multiple workers OK鈥?*jobs must be idempotent**
 
 Detailed guide: `doc-beaverx-admin/docs/backend/scheduled-jobs.md`.
 
@@ -500,19 +502,19 @@ Export uses **CAP + DB storage (PostgreSQL / MySQL by branch) + in-memory queue 
 | `export_tasks` | Task table (status, params, file link) |
 | `local_message_outbox` | CAP dedup by `cap_message_id` (process each message once) |
 | `cap` schema | CAP published/received tables |
-| `ExportTaskCapSubscriber` (Infrastructure) | Consumer: Excel in memory → MinIO |
+| `ExportTaskCapSubscriber` (Infrastructure) | Consumer: Excel in memory 鈫?MinIO |
 
 ### Flow
 
 1. `POST /api/ExportTask` creates `export_tasks`, publishes CAP message
 2. `ICapPublisher` publishes `export.task.execute`
-3. Consumer checks `cap_message_id` not consumed → claim (`Pending → Processing`) → export → MinIO → `Completed` → record `cap_message_id`
+3. Consumer checks `cap_message_id` not consumed 鈫?claim (`Pending 鈫?Processing`) 鈫?export 鈫?MinIO 鈫?`Completed` 鈫?record `cap_message_id`
 4. `ExportTaskRecoveryHostedService` requeues stuck Pending tasks on startup
 
 ### Idempotency
 
 - **CAP layer** (`CapMessageConsumeService`): after success, write `local_message_outbox.cap_message_id`; replays skip
-- **Business layer** (e.g. `ExportTaskMessageService`): atomic claim on `export_tasks.Status` (`Pending → Processing`)
+- **Business layer** (e.g. `ExportTaskMessageService`): atomic claim on `export_tasks.Status` (`Pending 鈫?Processing`)
 - **Retry**: on failure, status back to `Pending`; CAP retries (max 5); `cap_message_id` only after success
 
 New CAP consumers: ensure business idempotency; call `CapMessageConsumeService.MarkConsumedAsync(capMessageId)` after success.
@@ -527,7 +529,7 @@ Default: `Savorboard.CAP.InMemoryMessageQueue` (single instance). For multi-inst
 
 ## Caching
 
-Generic cache via `ICacheService` (Contracts) + `CacheService` (Infrastructure)—**Memory** / **Redis** drivers.
+Generic cache via `ICacheService` (Contracts) + `CacheService` (Infrastructure)鈥?*Memory** / **Redis** drivers.
 
 ### Configuration
 
@@ -570,10 +572,10 @@ Default config targets **single-instance** dev/small deployments. For horizontal
 | Capability | Single instance (default) | Multi-node adjustment |
 |------------|---------------------------|------------------------|
 | Cache `ICacheService` | `Cache:Driver = Memory` | **Redis** + `RedisConnectionString` |
-| SignalR | Local hub connections | **Redis Backplane**—otherwise `SendToUser` only hits local connections |
+| SignalR | Local hub connections | **Redis Backplane**鈥攐therwise `SendToUser` only hits local connections |
 | Online users `IOnlineUserTracker` | In-memory `OnlineUserTracker` | **`RedisOnlineUserTracker`** (StackExchange.Redis `IDatabase`) |
 | CAP export | `UseInMemoryMessageQueue()` | Redis / RabbitMQ shared queue |
-| Hangfire | DB persistence (PostgreSQL / MySQL) | Multiple workers OK—ensure idempotent jobs |
+| Hangfire | DB persistence (PostgreSQL / MySQL) | Multiple workers OK鈥攅nsure idempotent jobs |
 | JWT / DB / MinIO | No node affinity | Usually unchanged |
 
 ### 1. Redis Cache
@@ -609,7 +611,7 @@ Frontend still connects to `/hubs/notifications` behind the load balancer; Backp
 
 ### 3. Online Users: RedisOnlineUserTracker
 
-Implementation: `Infrastructure/Realtime/RedisOnlineUserTracker.cs`—uses injected **`IDatabase`** for Redis Hash (key: `{KeyPrefix}online:connections`), **not** `IDistributedCache`.
+Implementation: `Infrastructure/Realtime/RedisOnlineUserTracker.cs`鈥攗ses injected **`IDatabase`** for Redis Hash (key: `{KeyPrefix}online:connections`), **not** `IDistributedCache`.
 
 **Disabled by default**. In `BeaverXAdminHttpHostModule.ConfigureServices`, **after** Infrastructure module:
 
@@ -670,10 +672,10 @@ Otherwise export messages stay in-process and other nodes cannot consume them.
 | Symptom | Check |
 |---------|-------|
 | Migration fails | Connection string; `--startup-project` specified |
-| No seed data after start | `IDataSeeder` implemented; existing data (seeders skip idempotently) |
+| No seed data after start | `IDataSeedContributor` implemented; existing data (seeders skip idempotently) |
 | Frontend 403 | Role has menus; `Component` matches `views/`; permission codes match controller |
 | CORS errors | `CorsOrgins` includes frontend URL |
-| MinIO errors | Export/upload needs MinIO—verify service and config |
+| MinIO errors | Export/upload needs MinIO鈥攙erify service and config |
 | Export stuck Pending | CAP running; check `cap` schema and `Logs/` |
 
 ## Related Repositories

@@ -2,20 +2,20 @@ using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class MenuAppService : IMenuAppService, IScopedDependency
 {
-    private readonly IRepository<Menu> _menuRepository;
+    private readonly IRepository<Menu, Guid> _menuRepository;
     private readonly MenuCacheService _menuCacheService;
     private readonly AppCacheInvalidator _cacheInvalidator;
 
     public MenuAppService(
-        IRepository<Menu> menuRepository,
+        IRepository<Menu, Guid> menuRepository,
         MenuCacheService menuCacheService,
         AppCacheInvalidator cacheInvalidator)
     {
@@ -27,9 +27,9 @@ public class MenuAppService : IMenuAppService, IScopedDependency
     public Task<List<MenuDto>> GetTreeAsync(CancellationToken cancellationToken = default) =>
         _menuCacheService.GetMenuTreeAsync(cancellationToken);
 
-    public async Task<MenuDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<MenuDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var menu = await _menuRepository.GetAsync(id, cancellationToken);
+        var menu = await _menuRepository.GetAsync(id, cancellationToken: cancellationToken);
         return RbacMapper.ToMenuDto(menu);
     }
 
@@ -42,7 +42,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
         if (input.ParentId.HasValue)
         {
-            await _menuRepository.GetAsync(input.ParentId.Value, cancellationToken);
+            await _menuRepository.GetAsync(input.ParentId.Value, cancellationToken: cancellationToken);
         }
 
         await ValidatePermsAsync(input.Perms, null, cancellationToken);
@@ -70,9 +70,9 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         return RbacMapper.ToMenuDto(menu);
     }
 
-    public async Task<MenuDto> UpdateAsync(long id, UpdateMenuDto input, CancellationToken cancellationToken = default)
+    public async Task<MenuDto> UpdateAsync(Guid id, UpdateMenuDto input, CancellationToken cancellationToken = default)
     {
-        var menu = await _menuRepository.GetAsync(id, cancellationToken);
+        var menu = await _menuRepository.GetAsync(id, cancellationToken: cancellationToken);
 
         if (input.ParentId.HasValue)
         {
@@ -81,7 +81,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
                 throw new BusinessException("父级菜单不能是自己");
             }
 
-            await _menuRepository.GetAsync(input.ParentId.Value, cancellationToken);
+            await _menuRepository.GetAsync(input.ParentId.Value, cancellationToken: cancellationToken);
             menu.ParentId = input.ParentId;
         }
 
@@ -123,7 +123,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         return RbacMapper.ToMenuDto(menu);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var hasChildren = await _menuRepository.AnyAsync(x => x.ParentId == id, cancellationToken);
         if (hasChildren)
@@ -150,7 +150,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
 
         var menus = await _menuRepository.GetListAsync(
             x => orderedIds.Contains(x.Id),
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
         if (menus.Count != orderedIds.Count)
         {
@@ -162,7 +162,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             throw new BusinessException("只能在同一层级内排序");
         }
 
-        var expectedCount = await _menuRepository.GetQueryable()
+        var expectedCount = await (await _menuRepository.GetQueryableAsync())
             .Where(x => x.ParentId == input.ParentId && !x.IsDeleted)
             .CountAsync(cancellationToken);
 
@@ -181,7 +181,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         await _cacheInvalidator.InvalidateMenusAsync(cancellationToken);
     }
 
-    private async Task ValidatePermsAsync(string? perms, long? excludeId, CancellationToken cancellationToken)
+    private async Task ValidatePermsAsync(string? perms, Guid? excludeId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(perms))
         {
@@ -189,8 +189,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         }
 
         var exists = await _menuRepository.AnyAsync(
-            x => x.Perms == perms && (!excludeId.HasValue || x.Id != excludeId.Value),
-            cancellationToken);
+            x => x.Perms == perms && (!excludeId.HasValue || x.Id != excludeId.Value), cancellationToken);
 
         if (exists)
         {

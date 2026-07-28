@@ -1,6 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Scheduling;
 using BeaverX.Admin.Domain.Scheduling;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.Domain.Repositories;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -35,69 +35,71 @@ public class ScheduledJobSyncHostedService : IHostedService
             return;
         }
 
-        using var scope = _scopeFactory.CreateScope();
-        var jobRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
-        var registrar = scope.ServiceProvider.GetRequiredService<IHangfireScheduledJobRegistrar>();
-        var pauseService = scope.ServiceProvider.GetRequiredService<IRecurringJobPauseService>();
-
-        var jobs = await jobRepository.GetQueryable()
-            .OrderBy(x => x.Id)
-            .ToListAsync(cancellationToken);
-
-        IReadOnlyList<RecurringJobDto> hangfireJobs = [];
-        if (_hangfireOptions.Value.BusinessJobStartupSyncMode == BusinessJobStartupSyncMode.MergeFromHangfire)
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, ct) =>
         {
-            using var connection = JobStorage.Current.GetConnection();
-            hangfireJobs = connection.GetRecurringJobs();
-        }
+            var jobRepository = sp.GetRequiredService<IRepository<ScheduledJob, Guid>>();
+            var registrar = sp.GetRequiredService<IHangfireScheduledJobRegistrar>();
+            var pauseService = sp.GetRequiredService<IRecurringJobPauseService>();
 
-        foreach (var job in jobs)
-        {
-            var hangfireJobId = HangfireScheduledJobRegistrar.BuildRecurringJobId(job.Id);
+            var jobs = await (await jobRepository.GetQueryableAsync())
+                .OrderBy(x => x.Id)
+                .ToListAsync(ct);
 
+            IReadOnlyList<RecurringJobDto> hangfireJobs = [];
             if (_hangfireOptions.Value.BusinessJobStartupSyncMode == BusinessJobStartupSyncMode.MergeFromHangfire)
             {
-                var hangfireJob = hangfireJobs.FirstOrDefault(x =>
-                    string.Equals(x.Id, hangfireJobId, StringComparison.Ordinal));
+                using var connection = JobStorage.Current.GetConnection();
+                hangfireJobs = connection.GetRecurringJobs();
+            }
 
-                var isPaused = await pauseService.IsPausedAsync(hangfireJobId, cancellationToken);
-                if (!isPaused &&
-                    hangfireJob?.Cron != null &&
-                    !string.Equals(hangfireJob.Cron, job.CronExpression, StringComparison.Ordinal))
+            foreach (var job in jobs)
+            {
+                var hangfireJobId = HangfireScheduledJobRegistrar.BuildRecurringJobId(job.Id);
+
+                if (_hangfireOptions.Value.BusinessJobStartupSyncMode == BusinessJobStartupSyncMode.MergeFromHangfire)
                 {
-                    job.CronExpression = hangfireJob.Cron;
-                    if (!string.IsNullOrWhiteSpace(hangfireJob.TimeZoneId))
+                    var hangfireJob = hangfireJobs.FirstOrDefault(x =>
+                        string.Equals(x.Id, hangfireJobId, StringComparison.Ordinal));
+
+                    var isPaused = await pauseService.IsPausedAsync(hangfireJobId, ct);
+                    if (!isPaused &&
+                        hangfireJob?.Cron != null &&
+                        !string.Equals(hangfireJob.Cron, job.CronExpression, StringComparison.Ordinal))
                     {
-                        job.TimeZoneId = hangfireJob.TimeZoneId;
+                        job.CronExpression = hangfireJob.Cron;
+                        if (!string.IsNullOrWhiteSpace(hangfireJob.TimeZoneId))
+                        {
+                            job.TimeZoneId = hangfireJob.TimeZoneId;
+                        }
+
+                        await jobRepository.UpdateAsync(job, cancellationToken: ct);
+                        _logger.LogInformation(
+                            "Merged Cron from Hangfire for job {JobId}: {Cron}",
+                            job.Id,
+                            job.CronExpression);
                     }
-
-                    await jobRepository.UpdateAsync(job, cancellationToken: cancellationToken);
-                    _logger.LogInformation(
-                        "Merged Cron from Hangfire for job {JobId}: {Cron}",
-                        job.Id,
-                        job.CronExpression);
                 }
+
+                var cronExpression = job.CronExpression;
+                if (await pauseService.IsPausedAsync(hangfireJobId, ct))
+                {
+                    cronExpression = Cron.Never();
+                }
+
+                registrar.Register(new ScheduledJobRegistration
+                {
+                    JobId = job.Id,
+                    CronExpression = cronExpression,
+                    TimeZoneId = job.TimeZoneId,
+                    IsEnabled = job.IsEnabled
+                });
             }
 
-            var cronExpression = job.CronExpression;
-            if (await pauseService.IsPausedAsync(hangfireJobId, cancellationToken))
-            {
-                cronExpression = Cron.Never();
-            }
-
-            registrar.Register(new ScheduledJobRegistration
-            {
-                JobId = job.Id,
-                CronExpression = cronExpression,
-                TimeZoneId = job.TimeZoneId,
-                IsEnabled = job.IsEnabled
-            });
-        }
-
-        _logger.LogInformation(
-            "Synchronized {Count} business scheduled jobs to Hangfire (mode={Mode})",
-            jobs.Count,
-            _hangfireOptions.Value.BusinessJobStartupSyncMode);
+            _logger.LogInformation(
+                "Synchronized {Count} business scheduled jobs to Hangfire (mode={Mode})",
+                jobs.Count,
+                _hangfireOptions.Value.BusinessJobStartupSyncMode);
+        }, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

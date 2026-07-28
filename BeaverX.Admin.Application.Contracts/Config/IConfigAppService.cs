@@ -11,13 +11,13 @@ public interface IConfigAppService
 
     Task<List<string>> GetGroupsAsync(CancellationToken cancellationToken = default);
 
-    Task<ConfigDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<ConfigDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ConfigDto?> GetByKeyAsync(string key, CancellationToken cancellationToken = default);
 
     Task<ConfigDto> CreateAsync(CreateConfigDto input, CancellationToken cancellationToken = default);
 
-    Task<ConfigDto> UpdateAsync(long id, UpdateConfigDto input, CancellationToken cancellationToken = default);
+    Task<ConfigDto> UpdateAsync(Guid id, UpdateConfigDto input, CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

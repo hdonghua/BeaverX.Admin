@@ -1,11 +1,12 @@
 using BeaverX.Admin.Domain.Shared.Scheduling;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Scheduling;
 
-public class ScheduledJobLog : CreationAuditedEntity
+public class ScheduledJobLog : CreationAuditedEntity<Guid>
 {
-    public long JobId { get; set; }
+    public Guid JobId { get; set; }
     public ScheduledJobRunStatus Status { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }

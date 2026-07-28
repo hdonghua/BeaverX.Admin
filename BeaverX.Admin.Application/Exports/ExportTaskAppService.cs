@@ -5,9 +5,9 @@ using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using BeaverX.Domain.Users;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Exports;
@@ -20,7 +20,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         WriteIndented = false
     };
 
-    private readonly IRepository<ExportTask> _exportTaskRepository;
+    private readonly IRepository<ExportTask, Guid> _exportTaskRepository;
     private readonly ExportHandlerRegistry _handlerRegistry;
     private readonly IExportTaskPublisher _exportTaskPublisher;
     private readonly IBlobStorage _blobStorage;
@@ -28,7 +28,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     private readonly ICurrentUser _currentUser;
 
     public ExportTaskAppService(
-        IRepository<ExportTask> exportTaskRepository,
+        IRepository<ExportTask, Guid> exportTaskRepository,
         ExportHandlerRegistry handlerRegistry,
         IExportTaskPublisher exportTaskPublisher,
         IBlobStorage blobStorage,
@@ -78,7 +78,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     public async Task<List<ExportTaskDto>> GetListAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var items = await _exportTaskRepository.GetQueryable()
+        var items = await (await _exportTaskRepository.GetQueryableAsync())
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreationTime)
             .Take(50)
@@ -90,7 +90,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     public async Task<int> GetActiveCountAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var count = await _exportTaskRepository.GetQueryable()
+        var count = await (await _exportTaskRepository.GetQueryableAsync())
             .LongCountAsync(
                 x => x.UserId == userId &&
                      (x.Status == ExportTaskStatus.Pending || x.Status == ExportTaskStatus.Processing),
@@ -100,7 +100,7 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
     }
 
     public async Task<ExportDownloadUrlDto> GetDownloadUrlAsync(
-        long id,
+        Guid id,
         CancellationToken cancellationToken = default)
     {
         var entity = await FindOwnedTaskAsync(id, cancellationToken);
@@ -120,10 +120,10 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         };
     }
 
-    private async Task<ExportTask> FindOwnedTaskAsync(long id, CancellationToken cancellationToken)
+    private async Task<ExportTask> FindOwnedTaskAsync(Guid id, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
-        var entity = await _exportTaskRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _exportTaskRepository.FindAsync(id, cancellationToken: cancellationToken);
         if (entity == null || entity.UserId != userId)
         {
             throw new BusinessException($"导出任务不存在: {id}");
@@ -132,9 +132,9 @@ public class ExportTaskAppService : IExportTaskAppService, IScopedDependency
         return entity;
     }
 
-    private long GetCurrentUserId()
+    private Guid GetCurrentUserId()
     {
-        if (_currentUser.Id is not > 0)
+        if (_currentUser.Id is null)
         {
             throw new BusinessException("未登录或登录已失效");
         }

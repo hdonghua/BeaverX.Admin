@@ -2,21 +2,21 @@ using BeaverX.Admin.Application.Contracts.Messages;
 using BeaverX.Admin.Application.Contracts.Messages.Dtos;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Messages;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using BeaverX.Domain.Users;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Messages;
 
 public class MessageAppService : IMessageAppService, IScopedDependency
 {
-    private readonly IRepository<UserMessage> _messageRepository;
+    private readonly IRepository<UserMessage, Guid> _messageRepository;
     private readonly RealtimePublisher _realtimePublisher;
     private readonly ICurrentUser _currentUser;
 
     public MessageAppService(
-        IRepository<UserMessage> messageRepository,
+        IRepository<UserMessage, Guid> messageRepository,
         RealtimePublisher realtimePublisher,
         ICurrentUser currentUser)
     {
@@ -28,7 +28,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     public async Task<List<MessageDto>> GetListAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var messages = await _messageRepository.GetQueryable()
+        var messages = await (await _messageRepository.GetQueryableAsync())
             .Where(x => x.UserId == userId)
             .OrderBy(x => x.IsRead)
             .ThenByDescending(x => x.CreationTime)
@@ -43,7 +43,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
     public async Task<int> GetUnreadCountAsync(CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var count = await _messageRepository.GetCountAsync(
+        var count = await _messageRepository.CountAsync(
             x => x.UserId == userId && !x.IsRead,
             cancellationToken);
         return (int)count;
@@ -60,7 +60,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
         var idSet = input.Ids.ToHashSet();
         var messages = await _messageRepository.GetListAsync(
             x => x.UserId == userId && idSet.Contains(x.Id) && !x.IsRead,
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
         if (messages.Count == 0)
         {
@@ -82,7 +82,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
         var messages = await _messageRepository.GetListAsync(
             x => x.UserId == userId && !x.IsRead &&
                  (string.IsNullOrWhiteSpace(input.Type) || x.Type == input.Type),
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
         if (messages.Count == 0)
         {
@@ -98,7 +98,7 @@ public class MessageAppService : IMessageAppService, IScopedDependency
         await _realtimePublisher.NotifyMessageUnreadChangedAsync(userId, cancellationToken);
     }
 
-    private long GetCurrentUserId()
+    private Guid GetCurrentUserId()
         => _currentUser.Id ?? throw new BusinessException("未登录");
 
     private static MessageDto ToDto(UserMessage message) => new()

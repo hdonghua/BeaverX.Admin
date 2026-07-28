@@ -5,7 +5,7 @@ namespace BeaverX.Admin.Application.Contracts.Payment;
 public interface IPaymentChannelContextBuilder
 {
     Task<PaymentProviderChannelContext> BuildAsync(
-      long channelId,
+      Guid channelId,
       string channelCode,
       PaymentProviderType providerType,
       string configJson,

@@ -1,6 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using DotNetCore.CAP;
 
 namespace BeaverX.Admin.Infrastructure.Exports;
@@ -14,7 +14,7 @@ public class ExportTaskPublisher : IExportTaskPublisher, IScopedDependency
         _capPublisher = capPublisher;
     }
 
-    public Task PublishExecuteAsync(long taskId, CancellationToken cancellationToken = default) =>
+    public Task PublishExecuteAsync(Guid taskId, CancellationToken cancellationToken = default) =>
         _capPublisher.PublishAsync(
             ExportTaskCapTopics.Execute,
             new ExportTaskExecuteEto { TaskId = taskId },

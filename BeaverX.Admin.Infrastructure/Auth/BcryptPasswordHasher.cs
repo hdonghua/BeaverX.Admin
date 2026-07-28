@@ -1,5 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Rbac;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 
 namespace BeaverX.Admin.Infrastructure.Auth;
 

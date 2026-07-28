@@ -9,15 +9,15 @@ public static class CacheKeys
 
     public static string ConfigByKey(string key) => $"config:key:{key.Trim()}";
 
-    public static string UserMenus(long userId, long accessVersion) =>
+    public static string UserMenus(Guid userId, long accessVersion) =>
         $"menu:user:{userId}:v{accessVersion}";
 
-    public static string UserPermissions(long userId, long accessVersion) =>
+    public static string UserPermissions(Guid userId, long accessVersion) =>
         $"perm:user:{userId}:v{accessVersion}";
 
     public static string DictOptions(string typeCode) => $"dict:options:{typeCode.Trim()}";
 
     public static string RefreshToken(string tokenHash) => $"auth:refresh:token:{tokenHash}";
 
-    public static string UserRefreshTokens(long userId) => $"auth:refresh:user:{userId}";
+    public static string UserRefreshTokens(Guid userId) => $"auth:refresh:user:{userId}";
 }

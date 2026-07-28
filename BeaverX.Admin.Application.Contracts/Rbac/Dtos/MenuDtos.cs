@@ -4,8 +4,8 @@ namespace BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 
 public class MenuDto
 {
-    public long Id { get; set; }
-    public long? ParentId { get; set; }
+    public Guid Id { get; set; }
+    public Guid? ParentId { get; set; }
     public string Name { get; set; } = null!;
     public MenuType MenuType { get; set; }
     public string? Perms { get; set; }
@@ -21,7 +21,7 @@ public class MenuDto
 
 public class CreateMenuDto
 {
-    public long? ParentId { get; set; }
+    public Guid? ParentId { get; set; }
     public string Name { get; set; } = null!;
     public MenuType MenuType { get; set; }
     public string? Perms { get; set; }
@@ -36,7 +36,7 @@ public class CreateMenuDto
 
 public class UpdateMenuDto
 {
-    public long? ParentId { get; set; }
+    public Guid? ParentId { get; set; }
     public string? Name { get; set; }
     public MenuType? MenuType { get; set; }
     public string? Perms { get; set; }
@@ -51,6 +51,6 @@ public class UpdateMenuDto
 
 public class ReorderMenusDto
 {
-    public long? ParentId { get; set; }
-    public List<long> OrderedIds { get; set; } = [];
+    public Guid? ParentId { get; set; }
+    public List<Guid> OrderedIds { get; set; } = [];
 }

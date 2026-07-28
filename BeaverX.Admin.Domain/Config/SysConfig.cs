@@ -1,8 +1,9 @@
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Config;
 
-public class SysConfig : FullAuditedEntity
+public class SysConfig : FullAuditedEntity<Guid>
 {
     public string Key { get; set; } = null!;
     public string Value { get; set; } = null!;

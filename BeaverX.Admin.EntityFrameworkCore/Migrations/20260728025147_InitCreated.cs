@@ -15,24 +15,24 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "biz_work_tickets",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TicketNo = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     Title = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     ImagesJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     ProcessResult = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     ProcessResultImagesJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    HandlerUserId = table.Column<long>(type: "bigint", nullable: true),
+                    HandlerUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ProcessedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -43,8 +43,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "export_tasks",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     ExportType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Parameters = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     FileName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
@@ -54,12 +54,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     ErrorMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
                     CompletedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -70,7 +70,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "local_message_outbox",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CapMessageId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     ConsumedTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -83,7 +83,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_channels",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     ChannelName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ProviderType = table.Column<int>(type: "integer", nullable: false),
@@ -93,12 +93,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Sort = table.Column<int>(type: "integer", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -109,7 +109,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_notify_logs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     NotifyType = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
@@ -128,7 +128,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_orders",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     Subject = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
@@ -140,7 +140,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     Attach = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     BusinessType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     BusinessId = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    UserId = table.Column<long>(type: "bigint", nullable: true),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ExpireTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     PaidTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ChannelOrderNo = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
@@ -151,12 +151,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     ErrorCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     ErrorMessage = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -167,7 +167,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_configs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Key = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     Value = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
                     Label = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
@@ -176,12 +176,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     Sort = table.Column<int>(type: "integer", nullable: false),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -192,18 +192,18 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_dict_types",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -214,8 +214,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_menus",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    ParentId = table.Column<long>(type: "bigint", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     MenuType = table.Column<int>(type: "integer", nullable: false),
                     Perms = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
@@ -227,12 +227,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     IsExternal = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -249,16 +249,16 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_roles",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Description = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Sort = table.Column<int>(type: "integer", nullable: false),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -269,7 +269,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_scheduled_jobs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     JobCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     JobType = table.Column<int>(type: "integer", nullable: false),
@@ -286,12 +286,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     LastRunStatus = table.Column<int>(type: "integer", nullable: true),
                     LastRunMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -302,7 +302,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_users",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     PasswordHash = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     NickName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
@@ -311,12 +311,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     Avatar = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -327,9 +327,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "pay_refunds",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     RefundNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    PaymentOrderId = table.Column<long>(type: "bigint", nullable: false),
+                    PaymentOrderId = table.Column<Guid>(type: "uuid", nullable: false),
                     OrderNo = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ChannelCode = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     Amount = table.Column<long>(type: "bigint", nullable: false),
@@ -342,12 +342,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     ErrorCode = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     ErrorMessage = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -364,8 +364,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_dict_data",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    DictTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DictTypeId = table.Column<Guid>(type: "uuid", nullable: false),
                     Label = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Value = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Sort = table.Column<int>(type: "integer", nullable: false),
@@ -374,12 +374,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     ListClass = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     Remark = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -396,9 +396,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_role_menus",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    RoleId = table.Column<long>(type: "bigint", nullable: false),
-                    MenuId = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MenuId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -421,8 +421,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_scheduled_job_logs",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    JobId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    JobId = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     FinishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -432,7 +432,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     ErrorMessage = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
                     IsManualTrigger = table.Column<bool>(type: "boolean", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true)
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -449,8 +449,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_user_messages",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Type = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     Title = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     SubTitle = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
@@ -459,7 +459,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     MessageType = table.Column<int>(type: "integer", nullable: true),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true)
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -476,19 +476,19 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_user_refresh_tokens",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ReplacedByTokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeleterId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -505,9 +505,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "sys_user_roles",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
-                    RoleId = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {

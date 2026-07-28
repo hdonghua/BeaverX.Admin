@@ -1,11 +1,12 @@
 using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>支付渠道配置（密钥、证书等存于 <see cref="ConfigJson"/>）</summary>
-public class PaymentChannel : FullAuditedEntity
+public class PaymentChannel : FullAuditedEntity<Guid>
 {
     /// <summary>渠道编码，见 <see cref="PaymentChannelCodes"/></summary>
     public string ChannelCode { get; private set; } = null!;

@@ -1,8 +1,9 @@
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
-public class User : FullAuditedEntity
+public class User : FullAuditedEntity<Guid>
 {
     public string UserName { get; set; } = null!;
     public string PasswordHash { get; set; } = null!;

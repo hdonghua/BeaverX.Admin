@@ -2,17 +2,17 @@ using BeaverX.Admin.Application.Caching;
 using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class MenuCacheService : IScopedDependency
 {
-    private readonly IRepository<Menu> _menuRepository;
+    private readonly IRepository<Menu, Guid> _menuRepository;
     private readonly ICacheService _cache;
 
-    public MenuCacheService(IRepository<Menu> menuRepository, ICacheService cache)
+    public MenuCacheService(IRepository<Menu, Guid> menuRepository, ICacheService cache)
     {
         _menuRepository = menuRepository;
         _cache = cache;
@@ -24,7 +24,7 @@ public class MenuCacheService : IScopedDependency
             CacheKeys.MenuAll,
             async ct =>
             {
-                var menus = await _menuRepository.GetListAsync(ct);
+                var menus = await _menuRepository.GetListAsync(cancellationToken: ct);
                 return menus.Select(MenuCacheItem.FromEntity).ToList();
             },
             CacheDurations.Menu,
@@ -38,7 +38,7 @@ public class MenuCacheService : IScopedDependency
             CacheKeys.MenuTree,
             async ct =>
             {
-                var menus = await _menuRepository.GetListAsync(ct);
+                var menus = await _menuRepository.GetListAsync(cancellationToken: ct);
                 var dtos = menus.Select(RbacMapper.ToMenuDto).ToList();
                 return RbacQueryHelper.BuildMenuTree(dtos);
             },

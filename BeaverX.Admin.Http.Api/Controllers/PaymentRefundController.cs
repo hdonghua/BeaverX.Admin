@@ -3,12 +3,11 @@ using BeaverX.Admin.Application.Contracts.Payment.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class PaymentRefundController : BeaverXControllerBase
+public class PaymentRefundController : AdminControllerBase
 {
   private readonly IPaymentRefundAppService _refundAppService;
 
@@ -25,7 +24,7 @@ public class PaymentRefundController : BeaverXControllerBase
     => _refundAppService.GetListAsync(input, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Refund.List)]
-  [HttpGet("{id:long}")]
-  public Task<PaymentRefundDto> GetAsync(long id, CancellationToken cancellationToken)
-    => _refundAppService.GetAsync(id, cancellationToken);
+  [HttpGet("{id:guid}")]
+  public Task<PaymentRefundDto> GetAsync(Guid id, CancellationToken cancellationToken)
+    => _refundAppService.GetAsync(id, cancellationToken: cancellationToken);
 }

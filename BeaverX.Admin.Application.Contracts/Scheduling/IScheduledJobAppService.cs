@@ -9,23 +9,23 @@ public interface IScheduledJobAppService
         ScheduledJobQueryDto input,
         CancellationToken cancellationToken = default);
 
-    Task<ScheduledJobDto> GetAsync(long id, CancellationToken cancellationToken = default);
+    Task<ScheduledJobDto> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ScheduledJobDto> CreateAsync(
         CreateScheduledJobDto input,
         CancellationToken cancellationToken = default);
 
     Task<ScheduledJobDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateScheduledJobDto input,
         CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task TriggerAsync(long id, CancellationToken cancellationToken = default);
+    Task TriggerAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<PagedResultDto<ScheduledJobLogDto>> GetLogsAsync(
-        long id,
+        Guid id,
         ScheduledJobLogQueryDto input,
         CancellationToken cancellationToken = default);
 

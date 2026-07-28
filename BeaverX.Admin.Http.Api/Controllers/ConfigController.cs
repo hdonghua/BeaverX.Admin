@@ -4,12 +4,11 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class ConfigController : BeaverXControllerBase
+public class ConfigController : AdminControllerBase
 {
     private readonly IConfigAppService _configAppService;
 
@@ -31,9 +30,9 @@ public class ConfigController : BeaverXControllerBase
         => _configAppService.GetGroupsAsync(cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Config.List)]
-    [HttpGet("{id:long}")]
-    public Task<ConfigDto> GetAsync(long id, CancellationToken cancellationToken)
-        => _configAppService.GetAsync(id, cancellationToken);
+    [HttpGet("{id:guid}")]
+    public Task<ConfigDto> GetAsync(Guid id, CancellationToken cancellationToken)
+        => _configAppService.GetAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Config.List)]
     [HttpGet("key/{key}")]
@@ -56,15 +55,15 @@ public class ConfigController : BeaverXControllerBase
         => _configAppService.CreateAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Config.Update)]
-    [HttpPut("{id:long}")]
+    [HttpPut("{id:guid}")]
     public Task<ConfigDto> UpdateAsync(
-        long id,
+        Guid id,
         [FromBody] UpdateConfigDto input,
         CancellationToken cancellationToken)
         => _configAppService.UpdateAsync(id, input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Config.Delete)]
-    [HttpDelete("{id:long}")]
-    public Task DeleteAsync(long id, CancellationToken cancellationToken)
-        => _configAppService.DeleteAsync(id, cancellationToken);
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        => _configAppService.DeleteAsync(id, cancellationToken: cancellationToken);
 }

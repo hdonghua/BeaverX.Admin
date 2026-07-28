@@ -4,8 +4,8 @@ using BeaverX.Admin.Application.Contracts.Realtime.Dtos;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Messages;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Realtime;
@@ -14,14 +14,14 @@ public class RealtimePublisher : IScopedDependency
 {
     private readonly IRealtimeNotifier _notifier;
     private readonly IOnlineUserTracker _onlineUserTracker;
-    private readonly IRepository<ExportTask> _exportTaskRepository;
-    private readonly IRepository<UserMessage> _messageRepository;
+    private readonly IRepository<ExportTask, Guid> _exportTaskRepository;
+    private readonly IRepository<UserMessage, Guid> _messageRepository;
 
     public RealtimePublisher(
         IRealtimeNotifier notifier,
         IOnlineUserTracker onlineUserTracker,
-        IRepository<ExportTask> exportTaskRepository,
-        IRepository<UserMessage> messageRepository)
+        IRepository<ExportTask, Guid> exportTaskRepository,
+        IRepository<UserMessage, Guid> messageRepository)
     {
         _notifier = notifier;
         _onlineUserTracker = onlineUserTracker;
@@ -46,10 +46,10 @@ public class RealtimePublisher : IScopedDependency
     }
 
     public async Task NotifyExportTaskChangedByIdAsync(
-        long taskId,
+        Guid taskId,
         CancellationToken cancellationToken = default)
     {
-        var task = await _exportTaskRepository.FindAsync(x => x.Id == taskId, cancellationToken);
+        var task = await _exportTaskRepository.GetAsync(x => x.Id == taskId, cancellationToken: cancellationToken);
         if (task == null)
         {
             return;
@@ -59,10 +59,10 @@ public class RealtimePublisher : IScopedDependency
     }
 
     public async Task NotifyMessageUnreadChangedAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
-        var unreadCount = await _messageRepository.GetCountAsync(
+        var unreadCount = await _messageRepository.CountAsync(
             x => x.UserId == userId && !x.IsRead,
             cancellationToken);
 
@@ -77,7 +77,7 @@ public class RealtimePublisher : IScopedDependency
     }
 
     public Task NotifyUserDisabledAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken = default) =>
         _notifier.SendToUserAsync(
             userId,
@@ -86,7 +86,7 @@ public class RealtimePublisher : IScopedDependency
             cancellationToken);
 
     public Task NotifyUserForceOfflineAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken = default) =>
         _notifier.SendToUserAsync(
             userId,
@@ -110,9 +110,9 @@ public class RealtimePublisher : IScopedDependency
             cancellationToken);
     }
 
-    private async Task<int> GetActiveExportCountAsync(long userId, CancellationToken cancellationToken)
+    private async Task<int> GetActiveExportCountAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var count = await _exportTaskRepository.GetQueryable()
+        var count = await (await _exportTaskRepository.GetQueryableAsync())
             .LongCountAsync(
                 x => x.UserId == userId &&
                      (x.Status == ExportTaskStatus.Pending || x.Status == ExportTaskStatus.Processing),

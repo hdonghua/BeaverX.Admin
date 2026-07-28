@@ -1,26 +1,27 @@
 using BeaverX.Admin.Domain.Config;
-using BeaverX.Admin.Domain.DataSeeder;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.Data;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Config;
 
-public class ConfigDataSeeder : IScopedDependency, IDataSeeder
+public class ConfigDataSeeder : IDataSeedContributor, ITransientDependency
 {
-    private readonly IRepository<SysConfig> _configRepository;
+    private readonly IRepository<SysConfig, Guid> _configRepository;
     private readonly ILogger<ConfigDataSeeder> _logger;
 
     public ConfigDataSeeder(
-      IRepository<SysConfig> configRepository,
+      IRepository<SysConfig, Guid> configRepository,
       ILogger<ConfigDataSeeder> logger)
     {
         _configRepository = configRepository;
         _logger = logger;
     }
 
-    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    public async Task SeedAsync(DataSeedContext context)
     {
+        var cancellationToken = CancellationToken.None;
         await EnsureConfigAsync(
           "sys.site.name",
           () => new SysConfig

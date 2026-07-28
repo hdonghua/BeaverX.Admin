@@ -8,7 +8,7 @@ public class OnlineUserTracker : IOnlineUserTracker
 {
     private sealed class ConnectionEntry
     {
-        public long UserId { get; init; }
+        public Guid UserId { get; init; }
         public string UserName { get; init; } = null!;
         public string? NickName { get; init; }
         public string ConnectionId { get; init; } = null!;
@@ -17,7 +17,7 @@ public class OnlineUserTracker : IOnlineUserTracker
 
     private readonly ConcurrentDictionary<string, ConnectionEntry> _connections = new();
 
-    public void AddConnection(long userId, string userName, string? nickName, string connectionId)
+    public void AddConnection(Guid userId, string userName, string? nickName, string connectionId)
     {
         _connections[connectionId] = new ConnectionEntry
         {
@@ -34,7 +34,7 @@ public class OnlineUserTracker : IOnlineUserTracker
         _connections.TryRemove(connectionId, out _);
     }
 
-    public int RemoveUserConnections(long userId)
+    public int RemoveUserConnections(Guid userId)
     {
         var connectionIds = _connections
             .Where(x => x.Value.UserId == userId)

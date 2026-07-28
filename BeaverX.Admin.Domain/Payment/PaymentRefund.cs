@@ -1,14 +1,15 @@
 using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>退款单</summary>
-public class PaymentRefund : FullAuditedEntity
+public class PaymentRefund : FullAuditedEntity<Guid>
 {
     public string RefundNo { get; private set; } = null!;
-    public long PaymentOrderId { get; private set; }
+    public Guid PaymentOrderId { get; private set; }
     public string OrderNo { get; private set; } = null!;
     public string ChannelCode { get; private set; } = null!;
 
@@ -37,7 +38,7 @@ public class PaymentRefund : FullAuditedEntity
         long amount,
         string? reason = null)
     {
-        if (order.Id <= 0)
+        if (order.Id == Guid.Empty)
         {
             throw new BusinessException("支付订单尚未持久化，无法创建退款单");
         }

@@ -2,14 +2,14 @@ namespace BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 
 public class RoleDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public int Sort { get; set; }
     public bool IsEnabled { get; set; }
     public DateTime CreationTime { get; set; }
-    public List<long> MenuIds { get; set; } = [];
+    public List<Guid> MenuIds { get; set; } = [];
 }
 
 public class RoleQueryDto : PagedQueryDto
@@ -37,5 +37,5 @@ public class UpdateRoleDto
 
 public class AssignRoleMenusDto
 {
-    public List<long> MenuIds { get; set; } = [];
+    public List<Guid> MenuIds { get; set; } = [];
 }

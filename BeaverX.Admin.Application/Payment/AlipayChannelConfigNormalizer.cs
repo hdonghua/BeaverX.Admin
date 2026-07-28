@@ -7,7 +7,7 @@ namespace BeaverX.Admin.Application.Payment;
 /// <summary>保存渠道时写入证书相对路径（原文件名 + 渠道 Id）</summary>
 public static class AlipayChannelConfigNormalizer
 {
-    public static string Normalize(long channelId, string configJson)
+    public static string Normalize(Guid channelId, string configJson)
     {
         if (string.IsNullOrWhiteSpace(configJson))
         {
@@ -45,7 +45,7 @@ public static class AlipayChannelConfigNormalizer
         return obj.ToJsonString();
     }
 
-    internal static string BuildRelativeCertPath(string originalFileName, long channelId)
+    internal static string BuildRelativeCertPath(string originalFileName, Guid channelId)
     {
         var safeName = Path.GetFileName(originalFileName.Trim());
         var extension = Path.GetExtension(safeName);

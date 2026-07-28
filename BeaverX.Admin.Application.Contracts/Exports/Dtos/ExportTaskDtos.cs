@@ -4,7 +4,7 @@ namespace BeaverX.Admin.Application.Contracts.Exports.Dtos;
 
 public class ExportTaskDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string ExportType { get; set; } = null!;
     public string? Parameters { get; set; }
     public string FileName { get; set; } = null!;

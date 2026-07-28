@@ -3,29 +3,29 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using BeaverX.Domain.Uow;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Uow;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Rbac;
 
 public class UserAppService : IUserAppService, IScopedDependency
 {
-    private readonly IRepository<User> _userRepository;
-    private readonly IRepository<Role> _roleRepository;
-    private readonly IRepository<UserRole> _userRoleRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IRepository<User, Guid> _userRepository;
+    private readonly IRepository<Role, Guid> _roleRepository;
+    private readonly IRepository<UserRole, Guid> _userRoleRepository;
+    private readonly IUnitOfWorkManager _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly AppCacheInvalidator _cacheInvalidator;
     private readonly RefreshTokenService _refreshTokenService;
     private readonly RealtimePublisher _realtimePublisher;
 
     public UserAppService(
-        IRepository<User> userRepository,
-        IRepository<Role> roleRepository,
-        IRepository<UserRole> userRoleRepository,
-        IUnitOfWork unitOfWork,
+        IRepository<User, Guid> userRepository,
+        IRepository<Role, Guid> roleRepository,
+        IRepository<UserRole, Guid> userRoleRepository,
+        IUnitOfWorkManager unitOfWork,
         IPasswordHasher passwordHasher,
         AppCacheInvalidator cacheInvalidator,
         RefreshTokenService refreshTokenService,
@@ -43,7 +43,7 @@ public class UserAppService : IUserAppService, IScopedDependency
 
     public async Task<PagedResultDto<UserDto>> GetListAsync(UserQueryDto input, CancellationToken cancellationToken = default)
     {
-        var query = _userRepository.GetQueryable()
+        var query = (await _userRepository.GetQueryableAsync())
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .AsQueryable();
@@ -77,7 +77,7 @@ public class UserAppService : IUserAppService, IScopedDependency
         };
     }
 
-    public async Task<UserDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<UserDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var user = await FindUserWithRolesAsync(id, cancellationToken);
         return RbacMapper.ToUserDto(user);
@@ -109,14 +109,13 @@ public class UserAppService : IUserAppService, IScopedDependency
         };
 
         await _userRepository.InsertAsync(user, cancellationToken: cancellationToken);
-        await AssignRolesAsync(user.Id, new AssignUserRolesDto { RoleIds = input.RoleIds }, cancellationToken);
 
-        return await GetAsync(user.Id, cancellationToken);
+        return RbacMapper.ToUserDto(user);
     }
 
-    public async Task<UserDto> UpdateAsync(long id, UpdateUserDto input, CancellationToken cancellationToken = default)
+    public async Task<UserDto> UpdateAsync(Guid id, UpdateUserDto input, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetAsync(id, cancellationToken);
+        var user = await FindUserWithRolesAsync(id, cancellationToken);
         var wasEnabled = user.IsEnabled;
 
         if (input.NickName != null) user.NickName = input.NickName;
@@ -137,17 +136,17 @@ public class UserAppService : IUserAppService, IScopedDependency
             }
         }
 
-        return await GetAsync(id, cancellationToken);
+        return RbacMapper.ToUserDto(user);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await _userRepository.DeleteAsync(id, cancellationToken: cancellationToken);
     }
 
-    public async Task AssignRolesAsync(long id, AssignUserRolesDto input, CancellationToken cancellationToken = default)
+    public async Task AssignRolesAsync(Guid id, AssignUserRolesDto input, CancellationToken cancellationToken = default)
     {
-        await _userRepository.GetAsync(id, cancellationToken);
+        await _userRepository.GetAsync(id, cancellationToken: cancellationToken);
         await _unitOfWork.ExecuteAsync(async ct =>
         {
             await ReplaceUserRolesAsync(id, input.RoleIds, ct);
@@ -156,18 +155,18 @@ public class UserAppService : IUserAppService, IScopedDependency
         await _cacheInvalidator.BumpAccessVersionAsync(cancellationToken);
     }
 
-    public async Task ResetPasswordAsync(long id, ResetPasswordDto input, CancellationToken cancellationToken = default)
+    public async Task ResetPasswordAsync(Guid id, ResetPasswordDto input, CancellationToken cancellationToken = default)
     {
         PasswordInputValidator.Validate(input.NewPassword);
 
-        var user = await _userRepository.GetAsync(id, cancellationToken);
+        var user = await _userRepository.GetAsync(id, cancellationToken: cancellationToken);
         user.PasswordHash = _passwordHasher.Hash(input.NewPassword);
         await _userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
     }
 
-    private async Task<User> FindUserWithRolesAsync(long id, CancellationToken cancellationToken)
+    private async Task<User> FindUserWithRolesAsync(Guid id, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetQueryable()
+        var user = await (await _userRepository.GetQueryableAsync())
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -180,19 +179,19 @@ public class UserAppService : IUserAppService, IScopedDependency
         return user;
     }
 
-    private async Task ReplaceUserRolesAsync(long userId, IEnumerable<long> roleIds, CancellationToken cancellationToken)
+    private async Task ReplaceUserRolesAsync(Guid userId, IEnumerable<Guid> roleIds, CancellationToken cancellationToken)
     {
         var distinctRoleIds = roleIds.Distinct().ToList();
         if (distinctRoleIds.Count > 0)
         {
-            var existingRoleCount = await _roleRepository.GetCountAsync(x => distinctRoleIds.Contains(x.Id), cancellationToken);
+            var existingRoleCount = await _roleRepository.CountAsync(x => distinctRoleIds.Contains(x.Id), cancellationToken);
             if (existingRoleCount != distinctRoleIds.Count)
             {
                 throw new BusinessException("存在无效的角色 ID");
             }
         }
 
-        await _userRoleRepository.DeleteManyAsync(x => x.UserId == userId, cancellationToken);
+        await _userRoleRepository.DeleteAsync(x => x.UserId == userId, cancellationToken: cancellationToken);
 
         if (distinctRoleIds.Count == 0)
         {

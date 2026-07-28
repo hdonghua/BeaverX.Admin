@@ -35,7 +35,7 @@ public class RedisOnlineUserTracker : IOnlineUserTracker
         _connectionsHashKey = prefix + ConnectionsHashSuffix;
     }
 
-    public void AddConnection(long userId, string userName, string? nickName, string connectionId)
+    public void AddConnection(Guid userId, string userName, string? nickName, string connectionId)
     {
         var record = new ConnectionRecord
         {
@@ -57,7 +57,7 @@ public class RedisOnlineUserTracker : IOnlineUserTracker
         _database.HashDelete(_connectionsHashKey, connectionId);
     }
 
-    public int RemoveUserConnections(long userId)
+    public int RemoveUserConnections(Guid userId)
     {
         var entries = _database.HashGetAll(_connectionsHashKey);
         if (entries.Length == 0)
@@ -143,7 +143,7 @@ public class RedisOnlineUserTracker : IOnlineUserTracker
 
     private sealed class ConnectionRecord
     {
-        public long UserId { get; set; }
+        public Guid UserId { get; set; }
         public string UserName { get; set; } = null!;
         public string? NickName { get; set; }
         public string ConnectionId { get; set; } = null!;

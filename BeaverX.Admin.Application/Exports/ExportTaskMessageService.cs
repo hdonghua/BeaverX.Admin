@@ -1,7 +1,7 @@
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Exports;
@@ -11,18 +11,18 @@ namespace BeaverX.Admin.Application.Exports;
 /// </summary>
 public class ExportTaskMessageService : IScopedDependency
 {
-    private readonly IRepository<ExportTask> _exportTaskRepository;
+    private readonly IRepository<ExportTask, Guid> _exportTaskRepository;
 
-    public ExportTaskMessageService(IRepository<ExportTask> exportTaskRepository)
+    public ExportTaskMessageService(IRepository<ExportTask, Guid> exportTaskRepository)
     {
         _exportTaskRepository = exportTaskRepository;
     }
 
     public async Task<bool> TryClaimForProcessingAsync(
-        long taskId,
+        Guid taskId,
         CancellationToken cancellationToken = default)
     {
-        var task = await _exportTaskRepository.FindAsync(x => x.Id == taskId, cancellationToken);
+        var task = await _exportTaskRepository.GetAsync(x => x.Id == taskId, cancellationToken: cancellationToken);
         if (task == null)
         {
             return false;
@@ -38,7 +38,7 @@ public class ExportTaskMessageService : IScopedDependency
             return false;
         }
 
-        var claimed = await _exportTaskRepository.GetQueryable()
+        var claimed = await (await _exportTaskRepository.GetQueryableAsync())
             .Where(x => x.Id == taskId && x.Status == ExportTaskStatus.Pending)
             .ExecuteUpdateAsync(
                 s => s.SetProperty(x => x.Status, ExportTaskStatus.Processing),
@@ -47,9 +47,9 @@ public class ExportTaskMessageService : IScopedDependency
         return claimed > 0;
     }
 
-    public async Task ResetForRetryAsync(long taskId, CancellationToken cancellationToken = default)
+    public async Task ResetForRetryAsync(Guid taskId, CancellationToken cancellationToken = default)
     {
-        var task = await _exportTaskRepository.FindAsync(x => x.Id == taskId, cancellationToken);
+        var task = await _exportTaskRepository.GetAsync(x => x.Id == taskId, cancellationToken: cancellationToken);
         if (task == null || task.Status != ExportTaskStatus.Processing)
         {
             return;
@@ -61,16 +61,16 @@ public class ExportTaskMessageService : IScopedDependency
 
     public async Task ResetStuckProcessingAsync(CancellationToken cancellationToken = default)
     {
-        await _exportTaskRepository.GetQueryable()
+        (await _exportTaskRepository.GetQueryableAsync())
             .Where(x => x.Status == ExportTaskStatus.Processing)
             .ExecuteUpdateAsync(
                 s => s.SetProperty(x => x.Status, ExportTaskStatus.Pending),
                 cancellationToken);
     }
 
-    public async Task<List<long>> GetRepublishTaskIdsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<Guid>> GetRepublishTaskIdsAsync(CancellationToken cancellationToken = default)
     {
-        return await _exportTaskRepository.GetQueryable()
+        return await (await _exportTaskRepository.GetQueryableAsync())
             .Where(x => x.Status == ExportTaskStatus.Pending)
             .OrderBy(x => x.Id)
             .Select(x => x.Id)

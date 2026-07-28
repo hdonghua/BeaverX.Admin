@@ -3,7 +3,7 @@ using BeaverX.Admin.Application.Messaging;
 using BeaverX.Admin.Application.Contracts.Exports;
 using BeaverX.Admin.Application.Realtime;
 using BeaverX.Admin.Domain.Shared.Exports;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using DotNetCore.CAP;
 using DotNetCore.CAP.Messages;
 using Microsoft.Extensions.Logging;

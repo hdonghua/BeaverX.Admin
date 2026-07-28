@@ -1,11 +1,12 @@
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Messages;
 
-public class UserMessage : CreationAuditedEntity
+public class UserMessage : CreationAuditedEntity<Guid>
 {
-    public long UserId { get; set; }
+    public Guid UserId { get; set; }
 
     /// <summary>
     /// notice

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Admin.Domain.Shared.Scheduling;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -30,13 +30,14 @@ public class HttpApiScheduledJobRunner
         _logger = logger;
     }
 
-    public async Task ExecuteAsync(long jobId, bool isManualTrigger, CancellationToken cancellationToken)
+    public async Task ExecuteAsync(Guid jobId, bool isManualTrigger, CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var jobRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
-        var logRepository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJobLog>>();
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, ct) =>
+        {
+        var jobRepository = sp.GetRequiredService<IRepository<ScheduledJob, Guid>>();
+        var logRepository = sp.GetRequiredService<IRepository<ScheduledJobLog, Guid>>();
 
-        var job = await jobRepository.FindAsync(x => x.Id == jobId, cancellationToken);
+        var job = await jobRepository.GetAsync(x => x.Id == jobId, cancellationToken: ct);
         if (job == null)
         {
             _logger.LogWarning("Scheduled job {JobId} not found", jobId);
@@ -51,7 +52,7 @@ public class HttpApiScheduledJobRunner
 
         if (job.JobType != ScheduledJobType.HttpApi)
         {
-            await WriteFailureAsync(jobRepository, logRepository, job, isManualTrigger, "不支持的任务类型", cancellationToken);
+            await WriteFailureAsync(jobRepository, logRepository, job, isManualTrigger, "不支持的任务类型", ct);
             return;
         }
 
@@ -69,8 +70,8 @@ public class HttpApiScheduledJobRunner
             client.Timeout = TimeSpan.FromSeconds(Math.Clamp(job.TimeoutSeconds, 1, 600));
 
             using var request = BuildRequest(job);
-            using var response = await client.SendAsync(request, cancellationToken);
-            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var response = await client.SendAsync(request, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
             var truncatedBody = Truncate(responseBody, 4000);
 
             log.FinishedAt = DateTime.UtcNow;
@@ -104,8 +105,9 @@ public class HttpApiScheduledJobRunner
             _logger.LogError(ex, "Scheduled job {JobId} execution failed", jobId);
         }
 
-        await logRepository.InsertAsync(log, cancellationToken: cancellationToken);
-        await jobRepository.UpdateAsync(job, cancellationToken: cancellationToken);
+        await logRepository.InsertAsync(log, cancellationToken: ct);
+        await jobRepository.UpdateAsync(job, cancellationToken: ct);
+        }, cancellationToken);
     }
 
     private static HttpRequestMessage BuildRequest(ScheduledJob job)
@@ -172,8 +174,8 @@ public class HttpApiScheduledJobRunner
     }
 
     private static async Task WriteFailureAsync(
-        IRepository<ScheduledJob> jobRepository,
-        IRepository<ScheduledJobLog> logRepository,
+        IRepository<ScheduledJob, Guid> jobRepository,
+        IRepository<ScheduledJobLog, Guid> logRepository,
         ScheduledJob job,
         bool isManualTrigger,
         string message,

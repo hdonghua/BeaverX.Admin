@@ -1,7 +1,7 @@
 using BeaverX.Admin.Application.Scheduling;
 using BeaverX.Admin.Domain.Scheduling;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -168,21 +168,23 @@ public class RecurringJobCronService : IRecurringJobCronService, ISingletonDepen
             return;
         }
 
-        if (!long.TryParse(recurringJobId[prefix.Length..], out var jobId))
+        if (!Guid.TryParse(recurringJobId[prefix.Length..], out var jobId))
         {
             return;
         }
 
-        using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
-        var job = await repository.FindAsync(x => x.Id == jobId, cancellationToken);
-        if (job == null)
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, ct) =>
         {
-            return;
-        }
+            var repository = sp.GetRequiredService<IRepository<ScheduledJob, Guid>>();
+            var job = await repository.GetAsync(x => x.Id == jobId, cancellationToken: ct);
+            if (job == null)
+            {
+                return;
+            }
 
-        job.TimeZoneId = timeZoneId;
-        await repository.UpdateAsync(job, cancellationToken: cancellationToken);
+            job.TimeZoneId = timeZoneId;
+            await repository.UpdateAsync(job, cancellationToken: ct);
+        }, cancellationToken);
     }
 
     private async Task SyncBusinessJobAsync(
@@ -197,26 +199,28 @@ public class RecurringJobCronService : IRecurringJobCronService, ISingletonDepen
             return;
         }
 
-        if (!long.TryParse(recurringJobId["scheduled-job:".Length..], out var jobId))
+        if (!Guid.TryParse(recurringJobId["scheduled-job:".Length..], out var jobId))
         {
             return;
         }
 
-        using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IRepository<ScheduledJob>>();
-        var job = await repository.FindAsync(x => x.Id == jobId, cancellationToken);
-        if (job == null)
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, ct) =>
         {
-            return;
-        }
+            var repository = sp.GetRequiredService<IRepository<ScheduledJob, Guid>>();
+            var job = await repository.GetAsync(x => x.Id == jobId, cancellationToken: ct);
+            if (job == null)
+            {
+                return;
+            }
 
-        job.CronExpression = cronExpression;
-        if (!string.IsNullOrWhiteSpace(timeZoneId))
-        {
-            job.TimeZoneId = timeZoneId;
-        }
+            job.CronExpression = cronExpression;
+            if (!string.IsNullOrWhiteSpace(timeZoneId))
+            {
+                job.TimeZoneId = timeZoneId;
+            }
 
-        await repository.UpdateAsync(job, cancellationToken: cancellationToken);
+            await repository.UpdateAsync(job, cancellationToken: ct);
+        }, cancellationToken);
     }
 
     private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)

@@ -5,7 +5,7 @@ namespace BeaverX.Admin.Application.Contracts.Scheduling.Dtos;
 
 public class ScheduledJobDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string JobCode { get; set; } = null!;
     public string Name { get; set; } = null!;
     public ScheduledJobType JobType { get; set; }
@@ -26,8 +26,8 @@ public class ScheduledJobDto
 
 public class ScheduledJobLogDto
 {
-    public long Id { get; set; }
-    public long JobId { get; set; }
+    public Guid Id { get; set; }
+    public Guid JobId { get; set; }
     public ScheduledJobRunStatus Status { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }

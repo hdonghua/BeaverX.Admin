@@ -1,9 +1,9 @@
-﻿using BeaverX.Core.Modules;
+using Volo.Abp.Domain;
+using Volo.Abp.Modularity;
 
-namespace BeaverX.Admin.Domain.Shared
+namespace BeaverX.Admin.Domain.Shared;
+
+[DependsOn(typeof(AbpDddDomainSharedModule))]
+public class BeaverXAdminDomainSharedModule : AbpModule
 {
-    public class BeaverXAdminDomainSharedModule : BeaverXModule
-    {
-
-    }
 }

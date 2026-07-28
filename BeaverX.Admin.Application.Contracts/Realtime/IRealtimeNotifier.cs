@@ -3,7 +3,7 @@ namespace BeaverX.Admin.Application.Contracts.Realtime;
 public interface IRealtimeNotifier
 {
     Task SendToUserAsync(
-        long userId,
+        Guid userId,
         string eventName,
         object? payload,
         CancellationToken cancellationToken = default);

@@ -22,18 +22,19 @@ public class CodeRecurringJobRunner
 
     public async Task ExecuteAsync(string jobTypeFullName, CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var job = scope.ServiceProvider
-            .GetServices<IRecurringJob>()
-            .FirstOrDefault(x => string.Equals(x.GetType().FullName, jobTypeFullName, StringComparison.Ordinal));
-
-        if (job == null)
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, ct) =>
         {
-            _logger.LogWarning("Recurring job {JobType} is not registered in DI", jobTypeFullName);
-            return;
-        }
+            var job = sp.GetServices<IRecurringJob>()
+                .FirstOrDefault(x => string.Equals(x.GetType().FullName, jobTypeFullName, StringComparison.Ordinal));
 
-        _logger.LogDebug("Executing recurring job {JobType}", jobTypeFullName);
-        await job.ExecuteAsync(cancellationToken);
+            if (job == null)
+            {
+                _logger.LogWarning("Recurring job {JobType} is not registered in DI", jobTypeFullName);
+                return;
+            }
+
+            _logger.LogDebug("Executing recurring job {JobType}", jobTypeFullName);
+            await job.ExecuteAsync(ct);
+        }, cancellationToken);
     }
 }

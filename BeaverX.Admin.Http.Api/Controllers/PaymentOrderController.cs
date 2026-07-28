@@ -3,12 +3,11 @@ using BeaverX.Admin.Application.Contracts.Payment.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class PaymentOrderController : BeaverXControllerBase
+public class PaymentOrderController : AdminControllerBase
 {
   private readonly IPaymentOrderAppService _orderAppService;
 
@@ -25,9 +24,9 @@ public class PaymentOrderController : BeaverXControllerBase
     => _orderAppService.GetListAsync(input, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.List)]
-  [HttpGet("{id:long}")]
-  public Task<PaymentOrderDto> GetAsync(long id, CancellationToken cancellationToken)
-    => _orderAppService.GetAsync(id, cancellationToken);
+  [HttpGet("{id:guid}")]
+  public Task<PaymentOrderDto> GetAsync(Guid id, CancellationToken cancellationToken)
+    => _orderAppService.GetAsync(id, cancellationToken: cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.List)]
   [HttpGet("order-no/{orderNo}")]
@@ -46,13 +45,13 @@ public class PaymentOrderController : BeaverXControllerBase
   }
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.Query)]
-  [HttpPost("{id:long}/sync")]
-  public Task<PaymentOrderDto> SyncOrderAsync(long id, CancellationToken cancellationToken)
+  [HttpPost("{id:guid}/sync")]
+  public Task<PaymentOrderDto> SyncOrderAsync(Guid id, CancellationToken cancellationToken)
     => _orderAppService.SyncOrderAsync(id, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.Close)]
-  [HttpPost("{id:long}/close")]
-  public Task<PaymentOrderDto> CloseOrderAsync(long id, CancellationToken cancellationToken)
+  [HttpPost("{id:guid}/close")]
+  public Task<PaymentOrderDto> CloseOrderAsync(Guid id, CancellationToken cancellationToken)
     => _orderAppService.CloseOrderAsync(id, cancellationToken);
 
   [RequirePermission(RbacPermissionCodes.Payment.Order.Refund)]

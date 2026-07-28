@@ -3,17 +3,17 @@ using BeaverX.Admin.Application.Contracts.Payment.Dtos;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Payment;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Payment;
 
 public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependency
 {
-    private readonly IRepository<PaymentRefund> _refundRepository;
+    private readonly IRepository<PaymentRefund, Guid> _refundRepository;
 
-    public PaymentRefundAppService(IRepository<PaymentRefund> refundRepository)
+    public PaymentRefundAppService(IRepository<PaymentRefund, Guid> refundRepository)
     {
         _refundRepository = refundRepository;
     }
@@ -22,7 +22,7 @@ public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependen
       PaymentRefundQueryDto input,
       CancellationToken cancellationToken = default)
     {
-        var query = _refundRepository.GetQueryable();
+        var query = await _refundRepository.GetQueryableAsync();
 
         if (!string.IsNullOrWhiteSpace(input.OrderNo))
         {
@@ -56,9 +56,9 @@ public class PaymentRefundAppService : IPaymentRefundAppService, IScopedDependen
         };
     }
 
-    public async Task<PaymentRefundDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<PaymentRefundDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var entity = await _refundRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _refundRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
             throw new BusinessException($"退款单不存在: {id}");

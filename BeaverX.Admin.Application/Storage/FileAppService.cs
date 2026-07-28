@@ -1,6 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Storage;
 using BeaverX.Admin.Application.Contracts.Storage.Dtos;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace BeaverX.Admin.Application.Storage;

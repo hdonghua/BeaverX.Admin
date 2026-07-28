@@ -24,23 +24,25 @@ public class ExportTaskRecoveryHostedService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var messageService = scope.ServiceProvider.GetRequiredService<ExportTaskMessageService>();
-        var publisher = scope.ServiceProvider.GetRequiredService<IExportTaskPublisher>();
-
-        await messageService.ResetStuckProcessingAsync(cancellationToken);
-
-        var taskIds = await messageService.GetRepublishTaskIdsAsync(cancellationToken);
-        if (taskIds.Count == 0)
+        await _scopeFactory.RunInUnitOfWorkAsync(async (sp, ct) =>
         {
-            return;
-        }
+            var messageService = sp.GetRequiredService<ExportTaskMessageService>();
+            var publisher = sp.GetRequiredService<IExportTaskPublisher>();
 
-        _logger.LogInformation("Recovering {Count} pending export tasks via CAP", taskIds.Count);
-        foreach (var taskId in taskIds)
-        {
-            await publisher.PublishExecuteAsync(taskId, cancellationToken);
-        }
+            await messageService.ResetStuckProcessingAsync(ct);
+
+            var taskIds = await messageService.GetRepublishTaskIdsAsync(ct);
+            if (taskIds.Count == 0)
+            {
+                return;
+            }
+
+            _logger.LogInformation("Recovering {Count} pending export tasks via CAP", taskIds.Count);
+            foreach (var taskId in taskIds)
+            {
+                await publisher.PublishExecuteAsync(taskId, ct);
+            }
+        }, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

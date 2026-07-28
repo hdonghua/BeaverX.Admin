@@ -7,13 +7,14 @@ using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Scheduling;
 using BeaverX.Admin.Domain.Ticket;
-using BeaverX.Domain.Users;
-using BeaverX.EntityFrameworkCore.Contexts;
 using Microsoft.EntityFrameworkCore;
+using Volo.Abp.Data;
+using Volo.Abp.EntityFrameworkCore;
 
 namespace BeaverX.Admin.EntityFrameworkCore;
 
-public class AdminDbContext : BeaverXDbContext<AdminDbContext>
+[ConnectionStringName("Default")]
+public class AdminDbContext : AbpDbContext<AdminDbContext>
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -35,28 +36,14 @@ public class AdminDbContext : BeaverXDbContext<AdminDbContext>
     public DbSet<ScheduledJobLog> ScheduledJobLogs => Set<ScheduledJobLog>();
     public DbSet<WorkTicket> WorkTickets => Set<WorkTicket>();
 
-    public AdminDbContext(DbContextOptions<AdminDbContext> options, ICurrentUser currentUser)
-        : base(options, currentUser)
+    public AdminDbContext(DbContextOptions<AdminDbContext> options)
+        : base(options)
     {
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (entityType.ClrType is null)
-            {
-                continue;
-            }
-
-            var idProperty = entityType.FindProperty("Id");
-            if (idProperty != null && idProperty.ClrType == typeof(long))
-            {
-                modelBuilder.Entity(entityType.ClrType).Property<long>("Id").ValueGeneratedNever();
-            }
-        }
 
         modelBuilder.Entity<User>(entity =>
         {

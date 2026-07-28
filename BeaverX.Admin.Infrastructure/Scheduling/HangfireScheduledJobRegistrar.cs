@@ -1,5 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Scheduling;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Hangfire;
 
 namespace BeaverX.Admin.Infrastructure.Scheduling;
@@ -27,18 +27,18 @@ public class HangfireScheduledJobRegistrar : IHangfireScheduledJobRegistrar, ISi
             });
     }
 
-    public void Remove(long jobId)
+    public void Remove(Guid jobId)
     {
         RecurringJob.RemoveIfExists(BuildRecurringJobId(jobId));
     }
 
-    public string Enqueue(long jobId)
+    public string Enqueue(Guid jobId)
     {
         return BackgroundJob.Enqueue<HttpApiScheduledJobRunner>(
             runner => runner.ExecuteAsync(jobId, true, CancellationToken.None));
     }
 
-    internal static string BuildRecurringJobId(long jobId) => $"scheduled-job:{jobId}";
+    internal static string BuildRecurringJobId(Guid jobId) => $"scheduled-job:{jobId}";
 
     private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
     {

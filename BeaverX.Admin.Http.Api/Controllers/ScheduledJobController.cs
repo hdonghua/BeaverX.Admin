@@ -4,12 +4,11 @@ using BeaverX.Admin.Application.Contracts.Scheduling;
 using BeaverX.Admin.Application.Contracts.Scheduling.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class ScheduledJobController : BeaverXControllerBase
+public class ScheduledJobController : AdminControllerBase
 {
     private readonly IScheduledJobAppService _scheduledJobAppService;
 
@@ -26,14 +25,14 @@ public class ScheduledJobController : BeaverXControllerBase
         => _scheduledJobAppService.GetListAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Job.List)]
-    [HttpGet("{id:long}")]
-    public Task<ScheduledJobDto> GetAsync(long id, CancellationToken cancellationToken)
-        => _scheduledJobAppService.GetAsync(id, cancellationToken);
+    [HttpGet("{id:guid}")]
+    public Task<ScheduledJobDto> GetAsync(Guid id, CancellationToken cancellationToken)
+        => _scheduledJobAppService.GetAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Job.List)]
-    [HttpGet("{id:long}/logs")]
+    [HttpGet("{id:guid}/logs")]
     public Task<PagedResultDto<ScheduledJobLogDto>> GetLogsAsync(
-        long id,
+        Guid id,
         [FromQuery] ScheduledJobLogQueryDto input,
         CancellationToken cancellationToken)
         => _scheduledJobAppService.GetLogsAsync(id, input, cancellationToken);
@@ -46,21 +45,21 @@ public class ScheduledJobController : BeaverXControllerBase
         => _scheduledJobAppService.CreateAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Job.Update)]
-    [HttpPut("{id:long}")]
+    [HttpPut("{id:guid}")]
     public Task<ScheduledJobDto> UpdateAsync(
-        long id,
+        Guid id,
         [FromBody] UpdateScheduledJobDto input,
         CancellationToken cancellationToken)
         => _scheduledJobAppService.UpdateAsync(id, input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Job.Delete)]
-    [HttpDelete("{id:long}")]
-    public Task DeleteAsync(long id, CancellationToken cancellationToken)
-        => _scheduledJobAppService.DeleteAsync(id, cancellationToken);
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        => _scheduledJobAppService.DeleteAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Job.Trigger)]
-    [HttpPost("{id:long}/trigger")]
-    public Task TriggerAsync(long id, CancellationToken cancellationToken)
+    [HttpPost("{id:guid}/trigger")]
+    public Task TriggerAsync(Guid id, CancellationToken cancellationToken)
         => _scheduledJobAppService.TriggerAsync(id, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Job.List)]

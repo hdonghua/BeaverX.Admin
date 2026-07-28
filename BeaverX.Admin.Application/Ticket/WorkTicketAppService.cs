@@ -6,9 +6,9 @@ using BeaverX.Admin.Application.Rbac;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Ticket;
 using BeaverX.Admin.Domain.Shared.Ticket;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
-using BeaverX.Domain.Users;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeaverX.Admin.Application.Ticket;
@@ -23,13 +23,13 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         WriteIndented = false
     };
 
-    private readonly IRepository<WorkTicket> _workTicketRepository;
-    private readonly IRepository<User> _userRepository;
+    private readonly IRepository<WorkTicket, Guid> _workTicketRepository;
+    private readonly IRepository<User, Guid> _userRepository;
     private readonly ICurrentUser _currentUser;
 
     public WorkTicketAppService(
-        IRepository<WorkTicket> workTicketRepository,
-        IRepository<User> userRepository,
+        IRepository<WorkTicket, Guid> workTicketRepository,
+        IRepository<User, Guid> userRepository,
         ICurrentUser currentUser)
     {
         _workTicketRepository = workTicketRepository;
@@ -52,10 +52,10 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
                 x.Status == WorkTicketStatus.Processing),
             cancellationToken);
 
-    public async Task<WorkTicketDto> GetAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<WorkTicketDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await FindAsync(id, cancellationToken);
-        var userMap = await LoadUserMapAsync([entity.UserId, entity.HandlerUserId ?? 0], cancellationToken);
+        var userMap = await LoadUserMapAsync([entity.UserId, entity.HandlerUserId], cancellationToken);
         return ToDto(entity, userMap);
     }
 
@@ -91,7 +91,7 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
     }
 
     public async Task<WorkTicketDto> UpdateAsync(
-        long id,
+        Guid id,
         UpdateWorkTicketDto input,
         CancellationToken cancellationToken = default)
     {
@@ -129,12 +129,12 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         }
 
         await _workTicketRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
-        var userMap = await LoadUserMapAsync([entity.UserId, entity.HandlerUserId ?? 0], cancellationToken);
+        var userMap = await LoadUserMapAsync([entity.UserId, entity.HandlerUserId], cancellationToken);
         return ToDto(entity, userMap);
     }
 
     public async Task<WorkTicketDto> ProcessAsync(
-        long id,
+        Guid id,
         ProcessWorkTicketDto input,
         CancellationToken cancellationToken = default)
     {
@@ -169,7 +169,7 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         return ToDto(entity, userMap);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await FindAsync(id, cancellationToken);
         await _workTicketRepository.DeleteAsync(id, cancellationToken: cancellationToken);
@@ -180,7 +180,7 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         Func<IQueryable<WorkTicket>, IQueryable<WorkTicket>>? filter,
         CancellationToken cancellationToken)
     {
-        var query = _workTicketRepository.GetQueryable().AsQueryable();
+        var query = (await _workTicketRepository.GetQueryableAsync()).AsQueryable();
         if (filter != null)
         {
             query = filter(query);
@@ -210,12 +210,12 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
             .ToListAsync(cancellationToken);
 
         var userIds = items
-            .SelectMany(x => new long?[] { x.UserId, x.HandlerUserId })
-            .Where(id => id.HasValue && id.Value > 0)
+            .SelectMany(x => new Guid?[] { x.UserId, x.HandlerUserId })
+            .Where(id => id.HasValue && id.Value != Guid.Empty)
             .Select(id => id!.Value)
             .Distinct()
             .ToList();
-        var userMap = await LoadUserMapAsync(userIds, cancellationToken);
+        var userMap = await LoadUserMapAsync(userIds.Cast<Guid?>(), cancellationToken);
 
         return new PagedResultDto<WorkTicketDto>
         {
@@ -224,9 +224,9 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         };
     }
 
-    private async Task<WorkTicket> FindAsync(long id, CancellationToken cancellationToken)
+    private async Task<WorkTicket> FindAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await _workTicketRepository.FindAsync(x => x.Id == id, cancellationToken);
+        var entity = await _workTicketRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
             throw new BusinessException($"工单不存在: {id}");
@@ -235,9 +235,9 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         return entity;
     }
 
-    private long GetCurrentUserId()
+    private Guid GetCurrentUserId()
     {
-        if (!_currentUser.Id.HasValue || _currentUser.Id.Value <= 0)
+        if (!_currentUser.Id.HasValue || _currentUser.Id.Value == Guid.Empty)
         {
             throw new BusinessException("未登录或用户信息无效");
         }
@@ -245,12 +245,13 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         return _currentUser.Id.Value;
     }
 
-    private async Task<Dictionary<long, string>> LoadUserMapAsync(
-        IEnumerable<long> userIds,
+    private async Task<Dictionary<Guid, string>> LoadUserMapAsync(
+        IEnumerable<Guid?> userIds,
         CancellationToken cancellationToken)
     {
         var ids = userIds
-            .Where(id => id > 0)
+            .Where(id => id.HasValue && id.Value != Guid.Empty)
+            .Select(id => id!.Value)
             .Distinct()
             .ToList();
 
@@ -259,7 +260,7 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
             return [];
         }
 
-        return await _userRepository.GetQueryable()
+        return await (await _userRepository.GetQueryableAsync())
             .AsNoTracking()
             .Where(x => ids.Contains(x.Id))
             .Select(x => new { x.Id, x.NickName, x.UserName })
@@ -318,7 +319,7 @@ public class WorkTicketAppService : IWorkTicketAppService, IScopedDependency
         return JsonSerializer.Deserialize<List<WorkTicketImageDto>>(imagesJson, JsonOptions) ?? [];
     }
 
-    private static WorkTicketDto ToDto(WorkTicket entity, Dictionary<long, string> userMap)
+    private static WorkTicketDto ToDto(WorkTicket entity, Dictionary<Guid, string> userMap)
     {
         userMap.TryGetValue(entity.UserId, out var creatorName);
         string? handlerName = null;

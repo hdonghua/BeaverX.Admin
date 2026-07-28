@@ -1,5 +1,5 @@
 using BeaverX.Admin.Application.Contracts.Realtime;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BeaverX.Admin.Infrastructure.Realtime;
@@ -14,7 +14,7 @@ public class SignalRRealtimeNotifier : IRealtimeNotifier, IScopedDependency
     }
 
     public Task SendToUserAsync(
-        long userId,
+        Guid userId,
         string eventName,
         object? payload,
         CancellationToken cancellationToken = default)

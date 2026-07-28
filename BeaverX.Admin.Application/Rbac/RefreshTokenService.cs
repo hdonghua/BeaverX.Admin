@@ -3,8 +3,8 @@ using System.Text;
 using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Domain.Rbac;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -12,12 +12,12 @@ namespace BeaverX.Admin.Application.Rbac;
 
 public class RefreshTokenService : IScopedDependency
 {
-    private readonly IRepository<UserRefreshToken> _refreshTokenRepository;
+    private readonly IRepository<UserRefreshToken, Guid> _refreshTokenRepository;
     private readonly ICacheService _cache;
     private readonly JwtOptions _options;
 
     public RefreshTokenService(
-        IRepository<UserRefreshToken> refreshTokenRepository,
+        IRepository<UserRefreshToken, Guid> refreshTokenRepository,
         ICacheService cache,
         IOptions<JwtOptions> options)
     {
@@ -36,7 +36,7 @@ public class RefreshTokenService : IScopedDependency
     }
 
     public async Task<(string RefreshToken, DateTime ExpiresAt)> CreateAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         var plainToken = GenerateToken();
@@ -54,10 +54,10 @@ public class RefreshTokenService : IScopedDependency
     }
 
     /// <summary>
-    /// 一次性消费刷新令牌：标记 RevokedAt 并软删除，防止重复使用。
-    /// 优先读缓存校验，命中时跳过数据库查询。
+    /// 一次性消费刷新令牌：标记 RevokedAt 并软删除，防止重复使用�?
+    /// 优先读缓存校验，命中时跳过数据库查询�?
     /// </summary>
-    public async Task<long?> TryConsumeAsync(
+    public async Task<Guid?> TryConsumeAsync(
         string refreshToken,
         string? replacedByTokenHash = null,
         CancellationToken cancellationToken = default)
@@ -82,7 +82,7 @@ public class RefreshTokenService : IScopedDependency
             return affected > 0 ? cached.UserId : null;
         }
 
-        var token = await _refreshTokenRepository.GetQueryable()
+        var token = await (await _refreshTokenRepository.GetQueryableAsync())
             .AsNoTracking()
             .Where(x =>
                 x.TokenHash == hash &&
@@ -107,12 +107,12 @@ public class RefreshTokenService : IScopedDependency
         return null;
     }
 
-    public async Task RevokeAllForUserAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await RemoveAllCachedTokensForUserAsync(userId, cancellationToken);
 
         var now = DateTime.UtcNow;
-        await _refreshTokenRepository.GetQueryable()
+        (await _refreshTokenRepository.GetQueryableAsync())
             .Where(x => x.UserId == userId && x.RevokedAt == null && !x.IsDeleted)
             .ExecuteUpdateAsync(
                 setters => setters
@@ -123,9 +123,9 @@ public class RefreshTokenService : IScopedDependency
     }
 
     private async Task CacheTokenAsync(
-        long userId,
+        Guid userId,
         string hash,
-        long tokenId,
+        Guid tokenId,
         DateTime expiresAt,
         CancellationToken cancellationToken)
     {
@@ -147,7 +147,7 @@ public class RefreshTokenService : IScopedDependency
     }
 
     private async Task AddToUserTokenListAsync(
-        long userId,
+        Guid userId,
         string hash,
         TimeSpan ttl,
         CancellationToken cancellationToken)
@@ -163,7 +163,7 @@ public class RefreshTokenService : IScopedDependency
     }
 
     private async Task RemoveCachedTokenAsync(
-        long userId,
+        Guid userId,
         string hash,
         CancellationToken cancellationToken)
     {
@@ -188,7 +188,7 @@ public class RefreshTokenService : IScopedDependency
     }
 
     private async Task RemoveAllCachedTokensForUserAsync(
-        long userId,
+        Guid userId,
         CancellationToken cancellationToken)
     {
         var key = CacheKeys.UserRefreshTokens(userId);
@@ -204,12 +204,13 @@ public class RefreshTokenService : IScopedDependency
         await _cache.RemoveAsync(key, cancellationToken);
     }
 
-    private Task<int> RevokeByHashAsync(
+    private async Task<int> RevokeByHashAsync(
         string hash,
         DateTime now,
         string? replacedByTokenHash,
-        CancellationToken cancellationToken) =>
-        _refreshTokenRepository.GetQueryable()
+        CancellationToken cancellationToken)
+    {
+        return await (await _refreshTokenRepository.GetQueryableAsync())
             .Where(x => x.TokenHash == hash && x.RevokedAt == null && !x.IsDeleted)
             .ExecuteUpdateAsync(
                 setters => setters
@@ -218,14 +219,15 @@ public class RefreshTokenService : IScopedDependency
                     .SetProperty(x => x.DeletionTime, now)
                     .SetProperty(x => x.ReplacedByTokenHash, replacedByTokenHash),
                 cancellationToken);
+    }
 
     private async Task<bool> RevokeByIdAsync(
-        long tokenId,
+        Guid tokenId,
         DateTime now,
         string? replacedByTokenHash,
         CancellationToken cancellationToken)
     {
-        var affected = await _refreshTokenRepository.GetQueryable()
+        var affected = await (await _refreshTokenRepository.GetQueryableAsync())
             .Where(x => x.Id == tokenId && x.RevokedAt == null && !x.IsDeleted)
             .ExecuteUpdateAsync(
                 setters => setters
@@ -240,8 +242,8 @@ public class RefreshTokenService : IScopedDependency
 
     private sealed class RefreshTokenCacheEntry
     {
-        public long UserId { get; init; }
-        public long TokenId { get; init; }
+        public Guid UserId { get; init; }
+        public Guid TokenId { get; init; }
         public DateTime ExpiresAt { get; init; }
     }
 }

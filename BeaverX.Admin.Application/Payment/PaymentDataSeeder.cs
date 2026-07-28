@@ -1,27 +1,28 @@
-using BeaverX.Admin.Domain.DataSeeder;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Core.Dependency;
-using BeaverX.Domain.Repositories;
+using Volo.Abp.Data;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Payment;
 
-public class PaymentDataSeeder : IScopedDependency, IDataSeeder
+public class PaymentDataSeeder : IDataSeedContributor, ITransientDependency
 {
-    private readonly IRepository<PaymentChannel> _channelRepository;
+    private readonly IRepository<PaymentChannel, Guid> _channelRepository;
     private readonly ILogger<PaymentDataSeeder> _logger;
 
     public PaymentDataSeeder(
-      IRepository<PaymentChannel> channelRepository,
+      IRepository<PaymentChannel, Guid> channelRepository,
       ILogger<PaymentDataSeeder> logger)
     {
         _channelRepository = channelRepository;
         _logger = logger;
     }
 
-    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    public async Task SeedAsync(DataSeedContext context)
     {
+        var cancellationToken = CancellationToken.None;
         await EnsureChannelAsync(
           PaymentChannelCodes.WeChatQrcode,
           () => PaymentChannel.Create(

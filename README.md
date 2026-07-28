@@ -2,7 +2,7 @@
 
 > **Language**: 简体中文 | [English](README.en.md)
 
-基于 [BeaverX](https://www.nuget.org/packages/BeaverX.Core) 模块化框架的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。
+基于 [ABP Framework](https://abp.io/)（官方 NuGet：`Volo.Abp.*`）的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。实体主键统一使用 **Guid**。
 
 ## 在线预览
 
@@ -18,8 +18,9 @@
 | 类别 | 技术 |
 |------|------|
 | 运行时 | .NET 10 |
-| Web | ASP.NET Core + BeaverX.WebMvc |
+| Web | ASP.NET Core + Volo.Abp.AspNetCore.Mvc |
 | ORM | Entity Framework Core + **PostgreSQL**（`master`）/ **MySQL**（`master-mysql`）；SqlSugar + **PostgreSQL**（`sqlsugar`）/ **MySQL**（`sqlsugar-mysql`） |
+| 主键 | **Guid**（ABP `Entity<Guid>` / `FullAuditedEntity<Guid>` 等） |
 | 认证 | JWT Bearer + Refresh Token |
 | 日志 | Serilog（控制台 + 本地文件） |
 | 对象存储 | MinIO（可选） |
@@ -66,7 +67,7 @@ git checkout master-mysql
 
 MySQL 分支差异摘要：
 
-- EF Core 驱动：`BeaverX.EntityFrameworkCore.MySql` + `AdminMySqlDbDriverOptionsBuilder`
+- EF Core 驱动：`Volo.Abp.EntityFrameworkCore.MySql`（见 `master-mysql` 分支）
 - Hangfire 存储：MySQL（表前缀见 `Hangfire:SchemaName`）
 - CAP 消息存储：MySQL（与业务库共用 `ConnectionStrings:Default`）
 - API 时间字段：全局 UTC JSON 序列化 + 写入库前 UTC 规范化（兼容 MySQL `DATETIME`）
@@ -133,12 +134,12 @@ git checkout sqlsugar-mysql
 
 #### EF Core（`master` / `master-mysql`）
 
-BeaverX **未封装** SQL Server / Oracle 等驱动包（目前仅有 `BeaverX.EntityFrameworkCore.PostgreSql` / `BeaverX.EntityFrameworkCore.MySql`）。
+本仓库 **未预置** SQL Server / Oracle 等驱动（`master` 使用 `Volo.Abp.EntityFrameworkCore.PostgreSql`）。
 
-需要自行实现（可参考现有 PostgreSQL / MySQL 驱动与 Admin 侧 `IDbDriverOptionsBuilder`）：
+需要自行实现（可参考现有 PostgreSQL / MySQL 分支与 `AbpDbContextOptions` 配置）：
 
-1. **BeaverX.EntityFrameworkCore.\***：实现 `IDbDriverOptionsBuilder`（`UseSqlServer` / `UseOracle` 等），并注册对应 Module
-2. **BeaverX.Domain / Admin 侧**：按现有分层接线 DbContext、仓储、迁移；Hangfire、CAP 等中间件也需换成目标库存储
+1. **EF Core 驱动**：在 `BeaverXAdminEntityFrameworkCoreModule` 中配置 `UseSqlServer` / `UseOracle` 等，并引入对应 ABP / EF 包
+2. **Admin 侧**：按现有分层接线 DbContext、仓储、迁移；Hangfire、CAP 等中间件也需换成目标库存储
 3. 重新生成并执行 **EF Migrations**（不要混用其它库的迁移历史）
 
 业务实体与 Application 层可复用，但驱动与基础设施需自行适配。
@@ -194,7 +195,7 @@ dotnet run --project BeaverX.Admin.Http.Host
 
 ### 4. 种子数据
 
-应用启动时 `DataSeederHostService` 会自动执行所有 `IDataSeeder` 实现，包括：
+应用启动时通过 ABP 的 `IDataSeeder` 执行所有 `IDataSeedContributor` 实现，包括：
 
 - RBAC（用户、角色、菜单、超级管理员 `super_admin`）
 - 字典、配置、消息等演示数据
@@ -211,7 +212,7 @@ BeaverX.Admin/
 ├── BeaverX.Admin.Infrastructure/        # MinIO、CAP、JWT 签发、密码哈希等技术实现
 ├── BeaverX.Admin.Application/           # AppService、Seeder、业务编排
 ├── BeaverX.Admin.Application.Contracts/ # DTO、IAppService、基础设施接口
-├── BeaverX.Admin.Domain/                # 实体、IDataSeeder
+├── BeaverX.Admin.Domain/                # 实体
 ├── BeaverX.Admin.Domain.Shared/         # 权限码、枚举等共享常量
 └── BeaverX.Admin.EntityFrameworkCore/   # DbContext、Migrations
 ```
@@ -231,11 +232,12 @@ BeaverX.Admin/
 
 ### 依赖注入约定
 
-实现 `IScopedDependency`（或 `ITransientDependency` / `ISingletonDependency`）的类会被 BeaverX 自动注册。AppService 同时实现业务接口即可被 Controller 注入。
+实现 `IScopedDependency`（或 `ITransientDependency` / `ISingletonDependency`）的类会被 **ABP** 自动注册。AppService 同时实现业务接口即可被 Controller 注入。
 
 ## API 约定
 
-- 路由前缀：`/api/[Controller]`（继承 `BeaverXController`）
+- 路由前缀：`/api/[Controller]`（继承 `AdminControllerBase` → `AbpControllerBase`）
+- 实体 / DTO 主键：`Guid`（路由约束 `{id:guid}`）
 - 权限：Controller 方法标注 `[RequirePermission("system:xxx:yyy")]`
 - 权限码定义：`BeaverX.Admin.Domain.Shared/Rbac/RbacPermissionCodes.cs`
 - 业务异常：抛出 `BusinessException`（`Domain.Shared`），由 `BusinessExceptionFilter` 统一返回 JSON
@@ -278,7 +280,7 @@ dotnet ef database update <PreviousMigrationName> \
 
 ### 1. 领域实体
 
-`BeaverX.Admin.Domain/Config/SysConfig.cs`，继承 `FullAuditedEntity`。
+`BeaverX.Admin.Domain/Config/SysConfig.cs`，继承 `FullAuditedEntity<Guid>`。
 
 ### 2. DbContext
 
@@ -315,7 +317,7 @@ public static class Config
 `Http.Api/Controllers/ConfigController.cs`：
 
 ```csharp
-public class ConfigController : BeaverXController
+public class ConfigController : AdminControllerBase
 {
     [RequirePermission(RbacPermissionCodes.System.Config.List)]
     [HttpGet("list")]
@@ -327,7 +329,7 @@ public class ConfigController : BeaverXController
 
 - `ConfigMenuSeeder`：写入菜单、`path`、`component`、按钮权限，并赋给 `super_admin`
 - `ConfigDataSeeder`（可选）：演示数据
-- 实现 `IDataSeeder` + `IScopedDependency` 即可被 `DataSeederHostService` 自动执行
+- 实现 `IDataSeedContributor` + `ITransientDependency`，启动时由 ABP `IDataSeeder` 自动执行
 
 菜单字段需与前端约定一致：
 
@@ -670,7 +672,7 @@ options.UseRedis(redisConnectionString);
 | 现象 | 排查 |
 |------|------|
 | 迁移失败 | 连接串是否正确；是否指定 `--startup-project` |
-| 启动后无种子数据 | 检查 `IDataSeeder` 是否实现；表是否已有数据（种子幂等跳过） |
+| 启动后无种子数据 | 检查 `IDataSeedContributor` 是否实现；表是否已有数据（种子幂等跳过） |
 | 前端 403 | 角色是否分配菜单；`Component` 是否与 `views/` 一致；权限码是否与 Controller 一致 |
 | CORS 错误 | `CorsOrgins` 是否包含前端地址 |
 | MinIO 相关错误 | 导出/上传依赖 MinIO，请确认服务与配置 |

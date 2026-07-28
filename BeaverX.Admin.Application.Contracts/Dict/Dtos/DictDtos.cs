@@ -4,7 +4,7 @@ namespace BeaverX.Admin.Application.Contracts.Dict.Dtos;
 
 public class DictTypeDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string? Remark { get; set; }
@@ -35,8 +35,8 @@ public class UpdateDictTypeDto
 
 public class DictDataDto
 {
-    public long Id { get; set; }
-    public long DictTypeId { get; set; }
+    public Guid Id { get; set; }
+    public Guid DictTypeId { get; set; }
     public string DictTypeCode { get; set; } = null!;
     public string Label { get; set; } = null!;
     public string Value { get; set; } = null!;
@@ -50,7 +50,7 @@ public class DictDataDto
 
 public class DictDataQueryDto
 {
-    public long? DictTypeId { get; set; }
+    public Guid? DictTypeId { get; set; }
     public string? TypeCode { get; set; }
     public string? Keyword { get; set; }
     public bool? IsEnabled { get; set; }
@@ -58,7 +58,7 @@ public class DictDataQueryDto
 
 public class CreateDictDataDto
 {
-    public long DictTypeId { get; set; }
+    public Guid DictTypeId { get; set; }
     public string Label { get; set; } = null!;
     public string Value { get; set; } = null!;
     public int Sort { get; set; }

@@ -12,17 +12,17 @@ public class WorkTicketImageDto
 
 public class WorkTicketDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string TicketNo { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string Content { get; set; } = null!;
     public WorkTicketStatus Status { get; set; }
-    public long UserId { get; set; }
+    public Guid UserId { get; set; }
     public string? CreatorName { get; set; }
     public List<WorkTicketImageDto> Images { get; set; } = [];
     public string? ProcessResult { get; set; }
     public List<WorkTicketImageDto> ProcessResultImages { get; set; } = [];
-    public long? HandlerUserId { get; set; }
+    public Guid? HandlerUserId { get; set; }
     public string? HandlerName { get; set; }
     public DateTime? ProcessedTime { get; set; }
     public DateTime CreationTime { get; set; }

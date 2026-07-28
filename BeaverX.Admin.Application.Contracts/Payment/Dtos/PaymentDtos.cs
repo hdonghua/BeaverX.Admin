@@ -6,7 +6,7 @@ namespace BeaverX.Admin.Application.Contracts.Payment.Dtos;
 /// <summary>支付渠道 DTO</summary>
 public class PaymentChannelDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string ChannelCode { get; set; } = null!;
     public string ChannelName { get; set; } = null!;
     public PaymentProviderType ProviderType { get; set; }
@@ -49,7 +49,7 @@ public class PaymentChannelQueryDto : PagedQueryDto
 /// <summary>支付订单 DTO</summary>
 public class PaymentOrderDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string OrderNo { get; set; } = null!;
     public string ChannelCode { get; set; } = null!;
     public string Subject { get; set; } = null!;
@@ -60,7 +60,7 @@ public class PaymentOrderDto
     public string? Attach { get; set; }
     public string? BusinessType { get; set; }
     public string? BusinessId { get; set; }
-    public long? UserId { get; set; }
+    public Guid? UserId { get; set; }
     public DateTime? ExpireTime { get; set; }
     public DateTime? PaidTime { get; set; }
     public string? ChannelOrderNo { get; set; }
@@ -104,7 +104,7 @@ public class CreatePaymentOrderResultDto
 
 public class CreatePaymentRefundDto
 {
-    public long PaymentOrderId { get; set; }
+    public Guid PaymentOrderId { get; set; }
     /// <summary>退款金额（分），不传则全额退</summary>
     public long? Amount { get; set; }
     public string? Reason { get; set; }
@@ -113,9 +113,9 @@ public class CreatePaymentRefundDto
 /// <summary>退款单 DTO</summary>
 public class PaymentRefundDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string RefundNo { get; set; } = null!;
-    public long PaymentOrderId { get; set; }
+    public Guid PaymentOrderId { get; set; }
     public string OrderNo { get; set; } = null!;
     public string ChannelCode { get; set; } = null!;
     public long Amount { get; set; }
@@ -137,7 +137,7 @@ public class PaymentRefundQueryDto : PagedQueryDto
 
 public class PaymentNotifyLogDto
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string NotifyType { get; set; } = null!;
     public string ChannelCode { get; set; } = null!;
     public string? OrderNo { get; set; }

@@ -1,11 +1,12 @@
 using BeaverX.Admin.Domain.Shared;
 using BeaverX.Admin.Domain.Shared.Payment;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Payment;
 
 /// <summary>支付订单（付款单）聚合根。</summary>
-public class PaymentOrder : FullAuditedEntity
+public class PaymentOrder : FullAuditedEntity<Guid>
 {
     /// <summary>系统订单号（商户侧 out_trade_no）</summary>
     public string OrderNo { get; private set; } = null!;
@@ -26,7 +27,7 @@ public class PaymentOrder : FullAuditedEntity
     public string? Attach { get; private set; }
     public string? BusinessType { get; private set; }
     public string? BusinessId { get; private set; }
-    public long? UserId { get; private set; }
+    public Guid? UserId { get; private set; }
     public DateTime? ExpireTime { get; private set; }
     public DateTime? PaidTime { get; private set; }
 
@@ -60,7 +61,7 @@ public class PaymentOrder : FullAuditedEntity
         string? attach = null,
         string? businessType = null,
         string? businessId = null,
-        long? userId = null)
+        Guid? userId = null)
     {
         if (string.IsNullOrWhiteSpace(orderNo))
         {

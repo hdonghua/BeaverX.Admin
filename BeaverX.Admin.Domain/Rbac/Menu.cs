@@ -1,11 +1,12 @@
 using BeaverX.Admin.Domain.Shared.Rbac;
-using BeaverX.Domain.Entities;
+using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace BeaverX.Admin.Domain.Rbac;
 
-public class Menu : FullAuditedEntity
+public class Menu : FullAuditedEntity<Guid>
 {
-    public long? ParentId { get; set; }
+    public Guid? ParentId { get; set; }
     public string Name { get; set; } = null!;
     public MenuType MenuType { get; set; }
     /// <summary>权限标识</summary>

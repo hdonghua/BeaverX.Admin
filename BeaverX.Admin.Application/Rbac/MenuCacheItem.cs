@@ -8,8 +8,8 @@ namespace BeaverX.Admin.Application.Rbac;
 /// </summary>
 internal sealed class MenuCacheItem
 {
-    public long Id { get; set; }
-    public long? ParentId { get; set; }
+    public Guid Id { get; set; }
+    public Guid? ParentId { get; set; }
     public string Name { get; set; } = null!;
     public MenuType MenuType { get; set; }
     public string? Perms { get; set; }
@@ -37,19 +37,23 @@ internal sealed class MenuCacheItem
         IsExternal = menu.IsExternal
     };
 
-    public Menu ToEntity() => new()
+    public Menu ToEntity()
     {
-        Id = Id,
-        ParentId = ParentId,
-        Name = Name,
-        MenuType = MenuType,
-        Perms = Perms,
-        Path = Path,
-        Component = Component,
-        Icon = Icon,
-        Sort = Sort,
-        IsVisible = IsVisible,
-        IsEnabled = IsEnabled,
-        IsExternal = IsExternal
-    };
+        var menu = new Menu
+        {
+            ParentId = ParentId,
+            Name = Name,
+            MenuType = MenuType,
+            Perms = Perms,
+            Path = Path,
+            Component = Component,
+            Icon = Icon,
+            Sort = Sort,
+            IsVisible = IsVisible,
+            IsEnabled = IsEnabled,
+            IsExternal = IsExternal
+        };
+        Volo.Abp.Domain.Entities.EntityHelper.TrySetId(menu, () => Id);
+        return menu;
+    }
 }

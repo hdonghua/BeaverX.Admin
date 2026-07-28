@@ -1,6 +1,6 @@
 using BeaverX.Admin.Application.Contracts.Messaging;
 using BeaverX.Admin.Application.Contracts.Messaging.Dtos;
-using BeaverX.Core.Dependency;
+using Volo.Abp.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace BeaverX.Admin.Application.Messaging;

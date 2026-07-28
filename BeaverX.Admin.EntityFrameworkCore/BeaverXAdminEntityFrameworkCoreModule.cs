@@ -1,37 +1,36 @@
-﻿using BeaverX.Admin.Domain;
-using BeaverX.Core.Modules;
-using BeaverX.Domain.IdGeneration;
-using BeaverX.EntityFrameworkCore;
-using BeaverX.EntityFrameworkCore.DependencyInjection;
-using BeaverX.EntityFrameworkCore.PostgreSql;
-using IdGen.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using BeaverX.Admin.Domain;
+using BeaverX.Admin.EntityFrameworkCore.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.EntityFrameworkCore.PostgreSql;
+using Volo.Abp.Modularity;
 
-namespace BeaverX.Admin.EntityFrameworkCore
+namespace BeaverX.Admin.EntityFrameworkCore;
+
+[DependsOn(
+    typeof(BeaverXAdminDomainModule),
+    typeof(AbpEntityFrameworkCorePostgreSqlModule)
+)]
+public class BeaverXAdminEntityFrameworkCoreModule : AbpModule
 {
-    [DependsOn(
-        typeof(BeaverXAdminDomainModule),
-        typeof(BeaverXEntityFrameworkCoreModule),
-        typeof(BeaverXEntityFrameworkCorePostgreSqlModule)
-    )]
-    public class BeaverXAdminEntityFrameworkCoreModule : BeaverXModule
+    public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        public override void ConfigureServices(ServiceConfigurationContext context)
+        context.Services.AddAbpDbContext<AdminDbContext>(options =>
         {
-            var services = context.Services;
-            var configuration = context.Configuration;
+            options.AddDefaultRepositories(includeAllEntities: true);
+        });
 
-            var idGenOptions = configuration.GetSection(IdGenOptions.SectionName).Get<IdGenOptions>()
-                ?? new IdGenOptions();
-            services.Configure<IdGenOptions>(configuration.GetSection(IdGenOptions.SectionName));
-            services.AddIdGen(idGenOptions.GeneratorId);
-            services.AddSingleton<IIdGenerator<long>, SnowflakeEntityIdGenerator>();
+        Configure<AbpDbContextOptions>(options =>
+        {
+            options.Configure(dbContextOptions =>
+            {
+                dbContextOptions.UseNpgsql();
 
-            services.Replace(ServiceDescriptor.Singleton<IDbDriverOptionsBuilder, AdminPostgreSqlDbDriverOptionsBuilder>());
-            services.AddBeaverXDbContext<AdminDbContext>(configuration.GetConnectionString("Default")!);
-        }
+                dbContextOptions.DbContextOptions.AddInterceptors(new UtcDateTimeSaveChangesInterceptor());
+#if DEBUG
+                dbContextOptions.DbContextOptions.EnableSensitiveDataLogging();
+#endif
+            });
+        });
     }
 }

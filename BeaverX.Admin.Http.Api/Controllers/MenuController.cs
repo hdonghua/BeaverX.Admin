@@ -2,12 +2,11 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Shared.Rbac;
 using BeaverX.Admin.Http.Api.Authorization;
-using BeaverX.WebMvc.Controllers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BeaverX.Admin.Http.Api.Controllers;
 
-public class MenuController : BeaverXControllerBase
+public class MenuController : AdminControllerBase
 {
     private readonly IMenuAppService _menuAppService;
 
@@ -24,9 +23,9 @@ public class MenuController : BeaverXControllerBase
         => _menuAppService.GetTreeAsync(cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Menu.List)]
-    [HttpGet("{id:long}")]
-    public Task<MenuDto> GetAsync(long id, CancellationToken cancellationToken)
-        => _menuAppService.GetAsync(id, cancellationToken);
+    [HttpGet("{id:guid}")]
+    public Task<MenuDto> GetAsync(Guid id, CancellationToken cancellationToken)
+        => _menuAppService.GetAsync(id, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Menu.Create)]
     [HttpPost]
@@ -34,8 +33,8 @@ public class MenuController : BeaverXControllerBase
         => _menuAppService.CreateAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Menu.Update)]
-    [HttpPut("{id:long}")]
-    public Task<MenuDto> UpdateAsync(long id, [FromBody] UpdateMenuDto input, CancellationToken cancellationToken)
+    [HttpPut("{id:guid}")]
+    public Task<MenuDto> UpdateAsync(Guid id, [FromBody] UpdateMenuDto input, CancellationToken cancellationToken)
         => _menuAppService.UpdateAsync(id, input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Menu.Update)]
@@ -44,7 +43,7 @@ public class MenuController : BeaverXControllerBase
         => _menuAppService.ReorderAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.System.Menu.Delete)]
-    [HttpDelete("{id:long}")]
-    public Task DeleteAsync(long id, CancellationToken cancellationToken)
-        => _menuAppService.DeleteAsync(id, cancellationToken);
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        => _menuAppService.DeleteAsync(id, cancellationToken: cancellationToken);
 }
