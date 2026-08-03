@@ -76,6 +76,7 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
             entity.Property(x => x.Component).HasMaxLength(256);
             entity.Property(x => x.Icon).HasMaxLength(64);
             entity.Property(x => x.IsExternal).HasDefaultValue(false);
+            entity.Property(x => x.IsCache).HasDefaultValue(true);
             entity.HasOne(x => x.Parent)
                 .WithMany(x => x.Children)
                 .HasForeignKey(x => x.ParentId)

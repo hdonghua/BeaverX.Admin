@@ -20,6 +20,7 @@ internal sealed class MenuCacheItem
     public bool IsVisible { get; set; }
     public bool IsEnabled { get; set; }
     public bool IsExternal { get; set; }
+    public bool IsCache { get; set; }
 
     public static MenuCacheItem FromEntity(Menu menu) => new()
     {
@@ -34,7 +35,8 @@ internal sealed class MenuCacheItem
         Sort = menu.Sort,
         IsVisible = menu.IsVisible,
         IsEnabled = menu.IsEnabled,
-        IsExternal = menu.IsExternal
+        IsExternal = menu.IsExternal,
+        IsCache = menu.IsCache
     };
 
     public Menu ToEntity()
@@ -51,7 +53,8 @@ internal sealed class MenuCacheItem
             Sort = Sort,
             IsVisible = IsVisible,
             IsEnabled = IsEnabled,
-            IsExternal = IsExternal
+            IsExternal = IsExternal,
+            IsCache = IsCache
         };
         Volo.Abp.Domain.Entities.EntityHelper.TrySetId(menu, () => Id);
         return menu;

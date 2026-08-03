@@ -40,7 +40,7 @@ public class MenuCacheService : IScopedDependency
             {
                 var menus = await _menuRepository.GetListAsync(cancellationToken: ct);
                 var dtos = menus.Select(RbacMapper.ToMenuDto).ToList();
-                return RbacQueryHelper.BuildMenuTree(dtos);
+                return RbacQueryHelper.BuildMenuTree(dtos) ?? [];
             },
             CacheDurations.Menu,
             cancellationToken);

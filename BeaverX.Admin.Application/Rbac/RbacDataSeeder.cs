@@ -189,7 +189,8 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
             Path = "/system",
             Icon = "icon-settings",
             Sort = 1,
-            IsVisible = true
+            IsVisible = true,
+            IsCache = false
         }, cancellationToken);
 
         return (systemDir.Id, [systemDir.Id]);
@@ -495,7 +496,8 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
             Path = "/payment",
             Icon = "alipay-circle",
             Sort = 20,
-            IsVisible = true
+            IsVisible = true,
+            IsCache = false
         }, cancellationToken);
 
         return (paymentDir.Id, [paymentDir.Id]);
@@ -630,7 +632,8 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
             Path = "/ticket",
             Icon = "customer-service",
             Sort = 15,
-            IsVisible = true
+            IsVisible = true,
+            IsCache = false
         }, cancellationToken);
 
         return (ticketDir.Id, [ticketDir.Id]);
@@ -703,7 +706,8 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
         MenuType = MenuType.Button,
         Perms = perms,
         Sort = sort,
-        IsVisible = false
+        IsVisible = false,
+        IsCache = false
     };
 
     private async Task<Menu> InsertMenuAsync(Menu menu, CancellationToken cancellationToken)

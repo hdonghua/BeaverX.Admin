@@ -13,7 +13,7 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260728025147_InitCreated")]
+    [Migration("20260803025051_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -761,6 +761,11 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<string>("Icon")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("IsCache")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()

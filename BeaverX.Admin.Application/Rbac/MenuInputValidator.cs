@@ -12,12 +12,14 @@ internal static class MenuInputValidator
         {
             case MenuType.Button:
                 menu.IsExternal = false;
+                menu.IsCache = false;
                 menu.Path = null;
                 menu.Component = null;
                 menu.Icon = null;
                 return;
             case MenuType.Directory:
                 menu.IsExternal = false;
+                menu.IsCache = false;
                 menu.Component = null;
                 if (IsExternalUrl(menu.Path))
                 {
@@ -27,6 +29,7 @@ internal static class MenuInputValidator
             default:
                 if (menu.IsExternal)
                 {
+                    menu.IsCache = false;
                     menu.Component = null;
                 }
                 else if (IsExternalUrl(menu.Path))

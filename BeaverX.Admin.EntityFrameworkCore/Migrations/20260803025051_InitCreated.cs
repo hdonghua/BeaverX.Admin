@@ -226,6 +226,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     IsVisible = table.Column<bool>(type: "boolean", nullable: false),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     IsExternal = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsCache = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),

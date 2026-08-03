@@ -59,7 +59,8 @@ public class MenuAppService : IMenuAppService, IScopedDependency
             Sort = input.Sort,
             IsVisible = input.IsVisible,
             IsEnabled = input.IsEnabled,
-            IsExternal = input.IsExternal
+            IsExternal = input.IsExternal,
+            IsCache = input.IsCache
         };
 
         MenuInputValidator.Sanitize(menu);
@@ -114,6 +115,7 @@ public class MenuAppService : IMenuAppService, IScopedDependency
         if (input.Sort.HasValue) menu.Sort = input.Sort.Value;
         if (input.IsVisible.HasValue) menu.IsVisible = input.IsVisible.Value;
         if (input.IsEnabled.HasValue) menu.IsEnabled = input.IsEnabled.Value;
+        if (input.IsCache.HasValue) menu.IsCache = input.IsCache.Value;
 
         MenuInputValidator.Sanitize(menu);
         MenuInputValidator.Validate(menu.MenuType, menu.Path, menu.Component, menu.IsExternal);

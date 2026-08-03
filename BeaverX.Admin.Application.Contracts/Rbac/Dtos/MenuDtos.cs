@@ -16,6 +16,7 @@ public class MenuDto
     public bool IsVisible { get; set; }
     public bool IsEnabled { get; set; }
     public bool IsExternal { get; set; }
+    public bool IsCache { get; set; }
     public List<MenuDto>? Children { get; set; }
 }
 
@@ -32,6 +33,7 @@ public class CreateMenuDto
     public bool IsVisible { get; set; } = true;
     public bool IsEnabled { get; set; } = true;
     public bool IsExternal { get; set; }
+    public bool IsCache { get; set; } = true;
 }
 
 public class UpdateMenuDto
@@ -47,6 +49,7 @@ public class UpdateMenuDto
     public bool? IsVisible { get; set; }
     public bool? IsEnabled { get; set; }
     public bool? IsExternal { get; set; }
+    public bool? IsCache { get; set; }
 }
 
 public class ReorderMenusDto

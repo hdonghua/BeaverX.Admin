@@ -18,6 +18,7 @@ public class Menu : FullAuditedEntity<Guid>
     public bool IsVisible { get; set; } = true;
     public bool IsEnabled { get; set; } = true;
     public bool IsExternal { get; set; }
+    public bool IsCache { get; set; } = true;
 
     public Menu? Parent { get; set; }
     public ICollection<Menu> Children { get; set; } = [];
