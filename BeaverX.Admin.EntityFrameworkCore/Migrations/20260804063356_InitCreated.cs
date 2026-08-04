@@ -241,6 +241,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InstanceNo = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: false),
                     DefId = table.Column<Guid>(type: "uuid", nullable: false),
                     Initiator = table.Column<Guid>(type: "uuid", nullable: false),
                     FormValue = table.Column<string>(type: "jsonb", nullable: false),
@@ -948,6 +949,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "IX_oa_instances_Initiator_Status",
                 table: "oa_instances",
                 columns: new[] { "Initiator", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_instances_InstanceNo",
+                table: "oa_instances",
+                column: "InstanceNo",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_oa_nodes_DefId",

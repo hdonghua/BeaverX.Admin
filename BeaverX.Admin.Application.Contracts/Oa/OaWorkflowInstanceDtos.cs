@@ -20,6 +20,7 @@ public class OaFlowInstanceListDto
     public Guid GroupId { get; set; }
     public bool Cancelable { get; set; }
     public Guid Id { get; set; }
+    public string InstanceNo { get; set; } = null!;
     public string InitiatorId { get; set; } = null!;
     public DateTime? BeginTime { get; set; }
     public DateTime? EndTime { get; set; }

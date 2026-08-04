@@ -149,6 +149,7 @@ public partial class OaWorkflowAppService
         if (flattened.Conditions.Count > 0) await _conditions.InsertManyAsync(flattened.Conditions, autoSave: true, cancellationToken: cancellationToken);
         if (flattened.Approvers.Count > 0) await _approvers.InsertManyAsync(flattened.Approvers, autoSave: true, cancellationToken: cancellationToken);
         if (flattened.Ccs.Count > 0) await _ccConfigs.InsertManyAsync(flattened.Ccs, autoSave: true, cancellationToken: cancellationToken);
+        if (flattened.Transactors.Count > 0) await _transactConfigs.InsertManyAsync(flattened.Transactors, autoSave: true, cancellationToken: cancellationToken);
         return definition;
     }
 
@@ -223,12 +224,14 @@ public partial class OaWorkflowAppService
         var conditions = await (await _conditions.GetQueryableAsync()).Where(x => groupIds.Contains(x.GroupId)).ToListAsync(cancellationToken);
         var approvers = await (await _approvers.GetQueryableAsync()).Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var ccs = await (await _ccConfigs.GetQueryableAsync()).Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
+        var transactors = await (await _transactConfigs.GetQueryableAsync()).Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var fields = await (await _fields.GetQueryableAsync()).Where(x => x.DefId == definition.Id).ToListAsync(cancellationToken);
         var initiators = await (await _initiators.GetQueryableAsync()).Where(x => x.DefId == definition.Id).ToListAsync(cancellationToken);
         if (conditions.Count > 0) await _conditions.DeleteManyAsync(conditions, autoSave: true, cancellationToken: cancellationToken);
         if (groups.Count > 0) await _conditionGroups.DeleteManyAsync(groups, autoSave: true, cancellationToken: cancellationToken);
         if (approvers.Count > 0) await _approvers.DeleteManyAsync(approvers, autoSave: true, cancellationToken: cancellationToken);
         if (ccs.Count > 0) await _ccConfigs.DeleteManyAsync(ccs, autoSave: true, cancellationToken: cancellationToken);
+        if (transactors.Count > 0) await _transactConfigs.DeleteManyAsync(transactors, autoSave: true, cancellationToken: cancellationToken);
         if (nodes.Count > 0) await _nodes.DeleteManyAsync(nodes, autoSave: true, cancellationToken: cancellationToken);
         if (fields.Count > 0) await _fields.DeleteManyAsync(fields, autoSave: true, cancellationToken: cancellationToken);
         if (initiators.Count > 0) await _initiators.DeleteManyAsync(initiators, autoSave: true, cancellationToken: cancellationToken);
@@ -287,6 +290,12 @@ public partial class OaWorkflowAppService
             {
                 NodeId = node.Id, Rid = cc.Rid, CcType = cc.CcType,
                 Assignees = cc.Assignees ?? [], Roles = cc.Roles ?? [], Layer = cc.Layer, LayerType = cc.LayerType
+            });
+        foreach (var transactor in source.Transactors ?? [])
+            result.Transactors.Add(new OaTransactConfig(_ids.Create())
+            {
+                NodeId = node.Id, Rid = transactor.Rid, AssigneeType = transactor.TransactorType,
+                Assignees = transactor.Assignees ?? [], Roles = transactor.Roles ?? []
             });
         foreach (var branchSource in source.ConditionNodes ?? [])
         {

@@ -79,6 +79,7 @@ public class OaFlowNodeRequest
     public string? ConditionExpression { get; set; }
     public List<OaAssigneeRequest>? Assignees { get; set; }
     public List<OaAssigneeRequest>? Ccs { get; set; }
+    public List<OaAssigneeRequest>? Transactors { get; set; }
     public int ApprovalType { get; set; }
     public int FlowNodeNoAuditorType { get; set; }
     public int FlowNodeSelfAuditorType { get; set; }
@@ -97,6 +98,7 @@ public class OaAssigneeRequest
     public List<string>? Roles { get; set; }
     public int AssigneeType { get; set; }
     public int CcType { get; set; }
+    public int TransactorType { get; set; }
     public int? LayerType { get; set; }
     public int? Layer { get; set; }
 }

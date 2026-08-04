@@ -63,7 +63,7 @@ public partial class OaWorkflowAppService
         {
             var keyword = input.Keyword.Trim();
             var defIds = definitionQuery.Where(x => x.Name.Contains(keyword)).Select(x => x.Id);
-            instanceQuery = instanceQuery.Where(x => defIds.Contains(x.DefId));
+            instanceQuery = instanceQuery.Where(x => x.InstanceNo.Contains(keyword) || defIds.Contains(x.DefId));
         }
 
         var total = await instanceQuery.LongCountAsync(cancellationToken);
@@ -90,7 +90,7 @@ public partial class OaWorkflowAppService
             return new OaFlowInstanceListDto
             {
                 FlowDefId = definition.Id, Name = definition.Name, GroupId = definition.GroupId, Cancelable = definition.Cancelable,
-                Id = instance.Id, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
+                Id = instance.Id, InstanceNo = instance.InstanceNo, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
                 Status = (int)instance.Status, TaskId = relevantTask?.Id, ActNodeId = relevantTask?.NodeId,
                 Assignable = node?.Assignable ?? false, Signable = node?.Signable ?? false, Backable = node?.Backable ?? false,
                 Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType,

@@ -7,6 +7,7 @@ public class OaInstance : FullAuditedEntity<Guid>
 {
     protected OaInstance() { }
     public OaInstance(Guid id) => Id = id;
+    public string InstanceNo { get; set; } = null!;
     public Guid DefId { get; set; }
     public Guid Initiator { get; set; }
     public string FormValue { get; set; } = "{}";

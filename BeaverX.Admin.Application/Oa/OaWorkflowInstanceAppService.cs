@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.Cryptography;
 using BeaverX.Admin.Application.Contracts.Oa;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Oa;
@@ -20,6 +21,7 @@ public partial class OaWorkflowAppService
 
         var instance = new OaInstance(_ids.Create())
         {
+            InstanceNo = await GenerateInstanceNoAsync(cancellationToken),
             DefId = definition.Id, Initiator = userId,
             FormValue = input.FlowValue, Status = OaInstanceStatus.Underway
         };
@@ -36,15 +38,29 @@ public partial class OaWorkflowAppService
     {
         var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == defId).ToListAsync(cancellationToken);
         var nodeIds = nodes.Select(x => x.Id).ToList();
-        var configs = await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
+        var approvers = await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
+        var ccs = await (await _ccConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
+        var transactors = await (await _transactConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         return nodes.Where(x => !x.IsConditionBranch).Select(node => new OaFlowChartNodeDto
         {
             Id = node.Id, NodeId = node.Id, Name = node.NodeName, NodeType = (int)node.NodeType,
             ApprovalType = node.ApprovalType, MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
             FlowNodeNoAuditorType = node.FlowNodeNoAuditorType ?? 0,
-            UserIds = configs.Where(x => x.NodeId == node.Id && x.AssigneeType != OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
-            RoleIds = configs.Where(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
-            InitatorChoice = configs.Any(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.InitiatorChoice)
+            UserIds = node.NodeType switch
+            {
+                OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
+                OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
+                _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType != OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList()
+            },
+            RoleIds = node.NodeType switch
+            {
+                OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
+                OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
+                _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList()
+            },
+            InitatorChoice = node.NodeType == OaNodeType.Transact
+                ? transactors.Any(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.InitiatorChoice)
+                : approvers.Any(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.InitiatorChoice)
         }).ToList();
     }
 
@@ -97,11 +113,23 @@ public partial class OaWorkflowAppService
         return new OaFlowInstanceListDto
         {
             FlowDefId = definition.Id, Name = definition.Name, GroupId = definition.GroupId, Cancelable = definition.Cancelable,
-            Id = instance.Id, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
+            Id = instance.Id, InstanceNo = instance.InstanceNo, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
             Status = (int)instance.Status, TaskId = task?.Id, ActNodeId = task?.NodeId,
             Assignable = node?.Assignable ?? false, Signable = node?.Signable ?? false, Backable = node?.Backable ?? false,
             Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType, Summary = BuildSummary(instance.FormValue)
         };
+    }
+
+    private async Task<string> GenerateInstanceNoAsync(CancellationToken cancellationToken)
+    {
+        var date = DateTime.UtcNow.AddHours(8).ToString("yyyyMMdd");
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var instanceNo = $"{date}-{RandomNumberGenerator.GetHexString(4)}";
+            if (!await _instances.AnyAsync(x => x.InstanceNo == instanceNo, cancellationToken)) return instanceNo;
+        }
+
+        throw new BusinessException("生成流程编号失败，请重试");
     }
 
     public async Task FormModifyAsync(OaFormModifyRequest input, CancellationToken cancellationToken = default)
@@ -349,7 +377,11 @@ public partial class OaWorkflowAppService
 
     private async Task<List<Guid>> ResolveAssigneesAsync(OaInstance instance, OaNode node, Dictionary<Guid, List<string>>? designees, CancellationToken cancellationToken)
     {
-        var configs = await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id).ToListAsync(cancellationToken);
+        var configs = node.NodeType == OaNodeType.Transact
+            ? await (await _transactConfigs.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id)
+                .Select(x => new AssigneeConfig((OaAssigneeType)x.AssigneeType, x.Assignees, x.Roles)).ToListAsync(cancellationToken)
+            : await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id)
+                .Select(x => new AssigneeConfig(x.AssigneeType, x.Assignees, x.Roles)).ToListAsync(cancellationToken);
         var result = new HashSet<Guid>();
         foreach (var config in configs)
         {
@@ -377,19 +409,28 @@ public partial class OaWorkflowAppService
         return result.ToList();
     }
 
+    private sealed record AssigneeConfig(OaAssigneeType AssigneeType, List<string> Assignees, List<string> Roles);
+
     private async Task CreateCcRecordsAsync(OaInstance instance, OaNode node, CancellationToken cancellationToken)
     {
         var configs = await (await _ccConfigs.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id).ToListAsync(cancellationToken);
         var users = new HashSet<Guid>();
         foreach (var config in configs)
         {
-            if (config.CcType == 0) users.Add(instance.Initiator);
-            else AddGuids(users, config.Assignees);
-            if (config.CcType == 3)
+            var ccType = (OaAssigneeType)config.CcType;
+            if (ccType == OaAssigneeType.Self) users.Add(instance.Initiator);
+            else if (ccType == OaAssigneeType.Assignee) AddGuids(users, config.Assignees);
+            else if (ccType == OaAssigneeType.Role)
             {
                 var roleIds = (config.Roles.Count > 0 ? config.Roles : config.Assignees).Where(IsGuid).Select(Guid.Parse).ToList();
                 var roleUsers = await (await _userRoles.GetQueryableAsync()).AsNoTracking().Where(x => roleIds.Contains(x.RoleId)).Select(x => x.UserId).ToListAsync(cancellationToken);
                 foreach (var roleUser in roleUsers) users.Add(roleUser);
+            }
+            else if (ccType is OaAssigneeType.Superior or OaAssigneeType.DepartmentLeader)
+            {
+                var deptIds = await (await _userDepartments.GetQueryableAsync()).AsNoTracking().Where(x => x.UserId == instance.Initiator).Select(x => x.DepartmentId).ToListAsync(cancellationToken);
+                var leaders = await (await _departments.GetQueryableAsync()).AsNoTracking().Where(x => deptIds.Contains(x.Id) && x.LeaderUserId.HasValue).Select(x => x.LeaderUserId!.Value).ToListAsync(cancellationToken);
+                foreach (var leader in leaders) users.Add(leader);
             }
         }
         var existing = await (await _ccRecords.GetQueryableAsync()).AsNoTracking().Where(x => x.InstanceId == instance.Id).Select(x => x.UserId).ToListAsync(cancellationToken);

@@ -417,7 +417,9 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
         {
             entity.ToTable("oa_instances");
             entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.InstanceNo).HasMaxLength(13).IsRequired();
             entity.Property(x => x.FormValue).HasColumnType("jsonb").IsRequired();
+            entity.HasIndex(x => x.InstanceNo).IsUnique();
             entity.HasIndex(x => new { x.Initiator, x.Status });
             entity.HasIndex(x => x.DefId);
         });

@@ -28,6 +28,7 @@ public partial class OaWorkflowAppService :
     private readonly IRepository<OaCondition, Guid> _conditions;
     private readonly IRepository<OaApproverConfig, Guid> _approvers;
     private readonly IRepository<OaCcConfig, Guid> _ccConfigs;
+    private readonly IRepository<OaTransactConfig, Guid> _transactConfigs;
     private readonly IRepository<OaInstance, Guid> _instances;
     private readonly IRepository<OaTask, Guid> _tasks;
     private readonly IRepository<OaCcRecord, Guid> _ccRecords;
@@ -49,6 +50,7 @@ public partial class OaWorkflowAppService :
         IRepository<OaCondition, Guid> conditions,
         IRepository<OaApproverConfig, Guid> approvers,
         IRepository<OaCcConfig, Guid> ccConfigs,
+        IRepository<OaTransactConfig, Guid> transactConfigs,
         IRepository<OaInstance, Guid> instances,
         IRepository<OaTask, Guid> tasks,
         IRepository<OaCcRecord, Guid> ccRecords,
@@ -69,6 +71,7 @@ public partial class OaWorkflowAppService :
         _conditions = conditions;
         _approvers = approvers;
         _ccConfigs = ccConfigs;
+        _transactConfigs = transactConfigs;
         _instances = instances;
         _tasks = tasks;
         _ccRecords = ccRecords;
@@ -97,5 +100,6 @@ public partial class OaWorkflowAppService :
         public List<OaCondition> Conditions { get; } = [];
         public List<OaApproverConfig> Approvers { get; } = [];
         public List<OaCcConfig> Ccs { get; } = [];
+        public List<OaTransactConfig> Transactors { get; } = [];
     }
 }

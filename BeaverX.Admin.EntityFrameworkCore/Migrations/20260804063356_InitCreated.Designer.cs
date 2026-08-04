@@ -14,7 +14,7 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260804021854_InitCreated")]
+    [Migration("20260804063356_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -734,6 +734,11 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<Guid>("Initiator")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("InstanceNo")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -754,6 +759,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DefId");
+
+                    b.HasIndex("InstanceNo")
+                        .IsUnique();
 
                     b.HasIndex("Initiator", "Status");
 
