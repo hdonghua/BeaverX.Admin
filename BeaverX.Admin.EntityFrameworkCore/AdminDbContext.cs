@@ -69,7 +69,7 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
             entity.HasIndex(x => x.UserName).IsUnique();
             entity.Property(x => x.UserName).HasMaxLength(64).IsRequired();
             entity.Property(x => x.PasswordHash).HasMaxLength(256).IsRequired();
-            entity.Property(x => x.NickName).HasMaxLength(64);
+            entity.Property(x => x.NickName).HasMaxLength(64).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(128);
             entity.Property(x => x.Phone).HasMaxLength(32);
             entity.Property(x => x.Avatar).HasMaxLength(512);

@@ -648,7 +648,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     PasswordHash = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    NickName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    NickName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Email = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     Phone = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
                     Avatar = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),

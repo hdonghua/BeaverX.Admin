@@ -44,7 +44,7 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         var users = await _userRepository.GetQueryableAsync();
         var departments = await _departmentRepository.GetQueryableAsync();
         var leaderName = department.LeaderUserId.HasValue
-            ? await users.Where(x => x.Id == department.LeaderUserId.Value).Select(x => x.NickName ?? x.UserName).FirstOrDefaultAsync(cancellationToken)
+            ? await users.Where(x => x.Id == department.LeaderUserId.Value).Select(x => x.NickName).FirstOrDefaultAsync(cancellationToken)
             : null;
         var parentName = department.ParentId.HasValue
             ? await departments.Where(x => x.Id == department.ParentId.Value).Select(x => x.Name).FirstOrDefaultAsync(cancellationToken)
@@ -74,7 +74,7 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         if (!string.IsNullOrWhiteSpace(input.Keyword))
         {
             var keyword = input.Keyword.Trim();
-            query = query.Where(x => x.user.UserName.Contains(keyword) || (x.user.NickName != null && x.user.NickName.Contains(keyword)));
+            query = query.Where(x => x.user.UserName.Contains(keyword) || x.user.NickName.Contains(keyword));
         }
         var total = await query.LongCountAsync(cancellationToken);
         var page = Math.Max(1, input.Page);
@@ -85,7 +85,7 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
             {
                 UserId = x.user.Id,
                 UserName = x.user.UserName,
-                Name = x.user.NickName ?? x.user.UserName,
+                Name = x.user.NickName,
                 Phone = x.user.Phone,
                 Email = x.user.Email,
                 Avatar = x.user.Avatar,
@@ -108,12 +108,12 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             var value = keyword.Trim();
-            query = query.Where(x => x.UserName.Contains(value) || (x.NickName != null && x.NickName.Contains(value)) || (x.Phone != null && x.Phone.Contains(value)));
+            query = query.Where(x => x.UserName.Contains(value) || x.NickName.Contains(value) || (x.Phone != null && x.Phone.Contains(value)));
         }
         return await query.OrderBy(x => x.UserName).Take(30).Select(x => new OaUserOptionDto
         {
             Id = x.Id.ToString(),
-            Name = x.NickName ?? x.UserName,
+            Name = x.NickName,
             UserName = x.UserName,
             Avatar = x.Avatar
         }).ToListAsync(cancellationToken);
@@ -277,7 +277,7 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
             .Select(x => new OaUserOptionDto
             {
                 Id = x.Id.ToString(),
-                Name = x.NickName ?? x.UserName,
+                Name = x.NickName,
                 UserName = x.UserName,
                 Avatar = x.Avatar
             }).ToListAsync(cancellationToken);

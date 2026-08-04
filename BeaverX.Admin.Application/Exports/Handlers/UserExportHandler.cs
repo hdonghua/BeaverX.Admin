@@ -44,7 +44,7 @@ public class UserExportHandler : IExportHandler, IScopedDependency
                 var keyword = parameters.Keyword.Trim();
                 query = query.Where(x =>
                     x.UserName.Contains(keyword) ||
-                    (x.NickName != null && x.NickName.Contains(keyword)) ||
+                    x.NickName.Contains(keyword) ||
                     (x.Email != null && x.Email.Contains(keyword)));
             }
 
@@ -60,7 +60,7 @@ public class UserExportHandler : IExportHandler, IScopedDependency
             .Select(x => new
             {
                 账号 = x.UserName,
-                昵称 = x.NickName ?? string.Empty,
+                昵称 = x.NickName,
                 邮箱 = x.Email ?? string.Empty,
                 手机 = x.Phone ?? string.Empty,
                 角色 = string.Join("、", x.UserRoles.Select(r => r.Role.Name)),

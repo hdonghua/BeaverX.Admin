@@ -7,7 +7,7 @@ public class User : FullAuditedEntity<Guid>
 {
     public string UserName { get; set; } = null!;
     public string PasswordHash { get; set; } = null!;
-    public string? NickName { get; set; }
+    public string NickName { get; set; } = null!;
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Avatar { get; set; }

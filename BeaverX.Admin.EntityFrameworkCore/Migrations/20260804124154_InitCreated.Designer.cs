@@ -14,7 +14,7 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260804092104_InitCreated")]
+    [Migration("20260804124154_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -1719,6 +1719,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnName("LastModifierId");
 
                     b.Property<string>("NickName")
+                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 

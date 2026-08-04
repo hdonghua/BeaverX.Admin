@@ -1716,6 +1716,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .HasColumnName("LastModifierId");
 
                     b.Property<string>("NickName")
+                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 

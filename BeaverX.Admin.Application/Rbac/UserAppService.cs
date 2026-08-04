@@ -53,7 +53,7 @@ public class UserAppService : IUserAppService, IScopedDependency
             var keyword = input.Keyword.Trim();
             query = query.Where(x =>
                 x.UserName.Contains(keyword) ||
-                (x.NickName != null && x.NickName.Contains(keyword)) ||
+                x.NickName.Contains(keyword) ||
                 (x.Email != null && x.Email.Contains(keyword)));
         }
 
@@ -101,12 +101,19 @@ public class UserAppService : IUserAppService, IScopedDependency
         {
             UserName = input.UserName.Trim(),
             PasswordHash = _passwordHasher.Hash(input.Password),
-            NickName = input.NickName,
             Email = input.Email,
             Phone = input.Phone,
             Avatar = input.Avatar,
             IsEnabled = input.IsEnabled
         };
+        if (string.IsNullOrWhiteSpace(input.NickName))
+        {
+            user.NickName = user.UserName;
+        }
+        else
+        {
+            user.NickName = input.NickName;
+        }
 
         await _userRepository.InsertAsync(user, cancellationToken: cancellationToken);
 

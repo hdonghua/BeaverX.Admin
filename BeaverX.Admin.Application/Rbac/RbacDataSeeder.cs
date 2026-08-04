@@ -736,7 +736,7 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
                 Component = "workflow/flowManage/index",
                 Icon = "settings",
                 Sort = 1,
-                IsCache = true
+                IsCache = false
             }, cancellationToken);
             created.Add(manage.Id);
         }
@@ -770,7 +770,7 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
                 Component = "workflow/flowData/index",
                 Icon = "storage",
                 Sort = 3,
-                IsCache = true
+                IsCache = false
             }, cancellationToken);
             created.Add(data.Id);
         }
@@ -817,7 +817,7 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
                     Component = item.Component,
                     Icon = item.Icon,
                     Sort = item.Sort,
-                    IsCache = true
+                    IsCache = false
                 }, cancellationToken);
                 created.Add(approval.Id);
                 continue;
