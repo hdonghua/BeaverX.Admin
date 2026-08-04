@@ -18,6 +18,12 @@ public static class RbacPermissionCodes
             public const string ResetPassword = "system:user:reset_password";
         }
 
+        public static class Organization
+        {
+            public const string List = "system:organization:list";
+            public const string Manage = "system:organization:manage";
+        }
+
         public static class Role
         {
             public const string List = "system:role:list";

@@ -153,6 +153,7 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
         newMenuIds.AddRange(systemDirMenuIds);
 
         newMenuIds.AddRange(await EnsureUserMenusAsync(systemDirId, cancellationToken));
+        newMenuIds.AddRange(await EnsureOrganizationMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsureRoleMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsureMenuMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsureDictMenusAsync(systemDirId, cancellationToken));
@@ -838,6 +839,26 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
         }
 
         return created;
+    }
+
+    private async Task<List<Guid>> EnsureOrganizationMenusAsync(Guid parentId, CancellationToken cancellationToken)
+    {
+        if (await _menuRepository.AnyAsync(x => x.Perms == RbacPermissionCodes.System.Organization.List, cancellationToken)) return [];
+
+        var page = await InsertMenuAsync(new Menu
+        {
+            ParentId = parentId,
+            Name = "组织架构",
+            MenuType = MenuType.Menu,
+            Perms = RbacPermissionCodes.System.Organization.List,
+            Path = "/system/organization",
+            Component = "system/organization/index",
+            Icon = "icon-mind-mapping",
+            Sort = 2,
+            IsCache = true
+        }, cancellationToken);
+        var manage = await InsertMenuAsync(Btn(page.Id, "组织架构管理", RbacPermissionCodes.System.Organization.Manage, 1), cancellationToken);
+        return [page.Id, manage.Id];
     }
 
     private static Menu Btn(Guid parentId, string name, string perms, int sort) => new()

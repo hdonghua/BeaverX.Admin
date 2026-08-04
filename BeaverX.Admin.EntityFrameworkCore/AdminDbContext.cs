@@ -330,12 +330,14 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
             entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Code).HasMaxLength(64);
             entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.LeaderUserId).IsUnique();
         });
         modelBuilder.Entity<OaUserDepartment>(entity =>
         {
             entity.ToTable("oa_user_departments");
             entity.Property(x => x.Id).ValueGeneratedNever();
             entity.HasIndex(x => new { x.UserId, x.DepartmentId }).IsUnique();
+            entity.HasIndex(x => x.UserId).IsUnique().HasFilter("\"IsPrimary\" = TRUE");
         });
         modelBuilder.Entity<OaProcessGroup>(entity =>
         {
