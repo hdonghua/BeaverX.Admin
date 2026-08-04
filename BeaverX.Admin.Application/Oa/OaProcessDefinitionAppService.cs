@@ -132,7 +132,7 @@ public partial class OaWorkflowAppService
             DefId = defId, FieldKey = field.Name, FieldType = field.Type,
             Label = field.Label ?? string.Empty, IsSummary = field.Summary, IsRequired = field.Required,
             Placeholder = field.Placeholder, SortOrder = index + 1,
-            Extras = field.Details == null ? null : JsonSerializer.Serialize(field.Details)
+            Extras = JsonSerializer.Serialize(field, WorkflowJsonOptions)
         }).ToList();
         if (fields.Count > 0) await _fields.InsertManyAsync(fields, autoSave: true, cancellationToken: cancellationToken);
 
@@ -245,13 +245,42 @@ public partial class OaWorkflowAppService
         return new OaProcessEditDto { FlowDefId = definition.Id, FlowDefJson = definition.DefJson };
     }
 
-    public async Task<List<OaFlowFormFieldDto>> GetFlowFormWidgetsAsync(Guid defId, CancellationToken cancellationToken = default) =>
-        await (await _fields.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == defId).OrderBy(x => x.SortOrder)
-            .Select(x => new OaFlowFormFieldDto
+    public async Task<List<OaFlowFormFieldDto>> GetFlowFormWidgetsAsync(Guid defId, CancellationToken cancellationToken = default)
+    {
+        var fields = await (await _fields.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == defId)
+            .OrderBy(x => x.SortOrder).ToListAsync(cancellationToken);
+        return fields.Select(MapFormField).ToList();
+    }
+
+    private static OaFlowFormFieldDto MapFormField(OaFormField field)
+    {
+        OaFlowFormFieldDto dto;
+        try
+        {
+            dto = !string.IsNullOrWhiteSpace(field.Extras) && field.Extras.TrimStart().StartsWith('{')
+                ? JsonSerializer.Deserialize<OaFlowFormFieldDto>(field.Extras, WorkflowJsonOptions) ?? new OaFlowFormFieldDto()
+                : new OaFlowFormFieldDto();
+            if (!string.IsNullOrWhiteSpace(field.Extras) && field.Extras.TrimStart().StartsWith('['))
             {
-                Id = x.Id, FlowDefId = x.DefId, Name = x.FieldKey, Label = x.Label, Placeholder = x.Placeholder,
-                Type = x.FieldType, Required = x.IsRequired, Summary = x.IsSummary
-            }).ToListAsync(cancellationToken);
+                using var details = JsonDocument.Parse(field.Extras);
+                dto.ExtraProperties = new Dictionary<string, JsonElement> { ["details"] = details.RootElement.Clone() };
+            }
+        }
+        catch (JsonException)
+        {
+            dto = new OaFlowFormFieldDto();
+        }
+
+        dto.Id = field.Id;
+        dto.FlowDefId = field.DefId;
+        dto.Name = field.FieldKey;
+        dto.Label = field.Label;
+        dto.Placeholder = field.Placeholder;
+        dto.Type = field.FieldType;
+        dto.Required = field.IsRequired;
+        dto.Summary = field.IsSummary;
+        return dto;
+    }
 
     private FlattenResult Flatten(Guid defId, OaFlowNodeRequest root)
     {
@@ -276,7 +305,12 @@ public partial class OaWorkflowAppService
             ApprovalType = source.ApprovalType, MultiInstanceApprovalType = source.MultiInstanceApprovalType,
             FlowNodeNoAuditorType = source.FlowNodeNoAuditorType, FlowNodeNoAuditorAssignee = source.FlowNodeNoAuditorAssignee,
             FlowNodeSelfAuditorType = source.FlowNodeSelfAuditorType, Backable = source.Backable,
-            Signable = source.Signable, Assignable = source.Assignable, Signature = source.Signature
+            Signable = source.Signable, Assignable = source.Assignable, Signature = source.Signature,
+            Extras = JsonSerializer.Serialize(new NodeRuntimeOptions
+            {
+                FlowNodeAuditAdmin = source.FlowNodeAuditAdmin,
+                FormAuths = source.FormAuths ?? []
+            }, WorkflowJsonOptions)
         };
         result.Nodes.Add(node);
         foreach (var assignee in source.Assignees ?? [])
@@ -295,7 +329,8 @@ public partial class OaWorkflowAppService
             result.Transactors.Add(new OaTransactConfig(_ids.Create())
             {
                 NodeId = node.Id, Rid = transactor.Rid, AssigneeType = transactor.TransactorType,
-                Assignees = transactor.Assignees ?? [], Roles = transactor.Roles ?? []
+                Assignees = transactor.Assignees ?? [], Roles = transactor.Roles ?? [],
+                Layer = transactor.Layer, LayerType = transactor.LayerType
             });
         foreach (var branchSource in source.ConditionNodes ?? [])
         {

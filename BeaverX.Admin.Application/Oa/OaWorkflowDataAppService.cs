@@ -76,6 +76,10 @@ public partial class OaWorkflowAppService
         var tasks = await taskQuery.Where(x => instanceIds.Contains(x.InstanceId)).OrderByDescending(x => x.CreationTime).ToListAsync(cancellationToken);
         var nodeIds = tasks.Select(x => x.NodeId).Distinct().ToList();
         var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
+        var summaryFields = await (await _fields.GetQueryableAsync()).AsNoTracking()
+            .Where(x => defIdList.Contains(x.DefId) && x.IsSummary).OrderBy(x => x.SortOrder).ToListAsync(cancellationToken);
+        var summaryFieldsByDef = summaryFields.GroupBy(x => x.DefId)
+            .ToDictionary(x => x.Key, x => (IReadOnlyCollection<OaFormField>)x.ToList());
 
         var items = instances.Select(instance =>
         {
@@ -94,7 +98,8 @@ public partial class OaWorkflowAppService
                 Status = (int)instance.Status, TaskId = relevantTask?.Id, ActNodeId = relevantTask?.NodeId,
                 Assignable = node?.Assignable ?? false, Signable = node?.Signable ?? false, Backable = node?.Backable ?? false,
                 Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType,
-                Summary = BuildSummary(instance.FormValue)
+                Summary = BuildSummary(instance.FormValue,
+                    summaryFieldsByDef.GetValueOrDefault(instance.DefId) ?? Array.Empty<OaFormField>())
             };
         }).ToList();
         return new PagedResultDto<OaFlowInstanceListDto> { Total = total, Items = items };

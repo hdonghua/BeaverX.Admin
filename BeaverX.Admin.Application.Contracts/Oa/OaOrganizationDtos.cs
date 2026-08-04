@@ -57,6 +57,8 @@ public class OaDepartmentMemberDto
     public string? Avatar { get; set; }
     public bool IsPrimary { get; set; }
     public bool IsLeader { get; set; }
+    public Guid? ManagerUserId { get; set; }
+    public string? ManagerName { get; set; }
 }
 
 public class OaDepartmentMemberQuery : PagedQueryDto
@@ -72,6 +74,11 @@ public class OaAddDepartmentMembersRequest
 public class OaSetDepartmentLeaderRequest
 {
     public Guid? LeaderUserId { get; set; }
+}
+
+public class OaSetMemberManagerRequest
+{
+    public Guid? ManagerUserId { get; set; }
 }
 
 public class OaSaveDepartmentRequest

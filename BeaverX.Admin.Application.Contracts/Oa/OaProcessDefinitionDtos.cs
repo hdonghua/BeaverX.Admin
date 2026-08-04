@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace BeaverX.Admin.Application.Contracts.Oa;
 
 public class OaFlowGroupQuery
@@ -84,11 +87,23 @@ public class OaFlowNodeRequest
     public int FlowNodeNoAuditorType { get; set; }
     public int FlowNodeSelfAuditorType { get; set; }
     public string? FlowNodeNoAuditorAssignee { get; set; }
+    public string? FlowNodeAuditAdmin { get; set; }
     public int? MultiInstanceApprovalType { get; set; }
     public bool Backable { get; set; }
     public bool Signable { get; set; }
     public bool Assignable { get; set; }
     public bool Signature { get; set; }
+    public List<OaFormAuthRequest>? FormAuths { get; set; }
+}
+
+public class OaFormAuthRequest
+{
+    public string Name { get; set; } = null!;
+    public int Type { get; set; }
+    public string? Label { get; set; }
+    public bool? Readable { get; set; }
+    public bool? Editable { get; set; }
+    public List<OaFormAuthRequest>? Details { get; set; }
 }
 
 public class OaAssigneeRequest
@@ -148,6 +163,9 @@ public class OaFlowWidgetRequest
     public bool Required { get; set; }
     public string? Placeholder { get; set; }
     public object? Details { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? ExtraProperties { get; set; }
 }
 
 public class OaProcessEditDto
@@ -169,4 +187,9 @@ public class OaFlowFormFieldDto
     public bool Locale { get; set; }
     public bool Comma { get; set; }
     public string? Format { get; set; }
+    public bool Readable { get; set; } = true;
+    public bool Editable { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? ExtraProperties { get; set; }
 }

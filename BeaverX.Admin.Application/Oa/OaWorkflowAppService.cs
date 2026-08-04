@@ -19,6 +19,11 @@ public partial class OaWorkflowAppService :
     IOaWorkflowDataAppService,
     IScopedDependency
 {
+    private static readonly JsonSerializerOptions WorkflowJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly IRepository<OaProcessGroup, Guid> _groups;
     private readonly IRepository<OaProcessDefinition, Guid> _definitions;
     private readonly IRepository<OaFormField, Guid> _fields;
@@ -87,12 +92,41 @@ public partial class OaWorkflowAppService :
     private Guid GetCurrentUserId() => _currentUser.Id is { } id && id != Guid.Empty ? id : throw new BusinessException("未登录或用户信息无效");
     private static bool IsGuid(string value) => Guid.TryParse(value, out _);
     private static Guid ParseUserId(string? value, string message) => Guid.TryParse(value, out var id) && id != Guid.Empty ? id : throw new BusinessException(message);
-    private static void AddGuids(HashSet<Guid> target, IEnumerable<string> source) { foreach (var value in source) if (Guid.TryParse(value, out var id)) target.Add(id); }
     private static string JsonValue(JsonElement value) => value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString();
-    private static void EnsureJsonObject(string value) { try { using var document = JsonDocument.Parse(value); if (document.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException(); } catch (JsonException) { throw new BusinessException("流程表单数据格式无效"); } }
-    private static string? BuildSummary(string formValue) { try { using var doc = JsonDocument.Parse(formValue); return string.Join("，", doc.RootElement.EnumerateObject().Take(3).Select(x => JsonValue(x.Value))).Truncate(160); } catch { return null; } }
+    private static string? BuildSummary(string formValue, IReadOnlyCollection<OaFormField> fields)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(formValue);
+            var values = fields.Where(x => x.IsSummary).OrderBy(x => x.SortOrder)
+                .Select(field => doc.RootElement.TryGetProperty(field.FieldKey, out var value)
+                    ? $"{field.Label}：{FormatSummaryValue(value)}"
+                    : null)
+                .Where(x => !string.IsNullOrWhiteSpace(x));
+            return string.Join("，", values).Truncate(160);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string FormatSummaryValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Array => string.Join("/", value.EnumerateArray().Select(FormatSummaryValue)),
+        JsonValueKind.Object when value.TryGetProperty("name", out var name) => JsonValue(name),
+        JsonValueKind.Object when value.TryGetProperty("id", out var id) => JsonValue(id),
+        JsonValueKind.Null or JsonValueKind.Undefined => string.Empty,
+        _ => JsonValue(value)
+    };
 
     private enum QueryScope { Pending, Mine, Cc, Audited }
+    private sealed class NodeRuntimeOptions
+    {
+        public string? FlowNodeAuditAdmin { get; set; }
+        public List<OaFormAuthRequest> FormAuths { get; set; } = [];
+    }
+
     private sealed class FlattenResult
     {
         public List<OaNode> Nodes { get; } = [];

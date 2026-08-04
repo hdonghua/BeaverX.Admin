@@ -9,4 +9,5 @@ public class OaUserDepartment : Entity<Guid>
     public Guid UserId { get; set; }
     public Guid DepartmentId { get; set; }
     public bool IsPrimary { get; set; } = true;
+    public Guid? ManagerUserId { get; set; }
 }

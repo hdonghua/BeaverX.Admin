@@ -17,7 +17,9 @@ public partial class OaWorkflowAppService
         var definition = await _definitions.GetAsync(input.FlowDefId, cancellationToken: cancellationToken);
         if (definition.Status != OaDefinitionStatus.Published) throw new BusinessException("流程未发布或已停用");
         await ValidateInitiatorAsync(definition, userId, cancellationToken);
-        EnsureJsonObject(input.FlowValue);
+        var launchForm = ParseFormObject(input.FlowValue);
+        var launchFields = await GetFlowFormWidgetsAsync(definition.Id, cancellationToken);
+        ValidateFormValues(launchForm, launchFields);
 
         var instance = new OaInstance(_ids.Create())
         {
@@ -41,11 +43,16 @@ public partial class OaWorkflowAppService
         var approvers = await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var ccs = await (await _ccConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var transactors = await (await _transactConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
-        return nodes.Where(x => !x.IsConditionBranch).Select(node => new OaFlowChartNodeDto
+        return nodes.Where(x => !x.IsConditionBranch).Select(node =>
         {
+            var options = GetNodeRuntimeOptions(node);
+            return new OaFlowChartNodeDto
+            {
             Id = node.Id, NodeId = node.Id, Name = node.NodeName, NodeType = (int)node.NodeType,
             ApprovalType = node.ApprovalType, MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
             FlowNodeNoAuditorType = node.FlowNodeNoAuditorType ?? 0,
+            FlowNodeNoAuditorAssignee = node.FlowNodeNoAuditorAssignee,
+            FlowNodeAuditAdmin = options.FlowNodeAuditAdmin,
             UserIds = node.NodeType switch
             {
                 OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
@@ -61,6 +68,7 @@ public partial class OaWorkflowAppService
             InitatorChoice = node.NodeType == OaNodeType.Transact
                 ? transactors.Any(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.InitiatorChoice)
                 : approvers.Any(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.InitiatorChoice)
+            };
         }).ToList();
     }
 
@@ -79,6 +87,12 @@ public partial class OaWorkflowAppService
         var fields = await GetFlowFormWidgetsAsync(instance.DefId, cancellationToken);
         var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == instance.DefId).ToListAsync(cancellationToken);
         var tasks = await (await _tasks.GetQueryableAsync()).AsNoTracking().Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
+        if (_currentUser.Id is { } currentUserId)
+        {
+            var activeTask = tasks.FirstOrDefault(x => x.UserId == currentUserId && x.Status == OaTaskStatus.Pending);
+            var activeNode = activeTask == null ? null : nodes.FirstOrDefault(x => x.Id == activeTask.NodeId);
+            if (activeNode != null) ApplyNodeFormAuth(fields, activeNode);
+        }
 
         var taskNodes = tasks.Select(task =>
         {
@@ -110,13 +124,16 @@ public partial class OaWorkflowAppService
             .Where(x => x.InstanceId == instanceId).OrderByDescending(x => x.Status == OaTaskStatus.Pending)
             .ThenByDescending(x => x.CreationTime).FirstOrDefaultAsync(cancellationToken);
         var node = task == null ? null : await _nodes.FindAsync(task.NodeId, cancellationToken: cancellationToken);
+        var summaryFields = await (await _fields.GetQueryableAsync()).AsNoTracking()
+            .Where(x => x.DefId == instance.DefId && x.IsSummary).OrderBy(x => x.SortOrder).ToListAsync(cancellationToken);
         return new OaFlowInstanceListDto
         {
             FlowDefId = definition.Id, Name = definition.Name, GroupId = definition.GroupId, Cancelable = definition.Cancelable,
             Id = instance.Id, InstanceNo = instance.InstanceNo, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
             Status = (int)instance.Status, TaskId = task?.Id, ActNodeId = task?.NodeId,
             Assignable = node?.Assignable ?? false, Signable = node?.Signable ?? false, Backable = node?.Backable ?? false,
-            Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType, Summary = BuildSummary(instance.FormValue)
+            Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType,
+            Summary = BuildSummary(instance.FormValue, summaryFields)
         };
     }
 
@@ -137,8 +154,12 @@ public partial class OaWorkflowAppService
         var userId = GetCurrentUserId();
         var task = await GetPendingTaskAsync(input.TaskId, userId, cancellationToken);
         if (task.InstanceId != input.FlowInstId || task.NodeId != input.FlowNodeId) throw new BusinessException("流程任务信息不匹配");
-        EnsureJsonObject(input.FlowValue);
         var instance = await _instances.GetAsync(input.FlowInstId, cancellationToken: cancellationToken);
+        var node = await _nodes.GetAsync(task.NodeId, cancellationToken: cancellationToken);
+        EnsureOnlyEditableValuesChanged(instance.FormValue, input.FlowValue, node);
+        var form = ParseFormObject(input.FlowValue);
+        var fields = await GetFlowFormWidgetsAsync(instance.DefId, cancellationToken);
+        ValidateFormValues(form, fields);
         if (instance.FormValue == input.FlowValue) return;
         var previousFormValue = instance.FormValue;
         instance.FormValue = input.FlowValue;
@@ -211,6 +232,22 @@ public partial class OaWorkflowAppService
         await AddLogAsync(instance.Id, task.Id, userId, task.FlowCmd.Value, task.NodeId, null, input.Comment, cancellationToken);
 
         var node = await _nodes.GetAsync(task.NodeId, cancellationToken: cancellationToken);
+        if (node.MultiInstanceApprovalType == 3 && task.CandidateUsers is { Count: > 0 })
+        {
+            var nextUser = task.CandidateUsers.FirstOrDefault(IsGuid);
+            if (nextUser != null)
+            {
+                var remainingCandidates = task.CandidateUsers.SkipWhile(x => x != nextUser).Skip(1).ToList();
+                await _tasks.InsertAsync(new OaTask(_ids.Create())
+                {
+                    InstanceId = instance.Id, NodeId = node.Id, NodeName = node.NodeName,
+                    UserId = Guid.Parse(nextUser), Status = OaTaskStatus.Pending,
+                    ParentTaskId = task.Id, CandidateUsers = remainingCandidates,
+                    LoopCounter = (task.LoopCounter ?? 0) + 1
+                }, autoSave: true, cancellationToken: cancellationToken);
+                return;
+            }
+        }
         var remaining = await (await _tasks.GetQueryableAsync()).Where(x => x.InstanceId == instance.Id && x.NodeId == node.Id && x.Status == OaTaskStatus.Pending).ToListAsync(cancellationToken);
         if (node.MultiInstanceApprovalType == 2 && remaining.Count > 0)
         {
@@ -346,9 +383,45 @@ public partial class OaWorkflowAppService
             if (node.NodeType == OaNodeType.Approve || node.NodeType == OaNodeType.Transact)
             {
                 var users = await ResolveAssigneesAsync(instance, node, designees, cancellationToken);
+                var skippedSelf = false;
+                if (users.Contains(instance.Initiator))
+                {
+                    if (node.FlowNodeSelfAuditorType == 1)
+                    {
+                        users.RemoveAll(x => x == instance.Initiator);
+                        skippedSelf = users.Count == 0;
+                    }
+                    else if (node.FlowNodeSelfAuditorType is 2 or 3)
+                    {
+                        users.RemoveAll(x => x == instance.Initiator);
+                        var replacements = node.FlowNodeSelfAuditorType == 2
+                            ? await ResolveManagerChainAsync(instance.Initiator, 0, 0, false, cancellationToken)
+                            : await ResolveDepartmentLeaderChainAsync(instance.Initiator, 1, 0, true, cancellationToken);
+                        var replacement = replacements.FirstOrDefault(x => x != instance.Initiator);
+                        if (replacement != Guid.Empty) users.Add(replacement);
+                    }
+                }
+                users = users.Distinct().ToList();
+                if (skippedSelf)
+                {
+                    await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.AutoApproved, node.Id, node.ChildNodeId, "发起人与审批人相同，自动跳过", cancellationToken);
+                    node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+                    continue;
+                }
                 if (users.Count == 0)
                 {
                     if (node.FlowNodeNoAuditorType == 1 && Guid.TryParse(node.FlowNodeNoAuditorAssignee, out var fallback)) users.Add(fallback);
+                    else if (node.FlowNodeNoAuditorType == 2)
+                    {
+                        var options = GetNodeRuntimeOptions(node);
+                        if (Guid.TryParse(options.FlowNodeAuditAdmin, out var admin)) users.Add(admin);
+                        else
+                        {
+                            var definition = await _definitions.GetAsync(instance.DefId, cancellationToken: cancellationToken);
+                            var defaultAdmin = definition.FlowAdminIds.FirstOrDefault(IsGuid);
+                            if (defaultAdmin != null) users.Add(Guid.Parse(defaultAdmin));
+                        }
+                    }
                     else
                     {
                         await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.AutoApproved, node.Id, node.ChildNodeId, "审批人为空，自动通过", cancellationToken);
@@ -356,17 +429,19 @@ public partial class OaWorkflowAppService
                         continue;
                     }
                 }
-                if (node.FlowNodeSelfAuditorType == 1) users.Remove(instance.Initiator);
                 if (users.Count == 0)
                 {
-                    node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
-                    continue;
+                    throw new BusinessException($"节点“{node.NodeName}”没有可用的审批人或流程管理员");
                 }
-                var tasks = users.Distinct().Select(userId => new OaTask(_ids.Create())
-                {
-                    InstanceId = instance.Id, NodeId = node.Id, NodeName = node.NodeName,
-                    UserId = userId, Status = OaTaskStatus.Pending
-                }).ToList();
+                var distinctUsers = users.Distinct().ToList();
+                var taskUsers = node.MultiInstanceApprovalType == 3 ? distinctUsers.Take(1) : distinctUsers;
+                var candidates = node.MultiInstanceApprovalType == 3 ? distinctUsers.Skip(1).Select(x => x.ToString()).ToList() : null;
+                var tasks = taskUsers.Select(userId => new OaTask(_ids.Create())
+                    {
+                        InstanceId = instance.Id, NodeId = node.Id, NodeName = node.NodeName,
+                        UserId = userId, Status = OaTaskStatus.Pending, CandidateUsers = candidates,
+                        LoopCounter = node.MultiInstanceApprovalType == 3 ? 0 : null
+                    }).ToList();
                 await _tasks.InsertManyAsync(tasks, autoSave: true, cancellationToken: cancellationToken);
                 return;
             }
@@ -379,62 +454,36 @@ public partial class OaWorkflowAppService
     {
         var configs = node.NodeType == OaNodeType.Transact
             ? await (await _transactConfigs.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id)
-                .Select(x => new AssigneeConfig((OaAssigneeType)x.AssigneeType, x.Assignees, x.Roles)).ToListAsync(cancellationToken)
+                .Select(x => new AssigneeConfig((OaAssigneeType)x.AssigneeType, x.Assignees, x.Roles, x.LayerType, x.Layer)).ToListAsync(cancellationToken)
             : await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id)
-                .Select(x => new AssigneeConfig(x.AssigneeType, x.Assignees, x.Roles)).ToListAsync(cancellationToken);
-        var result = new HashSet<Guid>();
+                .Select(x => new AssigneeConfig(x.AssigneeType, x.Assignees, x.Roles, x.LayerType, x.Layer)).ToListAsync(cancellationToken);
+        var result = new List<Guid>();
         foreach (var config in configs)
         {
-            if (config.AssigneeType == OaAssigneeType.Self) result.Add(instance.Initiator);
-            else if (config.AssigneeType == OaAssigneeType.Assignee)
-                AddGuids(result, config.Assignees);
-            else if (config.AssigneeType == OaAssigneeType.InitiatorChoice && designees?.TryGetValue(node.Id, out var selected) == true)
-                AddGuids(result, selected);
-            else if (config.AssigneeType == OaAssigneeType.Role)
+            if (config.AssigneeType == OaAssigneeType.InitiatorChoice)
             {
-                var roleIds = (config.Roles.Count > 0 ? config.Roles : config.Assignees).Where(IsGuid).Select(Guid.Parse).ToList();
-                if (roleIds.Count > 0)
-                {
-                    var users = await (await _userRoles.GetQueryableAsync()).AsNoTracking().Where(x => roleIds.Contains(x.RoleId)).Select(x => x.UserId).ToListAsync(cancellationToken);
-                    foreach (var user in users) result.Add(user);
-                }
+                if (designees?.TryGetValue(node.Id, out var selected) == true)
+                    result.AddRange(selected.Where(IsGuid).Select(Guid.Parse));
             }
-            else if (config.AssigneeType is OaAssigneeType.DepartmentLeader or OaAssigneeType.Superior or OaAssigneeType.MultistepLeader or OaAssigneeType.MultistepDepartmentLeader)
-            {
-                var deptIds = await (await _userDepartments.GetQueryableAsync()).AsNoTracking().Where(x => x.UserId == instance.Initiator).Select(x => x.DepartmentId).ToListAsync(cancellationToken);
-                var leaders = await (await _departments.GetQueryableAsync()).AsNoTracking().Where(x => deptIds.Contains(x.Id) && x.LeaderUserId.HasValue).Select(x => x.LeaderUserId!.Value).ToListAsync(cancellationToken);
-                foreach (var leader in leaders) result.Add(leader);
-            }
+            else
+                result.AddRange(await ResolveConfiguredUsersAsync(instance.Initiator, config.AssigneeType, config.Assignees, config.Roles, config.LayerType, config.Layer, cancellationToken));
         }
-        return result.ToList();
+        return result.Distinct().ToList();
     }
 
-    private sealed record AssigneeConfig(OaAssigneeType AssigneeType, List<string> Assignees, List<string> Roles);
+    private sealed record AssigneeConfig(OaAssigneeType AssigneeType, List<string> Assignees, List<string> Roles, int? LayerType, int? Layer);
 
     private async Task CreateCcRecordsAsync(OaInstance instance, OaNode node, CancellationToken cancellationToken)
     {
         var configs = await (await _ccConfigs.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == node.Id).ToListAsync(cancellationToken);
-        var users = new HashSet<Guid>();
+        var users = new List<Guid>();
         foreach (var config in configs)
         {
             var ccType = (OaAssigneeType)config.CcType;
-            if (ccType == OaAssigneeType.Self) users.Add(instance.Initiator);
-            else if (ccType == OaAssigneeType.Assignee) AddGuids(users, config.Assignees);
-            else if (ccType == OaAssigneeType.Role)
-            {
-                var roleIds = (config.Roles.Count > 0 ? config.Roles : config.Assignees).Where(IsGuid).Select(Guid.Parse).ToList();
-                var roleUsers = await (await _userRoles.GetQueryableAsync()).AsNoTracking().Where(x => roleIds.Contains(x.RoleId)).Select(x => x.UserId).ToListAsync(cancellationToken);
-                foreach (var roleUser in roleUsers) users.Add(roleUser);
-            }
-            else if (ccType is OaAssigneeType.Superior or OaAssigneeType.DepartmentLeader)
-            {
-                var deptIds = await (await _userDepartments.GetQueryableAsync()).AsNoTracking().Where(x => x.UserId == instance.Initiator).Select(x => x.DepartmentId).ToListAsync(cancellationToken);
-                var leaders = await (await _departments.GetQueryableAsync()).AsNoTracking().Where(x => deptIds.Contains(x.Id) && x.LeaderUserId.HasValue).Select(x => x.LeaderUserId!.Value).ToListAsync(cancellationToken);
-                foreach (var leader in leaders) users.Add(leader);
-            }
+            users.AddRange(await ResolveConfiguredUsersAsync(instance.Initiator, ccType, config.Assignees, config.Roles, config.LayerType, config.Layer, cancellationToken));
         }
         var existing = await (await _ccRecords.GetQueryableAsync()).AsNoTracking().Where(x => x.InstanceId == instance.Id).Select(x => x.UserId).ToListAsync(cancellationToken);
-        var records = users.Except(existing).Select(userId => new OaCcRecord(_ids.Create()) { InstanceId = instance.Id, NodeId = node.Id, UserId = userId }).ToList();
+        var records = users.Distinct().Except(existing).Select(userId => new OaCcRecord(_ids.Create()) { InstanceId = instance.Id, NodeId = node.Id, UserId = userId }).ToList();
         if (records.Count > 0) await _ccRecords.InsertManyAsync(records, autoSave: true, cancellationToken: cancellationToken);
     }
 
@@ -456,36 +505,81 @@ public partial class OaWorkflowAppService
         if (groups.Count == 0) return false;
         var groupIds = groups.Select(x => x.Id).ToList();
         var conditions = await (await _conditions.GetQueryableAsync()).AsNoTracking().Where(x => groupIds.Contains(x.GroupId)).ToListAsync(cancellationToken);
+        var initiatorIdentities = await GetInitiatorIdentitiesAsync(instance.Initiator, cancellationToken);
         using var document = JsonDocument.Parse(instance.FormValue);
-        return groups.Any(group => conditions.Where(x => x.GroupId == group.Id).All(condition => MatchCondition(instance, document.RootElement, condition)));
+        return groups.Any(group => conditions.Where(x => x.GroupId == group.Id).All(condition => MatchCondition(initiatorIdentities, document.RootElement, condition)));
     }
 
-    private static bool MatchCondition(OaInstance instance, JsonElement form, OaCondition condition)
+    private static bool MatchCondition(HashSet<string> initiatorIdentities, JsonElement form, OaCondition condition)
     {
         var expected = condition.Values ?? [];
         if (condition.VarName == "initiator")
         {
-            var contains = expected.Contains(instance.Initiator.ToString(), StringComparer.OrdinalIgnoreCase);
+            var contains = expected.Any(initiatorIdentities.Contains);
             return condition.Operator == 20 ? contains : !contains;
         }
-        if (!form.TryGetProperty(condition.VarName, out var actual)) return false;
-        var actualValues = actual.ValueKind == JsonValueKind.Array ? actual.EnumerateArray().Select(JsonValue).ToList() : [JsonValue(actual)];
+        var actualValues = GetConditionValues(form, condition.VarName);
+        if (actualValues.Count == 0) return false;
         var actualText = actualValues.FirstOrDefault() ?? string.Empty;
         var expectedText = expected.FirstOrDefault() ?? string.Empty;
-        if (condition.Operator is >= 0 and <= 5 && decimal.TryParse(actualText, out var left) && decimal.TryParse(expectedText, out var right))
-            return condition.Operator switch { 0 => left == right, 1 => left != right, 2 => left < right, 3 => left <= right, 4 => left > right, 5 => left >= right, _ => false };
+        if (condition.Operator is >= 0 and <= 5 && decimal.TryParse(expectedText, out var right))
+            return actualValues.Where(x => decimal.TryParse(x, out _)).Select(decimal.Parse).Any(left => condition.Operator switch
+            {
+                0 => left == right, 1 => left != right, 2 => left < right, 3 => left <= right,
+                4 => left > right, 5 => left >= right, _ => false
+            });
         return condition.Operator switch
         {
-            10 => actualText.Contains(expectedText, StringComparison.OrdinalIgnoreCase),
-            11 => !actualText.Contains(expectedText, StringComparison.OrdinalIgnoreCase),
-            12 => string.Equals(actualText, expectedText, StringComparison.OrdinalIgnoreCase),
-            13 => !string.Equals(actualText, expectedText, StringComparison.OrdinalIgnoreCase),
-            14 => expected.Any(x => actualText.Contains(x, StringComparison.OrdinalIgnoreCase)),
-            15 => expected.All(x => !actualText.Contains(x, StringComparison.OrdinalIgnoreCase)),
+            10 => actualValues.Any(x => expectedText.Contains(x, StringComparison.OrdinalIgnoreCase)),
+            11 => actualValues.All(x => !expectedText.Contains(x, StringComparison.OrdinalIgnoreCase)),
+            12 => actualValues.Any(x => string.Equals(x, expectedText, StringComparison.OrdinalIgnoreCase)),
+            13 => actualValues.All(x => !string.Equals(x, expectedText, StringComparison.OrdinalIgnoreCase)),
+            14 => actualValues.Any(x => expected.Any(y => x.Contains(y, StringComparison.OrdinalIgnoreCase))),
+            15 => actualValues.All(x => expected.All(y => !x.Contains(y, StringComparison.OrdinalIgnoreCase))),
             20 => actualValues.Intersect(expected, StringComparer.OrdinalIgnoreCase).Any(),
             21 => !actualValues.Intersect(expected, StringComparer.OrdinalIgnoreCase).Any(),
             _ => false
         };
+    }
+
+    private static List<string> GetConditionValues(JsonElement root, string propertyName)
+    {
+        var values = new List<string>();
+        CollectConditionValues(root, propertyName, values);
+        return values.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static void CollectConditionValues(JsonElement element, string propertyName, List<string> values)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.NameEquals(propertyName)) FlattenConditionValue(property.Value, values);
+                else CollectConditionValues(property.Value, propertyName, values);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray()) CollectConditionValues(item, propertyName, values);
+        }
+    }
+
+    private static void FlattenConditionValue(JsonElement element, List<string> values)
+    {
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray()) FlattenConditionValue(item, values);
+        }
+        else if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("id", out var id)) values.Add(JsonValue(id));
+            else foreach (var property in element.EnumerateObject()) FlattenConditionValue(property.Value, values);
+        }
+        else if (element.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined)
+        {
+            values.Add(JsonValue(element));
+        }
     }
 
     private async Task ValidateInitiatorAsync(OaProcessDefinition definition, Guid userId, CancellationToken cancellationToken)

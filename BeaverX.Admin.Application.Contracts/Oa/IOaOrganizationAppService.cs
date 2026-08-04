@@ -15,4 +15,5 @@ public interface IOaOrganizationAppService
     Task AddMembersAsync(Guid departmentId, OaAddDepartmentMembersRequest input, CancellationToken cancellationToken = default);
     Task RemoveMemberAsync(Guid departmentId, Guid userId, CancellationToken cancellationToken = default);
     Task SetLeaderAsync(Guid departmentId, OaSetDepartmentLeaderRequest input, CancellationToken cancellationToken = default);
+    Task SetMemberManagerAsync(Guid departmentId, Guid userId, OaSetMemberManagerRequest input, CancellationToken cancellationToken = default);
 }

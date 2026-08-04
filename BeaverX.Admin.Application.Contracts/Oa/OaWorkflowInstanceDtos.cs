@@ -45,6 +45,8 @@ public class OaFlowChartNodeDto
     public int ApprovalType { get; set; }
     public int MultiInstanceApprovalType { get; set; }
     public int FlowNodeNoAuditorType { get; set; }
+    public string? FlowNodeNoAuditorAssignee { get; set; }
+    public string? FlowNodeAuditAdmin { get; set; }
     public List<string> UserIds { get; set; } = [];
     public List<string> RoleIds { get; set; } = [];
     public bool InitatorChoice { get; set; }

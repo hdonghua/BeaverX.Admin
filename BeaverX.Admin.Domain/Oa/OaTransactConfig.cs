@@ -9,6 +9,8 @@ public class OaTransactConfig : Entity<Guid>
     public Guid NodeId { get; set; }
     public string Rid { get; set; } = null!;
     public int AssigneeType { get; set; }
+    public int? LayerType { get; set; }
+    public int? Layer { get; set; }
     public List<string> Assignees { get; set; } = [];
     public List<string> Roles { get; set; } = [];
 }

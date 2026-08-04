@@ -57,4 +57,9 @@ public class OaOrganizationController : AdminControllerBase
     [RequirePermission(RbacPermissionCodes.System.Organization.Manage)]
     [HttpPut("departments/{departmentId:guid}/leader")]
     public Task SetLeaderAsync(Guid departmentId, [FromBody] OaSetDepartmentLeaderRequest input, CancellationToken cancellationToken) => _service.SetLeaderAsync(departmentId, input, cancellationToken);
+
+    [RequirePermission(RbacPermissionCodes.System.Organization.Manage)]
+    [HttpPut("departments/{departmentId:guid}/members/{userId:guid}/manager")]
+    public Task SetMemberManagerAsync(Guid departmentId, Guid userId, [FromBody] OaSetMemberManagerRequest input, CancellationToken cancellationToken) =>
+        _service.SetMemberManagerAsync(departmentId, userId, input, cancellationToken);
 }

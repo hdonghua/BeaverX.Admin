@@ -396,6 +396,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     NodeId = table.Column<Guid>(type: "uuid", nullable: false),
                     Rid = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     AssigneeType = table.Column<int>(type: "integer", nullable: false),
+                    LayerType = table.Column<int>(type: "integer", nullable: true),
+                    Layer = table.Column<int>(type: "integer", nullable: true),
                     Assignees = table.Column<List<string>>(type: "text[]", nullable: false),
                     Roles = table.Column<List<string>>(type: "text[]", nullable: false)
                 },
@@ -411,7 +413,8 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false)
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
+                    ManagerUserId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -931,6 +934,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_oa_departments_LeaderUserId",
+                table: "oa_departments",
+                column: "LeaderUserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_oa_form_fields_DefId",
                 table: "oa_form_fields",
                 column: "DefId");
@@ -986,6 +995,13 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "IX_oa_transact_configs_NodeId",
                 table: "oa_transact_configs",
                 column: "NodeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_user_departments_UserId",
+                table: "oa_user_departments",
+                column: "UserId",
+                unique: true,
+                filter: "\"IsPrimary\" = TRUE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_oa_user_departments_UserId_DepartmentId",

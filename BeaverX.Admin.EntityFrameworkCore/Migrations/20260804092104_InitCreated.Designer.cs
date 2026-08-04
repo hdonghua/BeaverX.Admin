@@ -14,7 +14,7 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260804063356_InitCreated")]
+    [Migration("20260804092104_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -631,6 +631,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("LeaderUserId")
+                        .IsUnique();
+
                     b.ToTable("oa_departments", (string)null);
                 });
 
@@ -1107,6 +1110,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                         .IsRequired()
                         .HasColumnType("text[]");
 
+                    b.Property<int?>("Layer")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LayerType")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uuid");
 
@@ -1137,10 +1146,17 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("ManagerUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"IsPrimary\" = TRUE");
 
                     b.HasIndex("UserId", "DepartmentId")
                         .IsUnique();

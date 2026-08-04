@@ -78,8 +78,15 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
             {
                 UserId = x.user.Id, UserName = x.user.UserName, Name = x.user.NickName ?? x.user.UserName,
                 Phone = x.user.Phone, Email = x.user.Email, Avatar = x.user.Avatar,
-                IsPrimary = x.link.IsPrimary, IsLeader = department.LeaderUserId == x.user.Id
+                IsPrimary = x.link.IsPrimary, IsLeader = department.LeaderUserId == x.user.Id,
+                ManagerUserId = x.link.ManagerUserId
             }).ToListAsync(cancellationToken);
+        var managerIds = items.Where(x => x.ManagerUserId.HasValue).Select(x => x.ManagerUserId!.Value).Distinct().ToList();
+        var managerNames = managerIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await users.Where(x => managerIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.NickName ?? x.UserName, cancellationToken);
+        foreach (var item in items)
+            if (item.ManagerUserId.HasValue) item.ManagerName = managerNames.GetValueOrDefault(item.ManagerUserId.Value);
         return new PagedResultDto<OaDepartmentMemberDto> { Total = total, Items = items };
     }
 
@@ -204,6 +211,35 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         if (links.Count > 0) await _userDepartmentRepository.UpdateManyAsync(links, autoSave: false, cancellationToken: cancellationToken);
         department.LeaderUserId = userId;
         await _departmentRepository.UpdateAsync(department, autoSave: true, cancellationToken: cancellationToken);
+    }
+
+    public async Task SetMemberManagerAsync(Guid departmentId, Guid userId, OaSetMemberManagerRequest input, CancellationToken cancellationToken = default)
+    {
+        var membership = await _userDepartmentRepository.FindAsync(
+            x => x.DepartmentId == departmentId && x.UserId == userId,
+            cancellationToken: cancellationToken) ?? throw new BusinessException("部门成员不存在");
+        if (!membership.IsPrimary) throw new BusinessException("只能为员工的主岗设置直属上级");
+        if (input.ManagerUserId == userId) throw new BusinessException("不能将员工本人设置为直属上级");
+        if (input.ManagerUserId.HasValue &&
+            !await _userRepository.AnyAsync(x => x.Id == input.ManagerUserId.Value && x.IsEnabled, cancellationToken))
+            throw new BusinessException("直属上级不存在或已停用");
+
+        if (input.ManagerUserId.HasValue)
+        {
+            var primaryLinks = await (await _userDepartmentRepository.GetQueryableAsync()).AsNoTracking()
+                .Where(x => x.IsPrimary).Select(x => new { x.UserId, x.ManagerUserId }).ToListAsync(cancellationToken);
+            var managerMap = primaryLinks.ToDictionary(x => x.UserId, x => x.ManagerUserId);
+            var current = input.ManagerUserId;
+            var visited = new HashSet<Guid>();
+            while (current.HasValue && visited.Add(current.Value))
+            {
+                if (current.Value == userId) throw new BusinessException("直属上级关系不能形成循环");
+                current = managerMap.GetValueOrDefault(current.Value);
+            }
+        }
+
+        membership.ManagerUserId = input.ManagerUserId;
+        await _userDepartmentRepository.UpdateAsync(membership, autoSave: true, cancellationToken: cancellationToken);
     }
 
     public async Task<OaOrganizationOptionsDto> GetOptionsAsync(CancellationToken cancellationToken = default)
