@@ -9,32 +9,40 @@ namespace BeaverX.Admin.Http.Api.Controllers;
 [Route("api/approveManagement")]
 public class ApproveManagementController : AdminControllerBase
 {
-    private readonly IOaWorkflowAppService _service;
-    public ApproveManagementController(IOaWorkflowAppService service) => _service = service;
+    private readonly IOaProcessDefinitionAppService _processDefinitionService;
+    private readonly IOaWorkflowDataAppService _workflowDataService;
+
+    public ApproveManagementController(
+        IOaProcessDefinitionAppService processDefinitionService,
+        IOaWorkflowDataAppService workflowDataService)
+    {
+        _processDefinitionService = processDefinitionService;
+        _workflowDataService = workflowDataService;
+    }
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpGet("getFlowGroupWithDef")]
     public Task<List<OaFlowGroupDto>> GetFlowGroupWithDefAsync([FromQuery] OaFlowGroupQuery input, CancellationToken cancellationToken) =>
-        _service.GetGroupsWithDefinitionsAsync(input, cancellationToken: cancellationToken);
+        _processDefinitionService.GetGroupsWithDefinitionsAsync(input, cancellationToken: cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("addProcessGroup")]
     public Task<OaProcessGroupDto> AddProcessGroupAsync([FromBody] OaAddProcessGroupRequest input, CancellationToken cancellationToken) =>
-        _service.AddGroupAsync(input, cancellationToken);
+        _processDefinitionService.AddGroupAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("saveOrUpdateGroup")]
     public Task<OaProcessGroupDto> UpdateProcessGroupAsync([FromBody] OaUpdateProcessGroupRequest input, CancellationToken cancellationToken) =>
-        _service.UpdateGroupAsync(input, cancellationToken);
+        _processDefinitionService.UpdateGroupAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("deleteGroup")]
     public Task DeleteProcessGroupAsync([FromBody] OaIdRequest input, CancellationToken cancellationToken) =>
-        _service.DeleteGroupAsync(input.Id, cancellationToken);
+        _processDefinitionService.DeleteGroupAsync(input.Id, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpGet("getFlowGroups")]
-    public Task<List<OaProcessGroupDto>> GetFlowGroupsAsync(CancellationToken cancellationToken) => _service.GetGroupsAsync(cancellationToken);
+    public Task<List<OaProcessGroupDto>> GetFlowGroupsAsync(CancellationToken cancellationToken) => _processDefinitionService.GetGroupsAsync(cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpGet("getSvgIcons")]
@@ -49,41 +57,41 @@ public class ApproveManagementController : AdminControllerBase
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("addProcess")]
-    public Task AddProcessAsync([FromBody] OaAddProcessRequest input, CancellationToken cancellationToken) => _service.AddProcessAsync(input, cancellationToken);
+    public Task AddProcessAsync([FromBody] OaAddProcessRequest input, CancellationToken cancellationToken) => _processDefinitionService.AddProcessAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("updateProcess")]
-    public Task UpdateProcessAsync([FromBody] OaAddProcessRequest input, CancellationToken cancellationToken) => _service.UpdateProcessAsync(input, cancellationToken);
+    public Task UpdateProcessAsync([FromBody] OaAddProcessRequest input, CancellationToken cancellationToken) => _processDefinitionService.UpdateProcessAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("removeById")]
     public Task DeleteProcessAsync([FromBody] OaFlowDefinitionIdRequest input, CancellationToken cancellationToken) =>
-        _service.DeleteProcessAsync(input.FlowDefId, cancellationToken);
+        _processDefinitionService.DeleteProcessAsync(input.FlowDefId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("freezeById")]
     public Task FreezeProcessAsync([FromBody] OaFlowDefinitionIdRequest input, CancellationToken cancellationToken) =>
-        _service.SetProcessEnabledAsync(input.FlowDefId, false, cancellationToken);
+        _processDefinitionService.SetProcessEnabledAsync(input.FlowDefId, false, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("enableById")]
     public Task EnableProcessAsync([FromBody] OaFlowDefinitionIdRequest input, CancellationToken cancellationToken) =>
-        _service.SetProcessEnabledAsync(input.FlowDefId, true, cancellationToken);
+        _processDefinitionService.SetProcessEnabledAsync(input.FlowDefId, true, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpPost("copy")]
     public Task<OaFlowDefinitionDto> CopyProcessAsync([FromBody] OaCopyProcessRequest input, CancellationToken cancellationToken) =>
-        _service.CopyProcessAsync(input, cancellationToken);
+        _processDefinitionService.CopyProcessAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
     [HttpGet("getProcessEditData")]
-    public Task<OaProcessEditDto> GetProcessEditDataAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _service.GetProcessEditDataAsync(defId, cancellationToken);
+    public Task<OaProcessEditDto> GetProcessEditDataAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _processDefinitionService.GetProcessEditDataAsync(defId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowData)]
     [HttpGet("queryFlowInstsData")]
-    public Task<PagedResultDto<OaFlowInstanceListDto>> QueryFlowInstsDataAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _service.QueryInstancesAsync(input, cancellationToken);
+    public Task<PagedResultDto<OaFlowInstanceListDto>> QueryFlowInstsDataAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowDataService.QueryInstancesAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowData)]
     [HttpPost("transfer")]
-    public Task TransferAsync([FromBody] OaTransferRequest input, CancellationToken cancellationToken) => _service.TransferAsync(input, cancellationToken);
+    public Task TransferAsync([FromBody] OaTransferRequest input, CancellationToken cancellationToken) => _workflowDataService.TransferAsync(input, cancellationToken);
 }

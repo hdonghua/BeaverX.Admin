@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Guids;
 
 namespace BeaverX.Admin.Application.Oa;
 
@@ -12,13 +13,13 @@ public class OaDataSeeder : IDataSeedContributor, ITransientDependency
     private readonly IRepository<OaDepartment, Guid> _departments;
     private readonly IRepository<OaUserDepartment, Guid> _userDepartments;
     private readonly IRepository<User, Guid> _users;
-    private readonly OaIdGenerator _ids;
+    private readonly IGuidGenerator _ids;
 
     public OaDataSeeder(
         IRepository<OaDepartment, Guid> departments,
         IRepository<OaUserDepartment, Guid> userDepartments,
         IRepository<User, Guid> users,
-        OaIdGenerator ids)
+        IGuidGenerator ids)
     {
         _departments = departments;
         _userDepartments = userDepartments;

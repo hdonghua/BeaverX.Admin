@@ -9,90 +9,98 @@ namespace BeaverX.Admin.Http.Api.Controllers;
 [Route("api/workflow")]
 public class WorkflowController : AdminControllerBase
 {
-    private readonly IOaWorkflowAppService _service;
-    public WorkflowController(IOaWorkflowAppService service) => _service = service;
+    private readonly IOaProcessDefinitionAppService _processDefinitionService;
+    private readonly IOaWorkflowInstanceAppService _workflowInstanceService;
+
+    public WorkflowController(
+        IOaProcessDefinitionAppService processDefinitionService,
+        IOaWorkflowInstanceAppService workflowInstanceService)
+    {
+        _processDefinitionService = processDefinitionService;
+        _workflowInstanceService = workflowInstanceService;
+    }
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("getEnabledFlowGroupWithDef")]
-    public Task<List<OaFlowGroupDto>> GetEnabledAsync([FromQuery] OaFlowGroupQuery input, CancellationToken cancellationToken) => _service.GetGroupsWithDefinitionsAsync(input, true, cancellationToken);
+    public Task<List<OaFlowGroupDto>> GetEnabledAsync([FromQuery] OaFlowGroupQuery input, CancellationToken cancellationToken) => _processDefinitionService.GetGroupsWithDefinitionsAsync(input, true, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("getFlowFormWidget")]
-    public Task<List<OaFlowFormFieldDto>> GetWidgetsAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _service.GetFlowFormWidgetsAsync(defId, cancellationToken);
+    public Task<List<OaFlowFormFieldDto>> GetWidgetsAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _processDefinitionService.GetFlowFormWidgetsAsync(defId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("lanunch")]
-    public Task LaunchAsync([FromBody] OaLaunchRequest input, CancellationToken cancellationToken) => _service.LaunchAsync(input, cancellationToken);
+    public Task LaunchAsync([FromBody] OaLaunchRequest input, CancellationToken cancellationToken) => _workflowInstanceService.LaunchAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("viewProcessChart")]
-    public Task<List<OaFlowChartNodeDto>> ViewChartAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _service.ViewProcessChartAsync(defId, cancellationToken);
+    public Task<List<OaFlowChartNodeDto>> ViewChartAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _workflowInstanceService.ViewProcessChartAsync(defId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("queryPendingMyApprovalFlowInsts")]
-    public Task<PagedResultDto<OaFlowInstanceListDto>> PendingAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _service.QueryPendingAsync(input, cancellationToken);
+    public Task<PagedResultDto<OaFlowInstanceListDto>> PendingAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowInstanceService.QueryPendingAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("queryMyApplyFlowInstances")]
-    public Task<PagedResultDto<OaFlowInstanceListDto>> MineAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _service.QueryMyApplyAsync(input, cancellationToken);
+    public Task<PagedResultDto<OaFlowInstanceListDto>> MineAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowInstanceService.QueryMyApplyAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("queryCcMimeFlowInstanceAsync")]
-    public Task<PagedResultDto<OaFlowInstanceListDto>> CcAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _service.QueryCcAsync(input, cancellationToken);
+    public Task<PagedResultDto<OaFlowInstanceListDto>> CcAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowInstanceService.QueryCcAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("queryMimeAuditFlowInstance")]
-    public Task<PagedResultDto<OaFlowInstanceListDto>> AuditedAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _service.QueryAuditedAsync(input, cancellationToken);
+    public Task<PagedResultDto<OaFlowInstanceListDto>> AuditedAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowInstanceService.QueryAuditedAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("getFlowInstanceDetails")]
-    public Task<OaFlowInstanceDetailsDto> DetailsAsync([FromQuery] Guid instanceId, CancellationToken cancellationToken) => _service.GetDetailsAsync(instanceId, cancellationToken);
+    public Task<OaFlowInstanceDetailsDto> DetailsAsync([FromQuery] Guid instanceId, CancellationToken cancellationToken) => _workflowInstanceService.GetDetailsAsync(instanceId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("getFlowInstanceSummary")]
-    public Task<OaFlowInstanceListDto> SummaryAsync([FromQuery] Guid instanceId, CancellationToken cancellationToken) => _service.GetInstanceSummaryAsync(instanceId, cancellationToken);
+    public Task<OaFlowInstanceListDto> SummaryAsync([FromQuery] Guid instanceId, CancellationToken cancellationToken) => _workflowInstanceService.GetInstanceSummaryAsync(instanceId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("formModify")]
-    public Task FormModifyAsync([FromBody] OaFormModifyRequest input, CancellationToken cancellationToken) => _service.FormModifyAsync(input, cancellationToken);
+    public Task FormModifyAsync([FromBody] OaFormModifyRequest input, CancellationToken cancellationToken) => _workflowInstanceService.FormModifyAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("hasFormEditRecord")]
-    public Task<bool> HasFormEditRecordAsync([FromQuery] Guid flowInstId, CancellationToken cancellationToken) => _service.HasFormEditRecordAsync(flowInstId, cancellationToken);
+    public Task<bool> HasFormEditRecordAsync([FromQuery] Guid flowInstId, CancellationToken cancellationToken) => _workflowInstanceService.HasFormEditRecordAsync(flowInstId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("listFormEditRecords")]
-    public Task<List<OaFormEditRecordDto>> GetFormEditRecordsAsync([FromQuery] Guid flowInstId, CancellationToken cancellationToken) => _service.GetFormEditRecordsAsync(flowInstId, cancellationToken);
+    public Task<List<OaFormEditRecordDto>> GetFormEditRecordsAsync([FromQuery] Guid flowInstId, CancellationToken cancellationToken) => _workflowInstanceService.GetFormEditRecordsAsync(flowInstId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowData)]
     [HttpPost("urge")]
-    public Task UrgeAsync([FromBody] OaFlowInstanceIdRequest input, CancellationToken cancellationToken) => _service.UrgeAsync(input.FlowInstId, cancellationToken);
+    public Task UrgeAsync([FromBody] OaFlowInstanceIdRequest input, CancellationToken cancellationToken) => _workflowInstanceService.UrgeAsync(input.FlowInstId, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("comment")]
-    public Task CommentAsync([FromBody] OaCommentRequest input, CancellationToken cancellationToken) => _service.CommentAsync(input, cancellationToken);
+    public Task CommentAsync([FromBody] OaCommentRequest input, CancellationToken cancellationToken) => _workflowInstanceService.CommentAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("approve")]
-    public Task ApproveAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _service.ApproveAsync(input, cancellationToken);
+    public Task ApproveAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _workflowInstanceService.ApproveAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("assign")]
-    public Task AssignAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _service.AssignAsync(input, cancellationToken);
+    public Task AssignAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _workflowInstanceService.AssignAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("addSign")]
-    public Task AddSignAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _service.AddSignAsync(input, cancellationToken);
+    public Task AddSignAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _workflowInstanceService.AddSignAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("delSign")]
-    public Task DelSignAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _service.DelSignAsync(input, cancellationToken);
+    public Task DelSignAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _workflowInstanceService.DelSignAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("jump")]
-    public Task JumpAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _service.JumpAsync(input, cancellationToken);
+    public Task JumpAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _workflowInstanceService.JumpAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("cancel")]
-    public Task CancelAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _service.CancelAsync(input, cancellationToken);
+    public Task CancelAsync([FromBody] OaTaskActionRequest input, CancellationToken cancellationToken) => _workflowInstanceService.CancelAsync(input, cancellationToken);
 }
