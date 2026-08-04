@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -77,6 +78,343 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_local_message_outbox", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_approver_configs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Rid = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    AssigneeType = table.Column<int>(type: "integer", nullable: false),
+                    LayerType = table.Column<int>(type: "integer", nullable: true),
+                    Layer = table.Column<int>(type: "integer", nullable: true),
+                    Assignees = table.Column<List<string>>(type: "text[]", nullable: false),
+                    Roles = table.Column<List<string>>(type: "text[]", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_approver_configs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_cc_configs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Rid = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    CcType = table.Column<int>(type: "integer", nullable: false),
+                    Assignees = table.Column<List<string>>(type: "text[]", nullable: false),
+                    Roles = table.Column<List<string>>(type: "text[]", nullable: false),
+                    LayerType = table.Column<int>(type: "integer", nullable: true),
+                    Layer = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_cc_configs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_cc_records",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InstanceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    ReadTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_cc_records", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_comments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InstanceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TaskId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Commenter = table.Column<Guid>(type: "uuid", nullable: false),
+                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Attachment = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_comments", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_condition_groups",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    GroupKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_condition_groups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_conditions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    GroupId = table.Column<Guid>(type: "uuid", nullable: false),
+                    VarName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Operator = table.Column<int>(type: "integer", nullable: false),
+                    Values = table.Column<List<string>>(type: "text[]", nullable: true),
+                    Operators = table.Column<List<int>>(type: "integer[]", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_conditions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_departments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    LeaderUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Sort = table.Column<int>(type: "integer", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_departments", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_form_fields",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DefId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FieldKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    FieldType = table.Column<int>(type: "integer", nullable: false),
+                    Label = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    IsSummary = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    Placeholder = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Extras = table.Column<string>(type: "text", nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_form_fields", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_initiators",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DefId = table.Column<Guid>(type: "uuid", nullable: false),
+                    InitiatorType = table.Column<int>(type: "integer", nullable: false),
+                    InitiatorIds = table.Column<List<string>>(type: "text[]", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_initiators", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_instances",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DefId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Initiator = table.Column<Guid>(type: "uuid", nullable: false),
+                    FormValue = table.Column<string>(type: "jsonb", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_instances", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_nodes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DefId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    NodeType = table.Column<int>(type: "integer", nullable: false),
+                    ParentNodeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsConditionBranch = table.Column<bool>(type: "boolean", nullable: false),
+                    PriorityLevel = table.Column<int>(type: "integer", nullable: true),
+                    ConditionExpression = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ChildNodeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ApprovalType = table.Column<int>(type: "integer", nullable: false),
+                    MultiInstanceApprovalType = table.Column<int>(type: "integer", nullable: true),
+                    FlowNodeNoAuditorType = table.Column<int>(type: "integer", nullable: true),
+                    FlowNodeNoAuditorAssignee = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    FlowNodeSelfAuditorType = table.Column<int>(type: "integer", nullable: true),
+                    Extras = table.Column<string>(type: "text", nullable: true),
+                    Backable = table.Column<bool>(type: "boolean", nullable: false),
+                    Signable = table.Column<bool>(type: "boolean", nullable: false),
+                    Assignable = table.Column<bool>(type: "boolean", nullable: false),
+                    Signature = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_nodes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_operation_logs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InstanceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TaskId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Operator = table.Column<Guid>(type: "uuid", nullable: false),
+                    OperationType = table.Column<int>(type: "integer", nullable: false),
+                    SourceNodeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    TargetNodeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Remark = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_operation_logs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_process_definitions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PermissionType = table.Column<int>(type: "integer", nullable: false),
+                    BelongKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Icon = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    GroupId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Cancelable = table.Column<bool>(type: "boolean", nullable: false),
+                    FlowAdminIds = table.Column<List<string>>(type: "text[]", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    DefJson = table.Column<string>(type: "text", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_process_definitions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_process_groups",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Status = table.Column<short>(type: "smallint", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_process_groups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_tasks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InstanceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    FlowCmd = table.Column<int>(type: "integer", nullable: true),
+                    CandidateUsers = table.Column<List<string>>(type: "text[]", nullable: true),
+                    ParentTaskId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LoopCounter = table.Column<int>(type: "integer", nullable: true),
+                    CompleteTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Remark = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_tasks", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_transact_configs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    NodeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Rid = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    AssigneeType = table.Column<int>(type: "integer", nullable: false),
+                    Assignees = table.Column<List<string>>(type: "text[]", nullable: false),
+                    Roles = table.Column<List<string>>(type: "text[]", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_transact_configs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "oa_user_departments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DepartmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_oa_user_departments", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -555,6 +893,100 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_oa_approver_configs_NodeId",
+                table: "oa_approver_configs",
+                column: "NodeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_cc_configs_NodeId",
+                table: "oa_cc_configs",
+                column: "NodeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_cc_records_UserId_InstanceId",
+                table: "oa_cc_records",
+                columns: new[] { "UserId", "InstanceId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_comments_InstanceId",
+                table: "oa_comments",
+                column: "InstanceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_condition_groups_NodeId",
+                table: "oa_condition_groups",
+                column: "NodeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_conditions_GroupId",
+                table: "oa_conditions",
+                column: "GroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_departments_Code",
+                table: "oa_departments",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_form_fields_DefId",
+                table: "oa_form_fields",
+                column: "DefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_initiators_DefId",
+                table: "oa_initiators",
+                column: "DefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_instances_DefId",
+                table: "oa_instances",
+                column: "DefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_instances_Initiator_Status",
+                table: "oa_instances",
+                columns: new[] { "Initiator", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_nodes_DefId",
+                table: "oa_nodes",
+                column: "DefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_operation_logs_InstanceId",
+                table: "oa_operation_logs",
+                column: "InstanceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_process_definitions_BelongKey_Version",
+                table: "oa_process_definitions",
+                columns: new[] { "BelongKey", "Version" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_tasks_InstanceId",
+                table: "oa_tasks",
+                column: "InstanceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_tasks_UserId_Status",
+                table: "oa_tasks",
+                columns: new[] { "UserId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_transact_configs_NodeId",
+                table: "oa_transact_configs",
+                column: "NodeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_user_departments_UserId_DepartmentId",
+                table: "oa_user_departments",
+                columns: new[] { "UserId", "DepartmentId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_pay_channels_ChannelCode",
                 table: "pay_channels",
                 column: "ChannelCode",
@@ -705,6 +1137,57 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             migrationBuilder.DropTable(
                 name: "local_message_outbox");
+
+            migrationBuilder.DropTable(
+                name: "oa_approver_configs");
+
+            migrationBuilder.DropTable(
+                name: "oa_cc_configs");
+
+            migrationBuilder.DropTable(
+                name: "oa_cc_records");
+
+            migrationBuilder.DropTable(
+                name: "oa_comments");
+
+            migrationBuilder.DropTable(
+                name: "oa_condition_groups");
+
+            migrationBuilder.DropTable(
+                name: "oa_conditions");
+
+            migrationBuilder.DropTable(
+                name: "oa_departments");
+
+            migrationBuilder.DropTable(
+                name: "oa_form_fields");
+
+            migrationBuilder.DropTable(
+                name: "oa_initiators");
+
+            migrationBuilder.DropTable(
+                name: "oa_instances");
+
+            migrationBuilder.DropTable(
+                name: "oa_nodes");
+
+            migrationBuilder.DropTable(
+                name: "oa_operation_logs");
+
+            migrationBuilder.DropTable(
+                name: "oa_process_definitions");
+
+            migrationBuilder.DropTable(
+                name: "oa_process_groups");
+
+            migrationBuilder.DropTable(
+                name: "oa_tasks");
+
+            migrationBuilder.DropTable(
+                name: "oa_transact_configs");
+
+            migrationBuilder.DropTable(
+                name: "oa_user_departments");
 
             migrationBuilder.DropTable(
                 name: "pay_channels");

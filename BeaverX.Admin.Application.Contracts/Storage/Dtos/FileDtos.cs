@@ -2,6 +2,7 @@ namespace BeaverX.Admin.Application.Contracts.Storage.Dtos;
 
 public class FileUploadResultDto
 {
+    public string Id => ObjectKey;
     public string Bucket { get; set; } = null!;
     public string ObjectKey { get; set; } = null!;
     public string Url { get; set; } = null!;

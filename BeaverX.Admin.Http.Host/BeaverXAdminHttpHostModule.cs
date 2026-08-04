@@ -95,6 +95,7 @@ public class BeaverXAdminHttpHostModule : AbpModule
             webApp.UseSerilogRequestLogging();
         }
 
+        app.UseStaticFiles();
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();

@@ -3,6 +3,7 @@ using BeaverX.Admin.Domain.Dict;
 using BeaverX.Admin.Domain.Exports;
 using BeaverX.Admin.Domain.Messaging;
 using BeaverX.Admin.Domain.Messages;
+using BeaverX.Admin.Domain.Oa;
 using BeaverX.Admin.Domain.Payment;
 using BeaverX.Admin.Domain.Rbac;
 using BeaverX.Admin.Domain.Scheduling;
@@ -35,6 +36,23 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
     public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
     public DbSet<ScheduledJobLog> ScheduledJobLogs => Set<ScheduledJobLog>();
     public DbSet<WorkTicket> WorkTickets => Set<WorkTicket>();
+    public DbSet<OaDepartment> OaDepartments => Set<OaDepartment>();
+    public DbSet<OaUserDepartment> OaUserDepartments => Set<OaUserDepartment>();
+    public DbSet<OaProcessGroup> OaProcessGroups => Set<OaProcessGroup>();
+    public DbSet<OaProcessDefinition> OaProcessDefinitions => Set<OaProcessDefinition>();
+    public DbSet<OaFormField> OaFormFields => Set<OaFormField>();
+    public DbSet<OaInitiator> OaInitiators => Set<OaInitiator>();
+    public DbSet<OaNode> OaNodes => Set<OaNode>();
+    public DbSet<OaConditionGroup> OaConditionGroups => Set<OaConditionGroup>();
+    public DbSet<OaCondition> OaConditions => Set<OaCondition>();
+    public DbSet<OaApproverConfig> OaApproverConfigs => Set<OaApproverConfig>();
+    public DbSet<OaCcConfig> OaCcConfigs => Set<OaCcConfig>();
+    public DbSet<OaTransactConfig> OaTransactConfigs => Set<OaTransactConfig>();
+    public DbSet<OaInstance> OaInstances => Set<OaInstance>();
+    public DbSet<OaTask> OaTasks => Set<OaTask>();
+    public DbSet<OaCcRecord> OaCcRecords => Set<OaCcRecord>();
+    public DbSet<OaComment> OaComments => Set<OaComment>();
+    public DbSet<OaOperationLog> OaOperationLogs => Set<OaOperationLog>();
 
     public AdminDbContext(DbContextOptions<AdminDbContext> options)
         : base(options)
@@ -298,6 +316,140 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
             entity.Property(x => x.ImagesJson).HasMaxLength(4000);
             entity.Property(x => x.ProcessResult).HasMaxLength(2000);
             entity.Property(x => x.ProcessResultImagesJson).HasMaxLength(4000);
+        });
+
+        ConfigureOa(modelBuilder);
+    }
+
+    private static void ConfigureOa(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OaDepartment>(entity =>
+        {
+            entity.ToTable("oa_departments");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(64);
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+        modelBuilder.Entity<OaUserDepartment>(entity =>
+        {
+            entity.ToTable("oa_user_departments");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.HasIndex(x => new { x.UserId, x.DepartmentId }).IsUnique();
+        });
+        modelBuilder.Entity<OaProcessGroup>(entity =>
+        {
+            entity.ToTable("oa_process_groups");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(500);
+        });
+        modelBuilder.Entity<OaProcessDefinition>(entity =>
+        {
+            entity.ToTable("oa_process_definitions");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.BelongKey).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Icon).HasMaxLength(50);
+            entity.Property(x => x.DefJson).HasColumnType("text").IsRequired();
+            entity.HasIndex(x => new { x.BelongKey, x.Version }).IsUnique();
+        });
+        modelBuilder.Entity<OaFormField>(entity =>
+        {
+            entity.ToTable("oa_form_fields");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.FieldKey).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Label).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Placeholder).HasMaxLength(200);
+            entity.HasIndex(x => x.DefId);
+        });
+        modelBuilder.Entity<OaInitiator>(entity =>
+        {
+            entity.ToTable("oa_initiators");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.HasIndex(x => x.DefId);
+        });
+        modelBuilder.Entity<OaNode>(entity =>
+        {
+            entity.ToTable("oa_nodes");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.NodeName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.ConditionExpression).HasMaxLength(1000);
+            entity.Property(x => x.FlowNodeNoAuditorAssignee).HasMaxLength(64);
+            entity.HasIndex(x => x.DefId);
+        });
+        modelBuilder.Entity<OaConditionGroup>(entity =>
+        {
+            entity.ToTable("oa_condition_groups");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.GroupKey).HasMaxLength(64);
+            entity.HasIndex(x => x.NodeId);
+        });
+        modelBuilder.Entity<OaCondition>(entity =>
+        {
+            entity.ToTable("oa_conditions");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.VarName).HasMaxLength(100).IsRequired();
+            entity.HasIndex(x => x.GroupId);
+        });
+        modelBuilder.Entity<OaApproverConfig>(entity =>
+        {
+            entity.ToTable("oa_approver_configs");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Rid).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.NodeId);
+        });
+        modelBuilder.Entity<OaCcConfig>(entity =>
+        {
+            entity.ToTable("oa_cc_configs");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Rid).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.NodeId);
+        });
+        modelBuilder.Entity<OaTransactConfig>(entity =>
+        {
+            entity.ToTable("oa_transact_configs");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Rid).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.NodeId);
+        });
+        modelBuilder.Entity<OaInstance>(entity =>
+        {
+            entity.ToTable("oa_instances");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.FormValue).HasColumnType("jsonb").IsRequired();
+            entity.HasIndex(x => new { x.Initiator, x.Status });
+            entity.HasIndex(x => x.DefId);
+        });
+        modelBuilder.Entity<OaTask>(entity =>
+        {
+            entity.ToTable("oa_tasks");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.NodeName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Remark).HasMaxLength(500);
+            entity.HasIndex(x => new { x.UserId, x.Status });
+            entity.HasIndex(x => x.InstanceId);
+        });
+        modelBuilder.Entity<OaCcRecord>(entity =>
+        {
+            entity.ToTable("oa_cc_records");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.HasIndex(x => new { x.UserId, x.InstanceId }).IsUnique();
+        });
+        modelBuilder.Entity<OaComment>(entity =>
+        {
+            entity.ToTable("oa_comments");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Attachment).HasMaxLength(4000);
+            entity.HasIndex(x => x.InstanceId);
+        });
+        modelBuilder.Entity<OaOperationLog>(entity =>
+        {
+            entity.ToTable("oa_operation_logs");
+            entity.Property(x => x.Id).ValueGeneratedNever();
+            entity.Property(x => x.Remark).HasMaxLength(500);
+            entity.HasIndex(x => x.InstanceId);
         });
     }
 }

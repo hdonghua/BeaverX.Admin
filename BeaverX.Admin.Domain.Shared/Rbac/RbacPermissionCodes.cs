@@ -119,4 +119,11 @@ public static class RbacPermissionCodes
             public const string Process = "ticket:work:process";
         }
     }
+
+    public static class Oa
+    {
+        public const string Approval = "oa:approval:list";
+        public const string WorkflowManage = "oa:workflow:manage";
+        public const string WorkflowData = "oa:workflow:data";
+    }
 }

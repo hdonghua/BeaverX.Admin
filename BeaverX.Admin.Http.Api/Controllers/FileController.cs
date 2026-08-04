@@ -65,4 +65,24 @@ public class FileController : AdminControllerBase
             return NotFound(new { message = ex.Message });
         }
     }
+
+    [AllowAnonymous]
+    [HttpGet("download")]
+    public async Task<IActionResult> DownloadAsync([FromQuery] string id, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return BadRequest(new { message = "id 不能为空" });
+        }
+
+        try
+        {
+            var blob = await _fileAppService.GetAsync(id, cancellationToken: cancellationToken);
+            return File(blob.Content, blob.ContentType, blob.FileName, enableRangeProcessing: true);
+        }
+        catch (StorageNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }

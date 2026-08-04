@@ -162,6 +162,7 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
         newMenuIds.AddRange(await EnsureOnlineUserMenusAsync(systemDirId, cancellationToken));
         newMenuIds.AddRange(await EnsurePaymentMenusAsync(cancellationToken));
         newMenuIds.AddRange(await EnsureTicketMenusAsync(cancellationToken));
+        newMenuIds.AddRange(await EnsureOaMenusAsync(cancellationToken));
 
         return newMenuIds;
     }
@@ -697,6 +698,146 @@ public class RbacDataSeeder : IDataSeedContributor, ITransientDependency
         }, cancellationToken);
 
         return [processPage.Id];
+    }
+
+    private async Task<List<Guid>> EnsureOaMenusAsync(CancellationToken cancellationToken)
+    {
+        var created = new List<Guid>();
+
+        var workflowDir = await (await _menuRepository.GetQueryableAsync())
+            .FirstOrDefaultAsync(x => x.Path == "/workflow" && x.MenuType == MenuType.Directory, cancellationToken);
+        if (workflowDir == null)
+        {
+            workflowDir = await InsertMenuAsync(new Menu
+            {
+                Name = "工作流",
+                MenuType = MenuType.Directory,
+                Path = "/workflow",
+                Icon = "branch",
+                Sort = 10,
+                IsVisible = true,
+                IsCache = false
+            }, cancellationToken);
+            created.Add(workflowDir.Id);
+        }
+
+        var manage = await (await _menuRepository.GetQueryableAsync())
+            .FirstOrDefaultAsync(x => x.Perms == RbacPermissionCodes.Oa.WorkflowManage, cancellationToken);
+        if (manage == null)
+        {
+            manage = await InsertMenuAsync(new Menu
+            {
+                ParentId = workflowDir.Id,
+                Name = "流程管理",
+                MenuType = MenuType.Menu,
+                Perms = RbacPermissionCodes.Oa.WorkflowManage,
+                Path = "/workflow/flowManage",
+                Component = "workflow/flowManage/index",
+                Icon = "settings",
+                Sort = 1,
+                IsCache = true
+            }, cancellationToken);
+            created.Add(manage.Id);
+        }
+
+        if (!await _menuRepository.AnyAsync(x => x.Path == "/workflow/flowmanedit", cancellationToken))
+        {
+            var edit = await InsertMenuAsync(new Menu
+            {
+                ParentId = workflowDir.Id,
+                Name = "流程设计",
+                MenuType = MenuType.Menu,
+                Path = "/workflow/flowmanedit",
+                Component = "workflow/flowManage/flow-edit",
+                Icon = "edit",
+                Sort = 2,
+                IsVisible = false,
+                IsCache = false
+            }, cancellationToken);
+            created.Add(edit.Id);
+        }
+
+        if (!await _menuRepository.AnyAsync(x => x.Perms == RbacPermissionCodes.Oa.WorkflowData, cancellationToken))
+        {
+            var data = await InsertMenuAsync(new Menu
+            {
+                ParentId = workflowDir.Id,
+                Name = "流程数据",
+                MenuType = MenuType.Menu,
+                Perms = RbacPermissionCodes.Oa.WorkflowData,
+                Path = "/workflow/flowData",
+                Component = "workflow/flowData/index",
+                Icon = "storage",
+                Sort = 3,
+                IsCache = true
+            }, cancellationToken);
+            created.Add(data.Id);
+        }
+
+        var approvalDir = await (await _menuRepository.GetQueryableAsync())
+            .FirstOrDefaultAsync(x => x.Path == "/approval" && x.MenuType == MenuType.Directory, cancellationToken);
+        if (approvalDir == null)
+        {
+            approvalDir = await InsertMenuAsync(new Menu
+            {
+                Name = "审批中心",
+                MenuType = MenuType.Directory,
+                Path = "/approval",
+                Icon = "check-circle",
+                Sort = 11,
+                IsVisible = true,
+                IsCache = false
+            }, cancellationToken);
+            created.Add(approvalDir.Id);
+        }
+
+        var approvalMenus = new[]
+        {
+            new { Name = "发起审批", Path = "/approval/flowstart", Component = "approval/flowstart/index", Icon = "plus-circle", Sort = 1 },
+            new { Name = "待我审批", Path = "/approval/pending", Component = "approval/flowstart/flow-approve", Icon = "check-square", Sort = 2 },
+            new { Name = "我的申请", Path = "/approval/my", Component = "approval/flowstart/flow-my", Icon = "send", Sort = 3 },
+            new { Name = "抄送我的", Path = "/approval/cc", Component = "approval/flowstart/flow-cc", Icon = "share-alt", Sort = 4 },
+            new { Name = "已办审批", Path = "/approval/record", Component = "approval/flowstart/flow-record", Icon = "history", Sort = 5 }
+        };
+
+        foreach (var item in approvalMenus)
+        {
+            var approval = await (await _menuRepository.GetQueryableAsync())
+                .FirstOrDefaultAsync(x => x.Path == item.Path, cancellationToken);
+            if (approval == null)
+            {
+                approval = await InsertMenuAsync(new Menu
+                {
+                    ParentId = approvalDir.Id,
+                    Name = item.Name,
+                    MenuType = MenuType.Menu,
+                    Perms = item.Sort == 1 ? RbacPermissionCodes.Oa.Approval : null,
+                    Path = item.Path,
+                    Component = item.Component,
+                    Icon = item.Icon,
+                    Sort = item.Sort,
+                    IsCache = true
+                }, cancellationToken);
+                created.Add(approval.Id);
+                continue;
+            }
+
+            if (approval.ParentId != approvalDir.Id || approval.Name != item.Name || approval.Component != item.Component ||
+                approval.Icon != item.Icon || approval.Sort != item.Sort || !approval.IsVisible || !approval.IsCache)
+            {
+                approval.ParentId = approvalDir.Id;
+                approval.Name = item.Name;
+                approval.Component = item.Component;
+                approval.Icon = item.Icon;
+                approval.Sort = item.Sort;
+                approval.IsVisible = true;
+                approval.IsCache = true;
+                approval.Perms = item.Sort == 1 ? RbacPermissionCodes.Oa.Approval : null;
+                await _menuRepository.UpdateAsync(approval, autoSave: true, cancellationToken: cancellationToken);
+            }
+        }
+
+        return created;
     }
 
     private static Menu Btn(Guid parentId, string name, string perms, int sort) => new()
