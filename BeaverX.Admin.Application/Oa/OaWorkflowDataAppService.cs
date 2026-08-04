@@ -93,11 +93,23 @@ public partial class OaWorkflowAppService
             var node = relevantTask != null && nodes.TryGetValue(relevantTask.NodeId, out var found) ? found : null;
             return new OaFlowInstanceListDto
             {
-                FlowDefId = definition.Id, Name = definition.Name, GroupId = definition.GroupId, Cancelable = definition.Cancelable,
-                Id = instance.Id, InstanceNo = instance.InstanceNo, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
-                Status = (int)instance.Status, TaskId = relevantTask?.Id, ActNodeId = relevantTask?.NodeId,
-                Assignable = node?.Assignable ?? false, Signable = node?.Signable ?? false, Backable = node?.Backable ?? false,
-                Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType,
+                FlowDefId = definition.Id,
+                Name = definition.Name,
+                GroupId = definition.GroupId,
+                Cancelable = definition.Cancelable,
+                Id = instance.Id,
+                InstanceNo = instance.InstanceNo,
+                InitiatorId = instance.Initiator.ToString(),
+                BeginTime = instance.CreationTime,
+                EndTime = instance.EndTime,
+                Status = (int)instance.Status,
+                TaskId = relevantTask?.Id,
+                ActNodeId = relevantTask?.NodeId,
+                Assignable = node?.Assignable ?? false,
+                Signable = node?.Signable ?? false,
+                Backable = node?.Backable ?? false,
+                Signature = node?.Signature ?? false,
+                NodeType = node == null ? 0 : (int)node.NodeType,
                 Summary = BuildSummary(instance.FormValue,
                     summaryFieldsByDef.GetValueOrDefault(instance.DefId) ?? Array.Empty<OaFormField>())
             };

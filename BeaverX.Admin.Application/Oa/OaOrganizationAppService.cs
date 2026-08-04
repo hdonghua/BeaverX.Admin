@@ -52,9 +52,16 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         var memberCount = await _userDepartmentRepository.CountAsync(x => x.DepartmentId == departmentId, cancellationToken);
         return new OaDepartmentDetailsDto
         {
-            Id = department.Id, Name = department.Name, Code = department.Code, ParentId = department.ParentId,
-            ParentName = parentName, LeaderUserId = department.LeaderUserId, LeaderName = leaderName,
-            MemberCount = checked((int)memberCount), Sort = department.Sort, IsEnabled = department.IsEnabled
+            Id = department.Id,
+            Name = department.Name,
+            Code = department.Code,
+            ParentId = department.ParentId,
+            ParentName = parentName,
+            LeaderUserId = department.LeaderUserId,
+            LeaderName = leaderName,
+            MemberCount = checked((int)memberCount),
+            Sort = department.Sort,
+            IsEnabled = department.IsEnabled
         };
     }
 
@@ -76,9 +83,14 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
             .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(x => new OaDepartmentMemberDto
             {
-                UserId = x.user.Id, UserName = x.user.UserName, Name = x.user.NickName ?? x.user.UserName,
-                Phone = x.user.Phone, Email = x.user.Email, Avatar = x.user.Avatar,
-                IsPrimary = x.link.IsPrimary, IsLeader = department.LeaderUserId == x.user.Id,
+                UserId = x.user.Id,
+                UserName = x.user.UserName,
+                Name = x.user.NickName ?? x.user.UserName,
+                Phone = x.user.Phone,
+                Email = x.user.Email,
+                Avatar = x.user.Avatar,
+                IsPrimary = x.link.IsPrimary,
+                IsLeader = department.LeaderUserId == x.user.Id,
                 ManagerUserId = x.link.ManagerUserId
             }).ToListAsync(cancellationToken);
         var managerIds = items.Where(x => x.ManagerUserId.HasValue).Select(x => x.ManagerUserId!.Value).Distinct().ToList();
@@ -100,7 +112,10 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         }
         return await query.OrderBy(x => x.UserName).Take(30).Select(x => new OaUserOptionDto
         {
-            Id = x.Id.ToString(), Name = x.NickName ?? x.UserName, UserName = x.UserName, Avatar = x.Avatar
+            Id = x.Id.ToString(),
+            Name = x.NickName ?? x.UserName,
+            UserName = x.UserName,
+            Avatar = x.Avatar
         }).ToListAsync(cancellationToken);
     }
 
@@ -115,7 +130,11 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
             throw new BusinessException("部门编码已存在");
         var department = new OaDepartment(_ids.Create())
         {
-            ParentId = input.ParentId, Name = name, Code = code, Sort = input.Sort, IsEnabled = input.IsEnabled
+            ParentId = input.ParentId,
+            Name = name,
+            Code = code,
+            Sort = input.Sort,
+            IsEnabled = input.IsEnabled
         };
         await _departmentRepository.InsertAsync(department, autoSave: true, cancellationToken: cancellationToken);
         return department.Id;
@@ -176,7 +195,9 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
         var primaryUsers = existing.Where(x => x.IsPrimary).Select(x => x.UserId).ToHashSet();
         var additions = validUserIds.Where(x => !linked.Contains(x)).Select(userId => new OaUserDepartment(_ids.Create())
         {
-            DepartmentId = departmentId, UserId = userId, IsPrimary = !primaryUsers.Contains(userId)
+            DepartmentId = departmentId,
+            UserId = userId,
+            IsPrimary = !primaryUsers.Contains(userId)
         }).ToList();
         if (additions.Count > 0) await _userDepartmentRepository.InsertManyAsync(additions, autoSave: true, cancellationToken: cancellationToken);
     }

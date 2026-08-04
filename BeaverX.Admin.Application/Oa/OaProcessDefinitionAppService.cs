@@ -129,16 +129,22 @@ public partial class OaWorkflowAppService
 
         var fields = input.FlowWidgets.Select((field, index) => new OaFormField(_ids.Create())
         {
-            DefId = defId, FieldKey = field.Name, FieldType = field.Type,
-            Label = field.Label ?? string.Empty, IsSummary = field.Summary, IsRequired = field.Required,
-            Placeholder = field.Placeholder, SortOrder = index + 1,
+            DefId = defId,
+            FieldKey = field.Name,
+            FieldType = field.Type,
+            Label = field.Label ?? string.Empty,
+            IsSummary = field.Summary,
+            IsRequired = field.Required,
+            Placeholder = field.Placeholder,
+            SortOrder = index + 1,
             Extras = JsonSerializer.Serialize(field, WorkflowJsonOptions)
         }).ToList();
         if (fields.Count > 0) await _fields.InsertManyAsync(fields, autoSave: true, cancellationToken: cancellationToken);
 
         var initiators = (input.FlowPermission.FlowInitiators ?? []).GroupBy(x => x.Type).Select(group => new OaInitiator(_ids.Create())
         {
-            DefId = defId, InitiatorType = group.Key,
+            DefId = defId,
+            InitiatorType = group.Key,
             InitiatorIds = group.Select(x => x.Id).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList()
         }).ToList();
         if (initiators.Count > 0) await _initiators.InsertManyAsync(initiators, autoSave: true, cancellationToken: cancellationToken);
@@ -288,7 +294,9 @@ public partial class OaWorkflowAppService
         BuildNode(root, defId, null, result);
         var end = result.Nodes.FirstOrDefault(x => x.NodeType == OaNodeType.End) ?? new OaNode(_ids.Create())
         {
-            DefId = defId, NodeName = "结束", NodeType = OaNodeType.End
+            DefId = defId,
+            NodeName = "结束",
+            NodeType = OaNodeType.End
         };
         if (!result.Nodes.Contains(end)) result.Nodes.Add(end);
         foreach (var leaf in result.Nodes.Where(x => x.Id != end.Id && x.ChildNodeId == null && x.NodeType != OaNodeType.End)) leaf.ChildNodeId = end.Id;
@@ -299,13 +307,22 @@ public partial class OaWorkflowAppService
     {
         var node = new OaNode(_ids.Create())
         {
-            DefId = defId, NodeName = source.Name, NodeType = (OaNodeType)source.Type,
-            ParentNodeId = parentId, IsConditionBranch = source.Type == (int)OaNodeType.Condition,
-            PriorityLevel = source.PriorityLevel, ConditionExpression = source.ConditionExpression,
-            ApprovalType = source.ApprovalType, MultiInstanceApprovalType = source.MultiInstanceApprovalType,
-            FlowNodeNoAuditorType = source.FlowNodeNoAuditorType, FlowNodeNoAuditorAssignee = source.FlowNodeNoAuditorAssignee,
-            FlowNodeSelfAuditorType = source.FlowNodeSelfAuditorType, Backable = source.Backable,
-            Signable = source.Signable, Assignable = source.Assignable, Signature = source.Signature,
+            DefId = defId,
+            NodeName = source.Name,
+            NodeType = (OaNodeType)source.Type,
+            ParentNodeId = parentId,
+            IsConditionBranch = source.Type == (int)OaNodeType.Condition,
+            PriorityLevel = source.PriorityLevel,
+            ConditionExpression = source.ConditionExpression,
+            ApprovalType = source.ApprovalType,
+            MultiInstanceApprovalType = source.MultiInstanceApprovalType,
+            FlowNodeNoAuditorType = source.FlowNodeNoAuditorType,
+            FlowNodeNoAuditorAssignee = source.FlowNodeNoAuditorAssignee,
+            FlowNodeSelfAuditorType = source.FlowNodeSelfAuditorType,
+            Backable = source.Backable,
+            Signable = source.Signable,
+            Assignable = source.Assignable,
+            Signature = source.Signature,
             Extras = JsonSerializer.Serialize(new NodeRuntimeOptions
             {
                 FlowNodeAuditAdmin = source.FlowNodeAuditAdmin,
@@ -316,21 +333,35 @@ public partial class OaWorkflowAppService
         foreach (var assignee in source.Assignees ?? [])
             result.Approvers.Add(new OaApproverConfig(_ids.Create())
             {
-                NodeId = node.Id, Rid = assignee.Rid, AssigneeType = (OaAssigneeType)assignee.AssigneeType,
-                Assignees = assignee.Assignees ?? [], Roles = assignee.Roles ?? [], Layer = assignee.Layer, LayerType = assignee.LayerType
+                NodeId = node.Id,
+                Rid = assignee.Rid,
+                AssigneeType = (OaAssigneeType)assignee.AssigneeType,
+                Assignees = assignee.Assignees ?? [],
+                Roles = assignee.Roles ?? [],
+                Layer = assignee.Layer,
+                LayerType = assignee.LayerType
             });
         foreach (var cc in source.Ccs ?? [])
             result.Ccs.Add(new OaCcConfig(_ids.Create())
             {
-                NodeId = node.Id, Rid = cc.Rid, CcType = cc.CcType,
-                Assignees = cc.Assignees ?? [], Roles = cc.Roles ?? [], Layer = cc.Layer, LayerType = cc.LayerType
+                NodeId = node.Id,
+                Rid = cc.Rid,
+                CcType = cc.CcType,
+                Assignees = cc.Assignees ?? [],
+                Roles = cc.Roles ?? [],
+                Layer = cc.Layer,
+                LayerType = cc.LayerType
             });
         foreach (var transactor in source.Transactors ?? [])
             result.Transactors.Add(new OaTransactConfig(_ids.Create())
             {
-                NodeId = node.Id, Rid = transactor.Rid, AssigneeType = transactor.TransactorType,
-                Assignees = transactor.Assignees ?? [], Roles = transactor.Roles ?? [],
-                Layer = transactor.Layer, LayerType = transactor.LayerType
+                NodeId = node.Id,
+                Rid = transactor.Rid,
+                AssigneeType = transactor.TransactorType,
+                Assignees = transactor.Assignees ?? [],
+                Roles = transactor.Roles ?? [],
+                Layer = transactor.Layer,
+                LayerType = transactor.LayerType
             });
         foreach (var branchSource in source.ConditionNodes ?? [])
         {
@@ -344,8 +375,11 @@ public partial class OaWorkflowAppService
                 foreach (var condition in groupSource.Conditions ?? [])
                     result.Conditions.Add(new OaCondition(_ids.Create())
                     {
-                        GroupId = group.Id, VarName = condition.VarName, Operator = condition.Operator,
-                        Values = condition.Val, Operators = condition.Operators
+                        GroupId = group.Id,
+                        VarName = condition.VarName,
+                        Operator = condition.Operator,
+                        Values = condition.Val,
+                        Operators = condition.Operators
                     });
             }
         }

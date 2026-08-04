@@ -24,8 +24,10 @@ public partial class OaWorkflowAppService
         var instance = new OaInstance(_ids.Create())
         {
             InstanceNo = await GenerateInstanceNoAsync(cancellationToken),
-            DefId = definition.Id, Initiator = userId,
-            FormValue = input.FlowValue, Status = OaInstanceStatus.Underway
+            DefId = definition.Id,
+            Initiator = userId,
+            FormValue = input.FlowValue,
+            Status = OaInstanceStatus.Underway
         };
         await _instances.InsertAsync(instance, autoSave: true, cancellationToken: cancellationToken);
         await AddLogAsync(instance.Id, null, userId, OaOperationType.Start, null, null, null, cancellationToken);
@@ -48,24 +50,28 @@ public partial class OaWorkflowAppService
             var options = GetNodeRuntimeOptions(node);
             return new OaFlowChartNodeDto
             {
-            Id = node.Id, NodeId = node.Id, Name = node.NodeName, NodeType = (int)node.NodeType,
-            ApprovalType = node.ApprovalType, MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
-            FlowNodeNoAuditorType = node.FlowNodeNoAuditorType ?? 0,
-            FlowNodeNoAuditorAssignee = node.FlowNodeNoAuditorAssignee,
-            FlowNodeAuditAdmin = options.FlowNodeAuditAdmin,
-            UserIds = node.NodeType switch
-            {
-                OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
-                OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
-                _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType != OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList()
-            },
-            RoleIds = node.NodeType switch
-            {
-                OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
-                OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
-                _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList()
-            },
-            InitatorChoice = node.NodeType == OaNodeType.Transact
+                Id = node.Id,
+                NodeId = node.Id,
+                Name = node.NodeName,
+                NodeType = (int)node.NodeType,
+                ApprovalType = node.ApprovalType,
+                MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
+                FlowNodeNoAuditorType = node.FlowNodeNoAuditorType ?? 0,
+                FlowNodeNoAuditorAssignee = node.FlowNodeNoAuditorAssignee,
+                FlowNodeAuditAdmin = options.FlowNodeAuditAdmin,
+                UserIds = node.NodeType switch
+                {
+                    OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
+                    OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
+                    _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType != OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList()
+                },
+                RoleIds = node.NodeType switch
+                {
+                    OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
+                    OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
+                    _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList()
+                },
+                InitatorChoice = node.NodeType == OaNodeType.Transact
                 ? transactors.Any(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.InitiatorChoice)
                 : approvers.Any(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.InitiatorChoice)
             };
@@ -99,19 +105,35 @@ public partial class OaWorkflowAppService
             var node = nodes.First(x => x.Id == task.NodeId);
             return new OaFlowInstanceNodeDto
             {
-                Id = task.Id, Name = task.NodeName, FlowInstId = instanceId, FlowNodeId = task.NodeId,
-                FlowNodeName = task.NodeName, UserIds = [task.UserId.ToString()], Underway = task.Status == OaTaskStatus.Pending,
-                Type = (int)node.NodeType, NodeType = (int)node.NodeType, MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
-                FlowCmd = task.FlowCmd.HasValue ? (int)task.FlowCmd.Value : null, AuditTime = task.CompleteTime,
-                Auditor = task.UserId.ToString(), Assignee = task.UserId.ToString(), Comment = task.Remark
+                Id = task.Id,
+                Name = task.NodeName,
+                FlowInstId = instanceId,
+                FlowNodeId = task.NodeId,
+                FlowNodeName = task.NodeName,
+                UserIds = [task.UserId.ToString()],
+                Underway = task.Status == OaTaskStatus.Pending,
+                Type = (int)node.NodeType,
+                NodeType = (int)node.NodeType,
+                MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
+                FlowCmd = task.FlowCmd.HasValue ? (int)task.FlowCmd.Value : null,
+                AuditTime = task.CompleteTime,
+                Auditor = task.UserId.ToString(),
+                Assignee = task.UserId.ToString(),
+                Comment = task.Remark
             };
         }).ToList();
         var touched = tasks.Select(x => x.NodeId).ToHashSet();
         var future = nodes.Where(x => !x.IsConditionBranch && !touched.Contains(x.Id) && x.NodeType != OaNodeType.Start)
             .Select(x => new OaFlowInstanceNodeDto
             {
-                Id = x.Id, Name = x.NodeName, FlowInstId = instanceId, FlowNodeId = x.Id, FlowNodeName = x.NodeName,
-                Type = (int)x.NodeType, NodeType = (int)x.NodeType, MultiInstanceApprovalType = x.MultiInstanceApprovalType ?? 0
+                Id = x.Id,
+                Name = x.NodeName,
+                FlowInstId = instanceId,
+                FlowNodeId = x.Id,
+                FlowNodeName = x.NodeName,
+                Type = (int)x.NodeType,
+                NodeType = (int)x.NodeType,
+                MultiInstanceApprovalType = x.MultiInstanceApprovalType ?? 0
             }).ToList();
         return new OaFlowInstanceDetailsDto { FormValue = instance.FormValue, FormWidgets = fields, Nodes = taskNodes, FutureNodes = future };
     }
@@ -128,11 +150,23 @@ public partial class OaWorkflowAppService
             .Where(x => x.DefId == instance.DefId && x.IsSummary).OrderBy(x => x.SortOrder).ToListAsync(cancellationToken);
         return new OaFlowInstanceListDto
         {
-            FlowDefId = definition.Id, Name = definition.Name, GroupId = definition.GroupId, Cancelable = definition.Cancelable,
-            Id = instance.Id, InstanceNo = instance.InstanceNo, InitiatorId = instance.Initiator.ToString(), BeginTime = instance.CreationTime, EndTime = instance.EndTime,
-            Status = (int)instance.Status, TaskId = task?.Id, ActNodeId = task?.NodeId,
-            Assignable = node?.Assignable ?? false, Signable = node?.Signable ?? false, Backable = node?.Backable ?? false,
-            Signature = node?.Signature ?? false, NodeType = node == null ? 0 : (int)node.NodeType,
+            FlowDefId = definition.Id,
+            Name = definition.Name,
+            GroupId = definition.GroupId,
+            Cancelable = definition.Cancelable,
+            Id = instance.Id,
+            InstanceNo = instance.InstanceNo,
+            InitiatorId = instance.Initiator.ToString(),
+            BeginTime = instance.CreationTime,
+            EndTime = instance.EndTime,
+            Status = (int)instance.Status,
+            TaskId = task?.Id,
+            ActNodeId = task?.NodeId,
+            Assignable = node?.Assignable ?? false,
+            Signable = node?.Signable ?? false,
+            Backable = node?.Backable ?? false,
+            Signature = node?.Signature ?? false,
+            NodeType = node == null ? 0 : (int)node.NodeType,
             Summary = BuildSummary(instance.FormValue, summaryFields)
         };
     }
@@ -176,7 +210,9 @@ public partial class OaWorkflowAppService
             .OrderByDescending(x => x.CreationTime)
             .Select(x => new OaFormEditRecordDto
             {
-                CreatorId = x.Operator.ToString(), CreateTime = x.CreationTime, FormValue = x.Remark ?? "{}"
+                CreatorId = x.Operator.ToString(),
+                CreateTime = x.CreationTime,
+                FormValue = x.Remark ?? "{}"
             }).ToListAsync(cancellationToken);
 
     public async Task UrgeAsync(Guid instanceId, CancellationToken cancellationToken = default)
@@ -196,8 +232,11 @@ public partial class OaWorkflowAppService
         if (!await _instances.AnyAsync(x => x.Id == input.InstanceId, cancellationToken)) throw new BusinessException("流程实例不存在");
         await _comments.InsertAsync(new OaComment(_ids.Create())
         {
-            InstanceId = input.InstanceId, TaskId = input.TaskId, Commenter = userId,
-            Content = input.Content.Trim(), Attachment = input.Attachment
+            InstanceId = input.InstanceId,
+            TaskId = input.TaskId,
+            Commenter = userId,
+            Content = input.Content.Trim(),
+            Attachment = input.Attachment
         }, autoSave: true, cancellationToken: cancellationToken);
         await AddLogAsync(input.InstanceId, input.TaskId, userId, OaOperationType.Comment, null, null, input.Content, cancellationToken);
     }
@@ -240,9 +279,13 @@ public partial class OaWorkflowAppService
                 var remainingCandidates = task.CandidateUsers.SkipWhile(x => x != nextUser).Skip(1).ToList();
                 await _tasks.InsertAsync(new OaTask(_ids.Create())
                 {
-                    InstanceId = instance.Id, NodeId = node.Id, NodeName = node.NodeName,
-                    UserId = Guid.Parse(nextUser), Status = OaTaskStatus.Pending,
-                    ParentTaskId = task.Id, CandidateUsers = remainingCandidates,
+                    InstanceId = instance.Id,
+                    NodeId = node.Id,
+                    NodeName = node.NodeName,
+                    UserId = Guid.Parse(nextUser),
+                    Status = OaTaskStatus.Pending,
+                    ParentTaskId = task.Id,
+                    CandidateUsers = remainingCandidates,
                     LoopCounter = (task.LoopCounter ?? 0) + 1
                 }, autoSave: true, cancellationToken: cancellationToken);
                 return;
@@ -276,8 +319,12 @@ public partial class OaWorkflowAppService
         await _tasks.UpdateAsync(task, autoSave: true, cancellationToken: cancellationToken);
         await _tasks.InsertAsync(new OaTask(_ids.Create())
         {
-            InstanceId = task.InstanceId, NodeId = task.NodeId, NodeName = task.NodeName,
-            UserId = assignee, Status = OaTaskStatus.Pending, ParentTaskId = task.Id
+            InstanceId = task.InstanceId,
+            NodeId = task.NodeId,
+            NodeName = task.NodeName,
+            UserId = assignee,
+            Status = OaTaskStatus.Pending,
+            ParentTaskId = task.Id
         }, autoSave: true, cancellationToken: cancellationToken);
         await AddLogAsync(task.InstanceId, task.Id, operatorId, OaOperationType.Assign, task.NodeId, task.NodeId, input.Comment, cancellationToken);
     }
@@ -291,8 +338,13 @@ public partial class OaWorkflowAppService
             throw new BusinessException("该人员已在当前审批节点中");
         await _tasks.InsertAsync(new OaTask(_ids.Create())
         {
-            InstanceId = task.InstanceId, NodeId = task.NodeId, NodeName = task.NodeName,
-            UserId = userId, Status = OaTaskStatus.Pending, ParentTaskId = task.Id, FlowCmd = OaOperationType.AddSign
+            InstanceId = task.InstanceId,
+            NodeId = task.NodeId,
+            NodeName = task.NodeName,
+            UserId = userId,
+            Status = OaTaskStatus.Pending,
+            ParentTaskId = task.Id,
+            FlowCmd = OaOperationType.AddSign
         }, autoSave: true, cancellationToken: cancellationToken);
         await AddLogAsync(task.InstanceId, task.Id, operatorId, OaOperationType.AddSign, task.NodeId, task.NodeId, input.Comment, cancellationToken);
     }
@@ -437,11 +489,15 @@ public partial class OaWorkflowAppService
                 var taskUsers = node.MultiInstanceApprovalType == 3 ? distinctUsers.Take(1) : distinctUsers;
                 var candidates = node.MultiInstanceApprovalType == 3 ? distinctUsers.Skip(1).Select(x => x.ToString()).ToList() : null;
                 var tasks = taskUsers.Select(userId => new OaTask(_ids.Create())
-                    {
-                        InstanceId = instance.Id, NodeId = node.Id, NodeName = node.NodeName,
-                        UserId = userId, Status = OaTaskStatus.Pending, CandidateUsers = candidates,
-                        LoopCounter = node.MultiInstanceApprovalType == 3 ? 0 : null
-                    }).ToList();
+                {
+                    InstanceId = instance.Id,
+                    NodeId = node.Id,
+                    NodeName = node.NodeName,
+                    UserId = userId,
+                    Status = OaTaskStatus.Pending,
+                    CandidateUsers = candidates,
+                    LoopCounter = node.MultiInstanceApprovalType == 3 ? 0 : null
+                }).ToList();
                 await _tasks.InsertManyAsync(tasks, autoSave: true, cancellationToken: cancellationToken);
                 return;
             }
@@ -525,8 +581,13 @@ public partial class OaWorkflowAppService
         if (condition.Operator is >= 0 and <= 5 && decimal.TryParse(expectedText, out var right))
             return actualValues.Where(x => decimal.TryParse(x, out _)).Select(decimal.Parse).Any(left => condition.Operator switch
             {
-                0 => left == right, 1 => left != right, 2 => left < right, 3 => left <= right,
-                4 => left > right, 5 => left >= right, _ => false
+                0 => left == right,
+                1 => left != right,
+                2 => left < right,
+                3 => left <= right,
+                4 => left > right,
+                5 => left >= right,
+                _ => false
             });
         return condition.Operator switch
         {
@@ -620,8 +681,13 @@ public partial class OaWorkflowAppService
     private Task AddLogAsync(Guid instanceId, Guid? taskId, Guid userId, OaOperationType operation, Guid? sourceNodeId, Guid? targetNodeId, string? remark, CancellationToken cancellationToken) =>
         _logs.InsertAsync(new OaOperationLog(_ids.Create())
         {
-            InstanceId = instanceId, TaskId = taskId, Operator = userId,
-            OperationType = operation, SourceNodeId = sourceNodeId, TargetNodeId = targetNodeId, Remark = remark
+            InstanceId = instanceId,
+            TaskId = taskId,
+            Operator = userId,
+            OperationType = operation,
+            SourceNodeId = sourceNodeId,
+            TargetNodeId = targetNodeId,
+            Remark = remark
         }, autoSave: true, cancellationToken: cancellationToken);
 
 }
