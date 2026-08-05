@@ -33,7 +33,13 @@ public class OaFlowInstanceListDto
     public bool Backable { get; set; }
     public bool Signature { get; set; }
     public int NodeType { get; set; }
-    public string? Summary { get; set; }
+    public List<OaFlowInstanceSummaryItemDto> Summary { get; set; } = [];
+}
+
+public class OaFlowInstanceSummaryItemDto
+{
+    public string Label { get; set; } = null!;
+    public string Value { get; set; } = string.Empty;
 }
 
 public class OaFlowChartNodeDto

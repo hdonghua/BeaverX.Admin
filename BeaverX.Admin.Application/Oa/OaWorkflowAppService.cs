@@ -93,21 +93,31 @@ public partial class OaWorkflowAppService :
     private static bool IsGuid(string value) => Guid.TryParse(value, out _);
     private static Guid ParseUserId(string? value, string message) => Guid.TryParse(value, out var id) && id != Guid.Empty ? id : throw new BusinessException(message);
     private static string JsonValue(JsonElement value) => value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString();
-    private static string? BuildSummary(string formValue, IReadOnlyCollection<OaFormField> fields)
+    private static List<OaFlowInstanceSummaryItemDto> BuildSummary(
+        string formValue,
+        IReadOnlyCollection<OaFormField> fields)
     {
         try
         {
             using var doc = JsonDocument.Parse(formValue);
-            var values = fields.Where(x => x.IsSummary).OrderBy(x => x.SortOrder)
+            return fields
+                .Where(x => x.IsSummary)
+                .OrderBy(x => x.SortOrder)
                 .Select(field => doc.RootElement.TryGetProperty(field.FieldKey, out var value)
-                    ? $"{field.Label}：{FormatSummaryValue(value)}"
+                    ? new OaFlowInstanceSummaryItemDto
+                    {
+                        Label = field.Label,
+                        Value = FormatSummaryValue(value)
+                    }
                     : null)
-                .Where(x => !string.IsNullOrWhiteSpace(x));
-            return string.Join("，", values).Truncate(160);
+                .Where(x => x != null)
+                .Take(2)
+                .Select(x => x!)
+                .ToList();
         }
         catch (JsonException)
         {
-            return null;
+            return [];
         }
     }
 
