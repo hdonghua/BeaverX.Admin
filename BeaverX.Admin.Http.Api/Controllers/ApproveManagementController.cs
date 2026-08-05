@@ -40,7 +40,7 @@ public class ApproveManagementController : AdminControllerBase
     public Task DeleteProcessGroupAsync([FromBody] OaIdRequest input, CancellationToken cancellationToken) =>
         _processDefinitionService.DeleteGroupAsync(input.Id, cancellationToken);
 
-    [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
+    [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage, RbacPermissionCodes.Oa.Approval)]
     [HttpGet("getFlowGroups")]
     public Task<List<OaProcessGroupDto>> GetFlowGroupsAsync(CancellationToken cancellationToken) => _processDefinitionService.GetGroupsAsync(cancellationToken);
 

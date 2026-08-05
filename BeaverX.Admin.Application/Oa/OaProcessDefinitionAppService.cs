@@ -331,41 +331,52 @@ public partial class OaWorkflowAppService
         };
         result.Nodes.Add(node);
         foreach (var assignee in source.Assignees ?? [])
+        {
+            var assigneeType = (OaAssigneeType)assignee.AssigneeType;
             result.Approvers.Add(new OaApproverConfig(_ids.Create())
             {
                 NodeId = node.Id,
                 Rid = assignee.Rid,
-                AssigneeType = (OaAssigneeType)assignee.AssigneeType,
-                Assignees = assignee.Assignees ?? [],
-                Roles = assignee.Roles ?? [],
-                Layer = assignee.Layer,
-                LayerType = assignee.LayerType
+                AssigneeType = assigneeType,
+                Assignees = assigneeType == OaAssigneeType.Assignee ? assignee.Assignees ?? [] : [],
+                Roles = assigneeType == OaAssigneeType.Role ? assignee.Roles ?? [] : [],
+                Layer = IsHierarchyAssigneeType(assigneeType) ? assignee.Layer : null,
+                LayerType = IsHierarchyAssigneeType(assigneeType) ? assignee.LayerType : null
             });
+        }
         foreach (var cc in source.Ccs ?? [])
+        {
+            var ccType = (OaAssigneeType)cc.CcType;
             result.Ccs.Add(new OaCcConfig(_ids.Create())
             {
                 NodeId = node.Id,
                 Rid = cc.Rid,
                 CcType = cc.CcType,
-                Assignees = cc.Assignees ?? [],
-                Roles = cc.Roles ?? [],
-                Layer = cc.Layer,
-                LayerType = cc.LayerType
+                Assignees = ccType == OaAssigneeType.Assignee ? cc.Assignees ?? [] : [],
+                Roles = ccType == OaAssigneeType.Role ? cc.Roles ?? [] : [],
+                Layer = IsHierarchyAssigneeType(ccType) ? cc.Layer : null,
+                LayerType = IsHierarchyAssigneeType(ccType) ? cc.LayerType : null
             });
+        }
         foreach (var transactor in source.Transactors ?? [])
+        {
+            var transactorType = (OaAssigneeType)transactor.TransactorType;
             result.Transactors.Add(new OaTransactConfig(_ids.Create())
             {
                 NodeId = node.Id,
                 Rid = transactor.Rid,
                 AssigneeType = transactor.TransactorType,
-                Assignees = transactor.Assignees ?? [],
-                Roles = transactor.Roles ?? [],
-                Layer = transactor.Layer,
-                LayerType = transactor.LayerType
+                Assignees = transactorType == OaAssigneeType.Assignee ? transactor.Assignees ?? [] : [],
+                Roles = transactorType == OaAssigneeType.Role ? transactor.Roles ?? [] : [],
+                Layer = IsHierarchyAssigneeType(transactorType) ? transactor.Layer : null,
+                LayerType = IsHierarchyAssigneeType(transactorType) ? transactor.LayerType : null
             });
+        }
+        var branchIds = new List<Guid>();
         foreach (var branchSource in source.ConditionNodes ?? [])
         {
             var branchId = BuildNode(branchSource, defId, node.Id, result);
+            branchIds.Add(branchId);
             var branch = result.Nodes.First(x => x.Id == branchId);
             branch.IsConditionBranch = true;
             foreach (var groupSource in branchSource.ConditionGroups ?? [])
@@ -383,8 +394,37 @@ public partial class OaWorkflowAppService
                     });
             }
         }
-        if (source.ChildNode != null) node.ChildNodeId = BuildNode(source.ChildNode, defId, node.Id, result);
+        if (source.ChildNode != null)
+        {
+            node.ChildNodeId = BuildNode(source.ChildNode, defId, node.Id, result);
+            if (node.NodeType == OaNodeType.ExclusiveGateway)
+            {
+                var nodeMap = result.Nodes.ToDictionary(x => x.Id);
+                foreach (var branchId in branchIds)
+                    foreach (var leaf in result.Nodes.Where(x => x.ChildNodeId == null && IsDescendantOrSelf(x, branchId, nodeMap)))
+                        leaf.ChildNodeId = node.ChildNodeId;
+            }
+        }
         return node.Id;
     }
+
+    private static bool IsDescendantOrSelf(OaNode node, Guid ancestorId, IReadOnlyDictionary<Guid, OaNode> nodeMap)
+    {
+        var current = node;
+        var visited = new HashSet<Guid>();
+        while (visited.Add(current.Id))
+        {
+            if (current.Id == ancestorId) return true;
+            if (!current.ParentNodeId.HasValue || !nodeMap.TryGetValue(current.ParentNodeId.Value, out var parent)) return false;
+            current = parent;
+        }
+        return false;
+    }
+
+    private static bool IsHierarchyAssigneeType(OaAssigneeType type) => type is
+        OaAssigneeType.Superior or
+        OaAssigneeType.DepartmentLeader or
+        OaAssigneeType.MultistepLeader or
+        OaAssigneeType.MultistepDepartmentLeader;
 
 }

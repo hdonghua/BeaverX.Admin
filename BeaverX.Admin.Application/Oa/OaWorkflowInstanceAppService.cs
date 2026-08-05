@@ -40,15 +40,42 @@ public partial class OaWorkflowAppService
 
     public async Task<List<OaFlowChartNodeDto>> ViewProcessChartAsync(Guid defId, CancellationToken cancellationToken = default)
     {
+        var initiator = GetCurrentUserId();
         var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == defId).ToListAsync(cancellationToken);
         var nodeIds = nodes.Select(x => x.Id).ToList();
         var approvers = await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var ccs = await (await _ccConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var transactors = await (await _transactConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
-        return nodes.Where(x => !x.IsConditionBranch).Select(node =>
+        var routeNodes = await ResolveFlowRouteAsync(
+            nodes,
+            gateway => SelectInitiatorBranchAsync(initiator, gateway, nodes, cancellationToken));
+        var result = new List<OaFlowChartNodeDto>();
+        foreach (var node in routeNodes)
         {
+            var configs = node.NodeType switch
+            {
+                OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id)
+                    .Select(x => new AssigneeConfig((OaAssigneeType)x.CcType, x.Assignees, x.Roles, x.LayerType, x.Layer)).ToList(),
+                OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id)
+                    .Select(x => new AssigneeConfig((OaAssigneeType)x.AssigneeType, x.Assignees, x.Roles, x.LayerType, x.Layer)).ToList(),
+                _ => approvers.Where(x => x.NodeId == node.Id)
+                    .Select(x => new AssigneeConfig(x.AssigneeType, x.Assignees, x.Roles, x.LayerType, x.Layer)).ToList()
+            };
+            var userIds = new List<Guid>();
+            foreach (var config in configs.Where(x => x.AssigneeType is not OaAssigneeType.Role and not OaAssigneeType.InitiatorChoice))
+            {
+                userIds.AddRange(await ResolveConfiguredUsersAsync(
+                    initiator,
+                    config.AssigneeType,
+                    config.Assignees,
+                    config.Roles,
+                    config.LayerType,
+                    config.Layer,
+                    cancellationToken));
+            }
+
             var options = GetNodeRuntimeOptions(node);
-            return new OaFlowChartNodeDto
+            result.Add(new OaFlowChartNodeDto
             {
                 Id = node.Id,
                 NodeId = node.Id,
@@ -59,23 +86,70 @@ public partial class OaWorkflowAppService
                 FlowNodeNoAuditorType = node.FlowNodeNoAuditorType ?? 0,
                 FlowNodeNoAuditorAssignee = node.FlowNodeNoAuditorAssignee,
                 FlowNodeAuditAdmin = options.FlowNodeAuditAdmin,
-                UserIds = node.NodeType switch
-                {
-                    OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
-                    OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType != (int)OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList(),
-                    _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType != OaAssigneeType.Role).SelectMany(x => x.Assignees).Distinct().ToList()
-                },
-                RoleIds = node.NodeType switch
-                {
-                    OaNodeType.Copy => ccs.Where(x => x.NodeId == node.Id && x.CcType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
-                    OaNodeType.Transact => transactors.Where(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList(),
-                    _ => approvers.Where(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.Role).SelectMany(x => x.Roles.Count > 0 ? x.Roles : x.Assignees).Distinct().ToList()
-                },
-                InitatorChoice = node.NodeType == OaNodeType.Transact
-                ? transactors.Any(x => x.NodeId == node.Id && x.AssigneeType == (int)OaAssigneeType.InitiatorChoice)
-                : approvers.Any(x => x.NodeId == node.Id && x.AssigneeType == OaAssigneeType.InitiatorChoice)
-            };
-        }).ToList();
+                UserIds = userIds.Distinct().Select(x => x.ToString()).ToList(),
+                RoleIds = configs.Where(x => x.AssigneeType == OaAssigneeType.Role)
+                    .SelectMany(x => x.Roles).Where(IsGuid).Distinct().ToList(),
+                InitatorChoice = configs.Any(x => x.AssigneeType == OaAssigneeType.InitiatorChoice)
+            });
+        }
+
+        return result;
+    }
+
+    private static async Task<List<OaNode>> ResolveFlowRouteAsync(
+        List<OaNode> nodes,
+        Func<OaNode, Task<OaNode?>> selectBranch)
+    {
+        var nodeMap = nodes.ToDictionary(x => x.Id);
+        var visited = new HashSet<Guid>();
+        var route = new List<OaNode>();
+        var current = nodes.FirstOrDefault(x => x.NodeType == OaNodeType.Start)
+            ?? nodes.FirstOrDefault(x => !x.ParentNodeId.HasValue);
+        for (var guard = 0; guard < nodes.Count + 5 && current != null && visited.Add(current.Id); guard++)
+        {
+            if (current.NodeType == OaNodeType.ExclusiveGateway)
+            {
+                current = await selectBranch(current);
+                continue;
+            }
+
+            if (!current.IsConditionBranch && current.NodeType != OaNodeType.Condition && current.NodeType != OaNodeType.Trigger)
+                route.Add(current);
+            if (current.NodeType == OaNodeType.End) break;
+            current = GetNextNode(current, nodes, nodeMap);
+        }
+
+        return route;
+    }
+
+    private static OaNode? GetNextNode(
+        OaNode current,
+        List<OaNode> nodes,
+        IReadOnlyDictionary<Guid, OaNode>? nodeMap = null)
+    {
+        nodeMap ??= nodes.ToDictionary(x => x.Id);
+        var direct = current.ChildNodeId.HasValue && nodeMap.TryGetValue(current.ChildNodeId.Value, out var child)
+            ? child
+            : null;
+        if (direct is not null && direct.NodeType != OaNodeType.End) return direct;
+
+        var branch = current.IsConditionBranch ? current : null;
+        var cursor = current;
+        var visited = new HashSet<Guid> { current.Id };
+        while (branch == null && cursor.ParentNodeId.HasValue && nodeMap.TryGetValue(cursor.ParentNodeId.Value, out var parent) && visited.Add(parent.Id))
+        {
+            if (parent.IsConditionBranch) branch = parent;
+            cursor = parent;
+        }
+
+        if (branch?.ParentNodeId is Guid gatewayId &&
+            nodeMap.TryGetValue(gatewayId, out var gateway) &&
+            gateway.ChildNodeId is Guid continuationId &&
+            nodeMap.TryGetValue(continuationId, out var continuation) &&
+            continuation.Id != direct?.Id)
+            return continuation;
+
+        return direct;
     }
 
     public Task<PagedResultDto<OaFlowInstanceListDto>> QueryPendingAsync(OaFlowInstanceQuery input, CancellationToken cancellationToken = default) =>
@@ -93,6 +167,10 @@ public partial class OaWorkflowAppService
         var fields = await GetFlowFormWidgetsAsync(instance.DefId, cancellationToken);
         var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == instance.DefId).ToListAsync(cancellationToken);
         var tasks = await (await _tasks.GetQueryableAsync()).AsNoTracking().Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
+        var ccRecords = await (await _ccRecords.GetQueryableAsync()).AsNoTracking()
+            .Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
+        var logs = await (await _logs.GetQueryableAsync()).AsNoTracking()
+            .Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
         if (_currentUser.Id is { } currentUserId)
         {
             var activeTask = tasks.FirstOrDefault(x => x.UserId == currentUserId && x.Status == OaTaskStatus.Pending);
@@ -100,9 +178,13 @@ public partial class OaWorkflowAppService
             if (activeNode != null) ApplyNodeFormAuth(fields, activeNode);
         }
 
-        var taskNodes = tasks.Select(task =>
+        var nodeMap = nodes.ToDictionary(x => x.Id);
+        var routeNodes = await ResolveFlowRouteAsync(
+            nodes,
+            gateway => SelectConditionBranchAsync(instance, gateway, nodes, cancellationToken));
+        var historyNodes = tasks.Where(task => nodeMap.ContainsKey(task.NodeId)).Select(task =>
         {
-            var node = nodes.First(x => x.Id == task.NodeId);
+            var node = nodeMap[task.NodeId];
             return new OaFlowInstanceNodeDto
             {
                 Id = task.Id,
@@ -122,8 +204,51 @@ public partial class OaWorkflowAppService
                 Comment = task.Remark
             };
         }).ToList();
-        var touched = tasks.Select(x => x.NodeId).ToHashSet();
-        var future = nodes.Where(x => !x.IsConditionBranch && !touched.Contains(x.Id) && x.NodeType != OaNodeType.Start)
+
+        var startNode = routeNodes.FirstOrDefault(x => x.NodeType == OaNodeType.Start);
+        var startLog = logs.FirstOrDefault(x => x.OperationType == OaOperationType.Start);
+        if (startNode != null && startLog != null)
+            historyNodes.Add(CreateHistoryNode(instance, startNode, startLog.Id, OaOperationType.Start, startLog.CreationTime, [instance.Initiator], startLog.Operator, startLog.Remark));
+
+        foreach (var log in logs.Where(x => x.SourceNodeId.HasValue && x.OperationType is OaOperationType.AutoApproved or OaOperationType.AutoRejected))
+            if (nodeMap.TryGetValue(log.SourceNodeId!.Value, out var node))
+                historyNodes.Add(CreateHistoryNode(instance, node, log.Id, log.OperationType, log.CreationTime, [], log.Operator, log.Remark));
+
+        var copyLogs = logs.Where(x => x.SourceNodeId.HasValue && x.OperationType == OaOperationType.Copy)
+            .GroupBy(x => x.SourceNodeId!.Value).ToDictionary(x => x.Key, x => x.First());
+        var ccRecordsByNode = ccRecords.GroupBy(x => x.NodeId).ToDictionary(x => x.Key, x => x.ToList());
+        foreach (var copyNode in routeNodes.Where(x => x.NodeType == OaNodeType.Copy))
+        {
+            ccRecordsByNode.TryGetValue(copyNode.Id, out var nodeRecords);
+            copyLogs.TryGetValue(copyNode.Id, out var copyLog);
+            if (nodeRecords is not { Count: > 0 } && copyLog == null && instance.Status != OaInstanceStatus.Approved) continue;
+            var historyId = copyLog?.Id ?? nodeRecords?.First().Id ?? copyNode.Id;
+            var auditTime = copyLog?.CreationTime ?? nodeRecords?.Min(x => x.CreationTime) ?? instance.EndTime;
+            var users = nodeRecords?.Select(x => x.UserId).Distinct().ToList() ?? [];
+            historyNodes.Add(CreateHistoryNode(instance, copyNode, historyId, OaOperationType.Copy, auditTime, users, instance.Initiator, null));
+        }
+
+        var completedNodeIds = historyNodes.Where(x => !x.Underway).Select(x => x.FlowNodeId).ToHashSet();
+        var hasPendingEffectiveTask = tasks.Where(x => x.Status == OaTaskStatus.Pending).Any(x =>
+            nodeMap.TryGetValue(x.NodeId, out var node) &&
+            node.NodeType is OaNodeType.Approve or OaNodeType.Transact);
+        var hasUnfinishedEffectiveNode = hasPendingEffectiveTask || routeNodes.Any(x =>
+            (x.NodeType is OaNodeType.Approve or OaNodeType.Transact) && !completedNodeIds.Contains(x.Id));
+        var endCompleted = instance.Status == OaInstanceStatus.Approved ||
+            instance.Status == OaInstanceStatus.Underway && !hasUnfinishedEffectiveNode;
+        if (endCompleted)
+        {
+            var endNode = routeNodes.LastOrDefault(x => x.NodeType == OaNodeType.End);
+            if (endNode != null)
+            {
+                var endTime = instance.EndTime ?? historyNodes.Select(x => x.AuditTime).Max();
+                historyNodes.Add(CreateHistoryNode(instance, endNode, endNode.Id, null, endTime, [], null, null));
+            }
+        }
+
+        var touched = historyNodes.Select(x => x.FlowNodeId).ToHashSet();
+        var future = instance.Status == OaInstanceStatus.Underway
+            ? routeNodes.Where(x => !touched.Contains(x.Id) && x.NodeType != OaNodeType.Start)
             .Select(x => new OaFlowInstanceNodeDto
             {
                 Id = x.Id,
@@ -134,9 +259,38 @@ public partial class OaWorkflowAppService
                 Type = (int)x.NodeType,
                 NodeType = (int)x.NodeType,
                 MultiInstanceApprovalType = x.MultiInstanceApprovalType ?? 0
-            }).ToList();
-        return new OaFlowInstanceDetailsDto { FormValue = instance.FormValue, FormWidgets = fields, Nodes = taskNodes, FutureNodes = future };
+            }).ToList()
+            : [];
+        var orderedHistory = historyNodes.OrderBy(x => x.AuditTime ?? DateTime.MaxValue).ThenBy(x => x.Id).ToList();
+        return new OaFlowInstanceDetailsDto { FormValue = instance.FormValue, FormWidgets = fields, Nodes = orderedHistory, FutureNodes = future };
     }
+
+    private static OaFlowInstanceNodeDto CreateHistoryNode(
+        OaInstance instance,
+        OaNode node,
+        Guid id,
+        OaOperationType? operation,
+        DateTime? auditTime,
+        IEnumerable<Guid> userIds,
+        Guid? auditor,
+        string? comment) => new()
+        {
+            Id = id,
+            Name = node.NodeName,
+            FlowInstId = instance.Id,
+            FlowNodeId = node.Id,
+            FlowNodeName = node.NodeName,
+            UserIds = userIds.Select(x => x.ToString()).Distinct().ToList(),
+            Underway = false,
+            Type = (int)node.NodeType,
+            NodeType = (int)node.NodeType,
+            MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
+            FlowCmd = operation.HasValue ? (int)operation.Value : null,
+            AuditTime = auditTime,
+            Auditor = auditor?.ToString(),
+            Assignee = auditor?.ToString(),
+            Comment = comment
+        };
 
     public async Task<OaFlowInstanceListDto> GetInstanceSummaryAsync(Guid instanceId, CancellationToken cancellationToken = default)
     {
@@ -301,7 +455,7 @@ public partial class OaWorkflowAppService
         if (remaining.Count > 0) return;
 
         var allNodes = await (await _nodes.GetQueryableAsync()).Where(x => x.DefId == instance.DefId).ToListAsync(cancellationToken);
-        var next = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+        var next = GetNextNode(node, allNodes);
         if (next == null) { await CompleteInstanceAsync(instance, cancellationToken); return; }
         await ContinueAsync(instance, next, allNodes, null, includeCurrent: true, cancellationToken);
     }
@@ -398,7 +552,7 @@ public partial class OaWorkflowAppService
 
     private async Task ContinueAsync(OaInstance instance, OaNode current, List<OaNode> allNodes, Dictionary<Guid, List<string>>? designees, bool includeCurrent, CancellationToken cancellationToken)
     {
-        var node = includeCurrent ? current : current.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == current.ChildNodeId.Value) : null;
+        var node = includeCurrent ? current : GetNextNode(current, allNodes);
         for (var guard = 0; guard < allNodes.Count + 5 && node != null; guard++)
         {
             if (node.NodeType == OaNodeType.End) { await CompleteInstanceAsync(instance, cancellationToken); return; }
@@ -409,19 +563,19 @@ public partial class OaWorkflowAppService
             }
             if (node.NodeType == OaNodeType.Condition || node.NodeType == OaNodeType.Start || node.NodeType == OaNodeType.Trigger)
             {
-                node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+                node = GetNextNode(node, allNodes);
                 continue;
             }
             if (node.NodeType == OaNodeType.Copy)
             {
                 await CreateCcRecordsAsync(instance, node, cancellationToken);
-                node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+                node = GetNextNode(node, allNodes);
                 continue;
             }
             if ((node.NodeType == OaNodeType.Approve || node.NodeType == OaNodeType.Transact) && node.ApprovalType == 1)
             {
                 await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.AutoApproved, node.Id, node.ChildNodeId, null, cancellationToken);
-                node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+                node = GetNextNode(node, allNodes);
                 continue;
             }
             if (node.NodeType == OaNodeType.Approve && node.ApprovalType == 2)
@@ -457,7 +611,7 @@ public partial class OaWorkflowAppService
                 if (skippedSelf)
                 {
                     await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.AutoApproved, node.Id, node.ChildNodeId, "发起人与审批人相同，自动跳过", cancellationToken);
-                    node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+                    node = GetNextNode(node, allNodes);
                     continue;
                 }
                 if (users.Count == 0)
@@ -477,7 +631,7 @@ public partial class OaWorkflowAppService
                     else
                     {
                         await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.AutoApproved, node.Id, node.ChildNodeId, "审批人为空，自动通过", cancellationToken);
-                        node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+                        node = GetNextNode(node, allNodes);
                         continue;
                     }
                 }
@@ -501,7 +655,7 @@ public partial class OaWorkflowAppService
                 await _tasks.InsertManyAsync(tasks, autoSave: true, cancellationToken: cancellationToken);
                 return;
             }
-            node = node.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == node.ChildNodeId.Value) : null;
+            node = GetNextNode(node, allNodes);
         }
         if (node == null) await CompleteInstanceAsync(instance, cancellationToken);
     }
@@ -538,42 +692,97 @@ public partial class OaWorkflowAppService
             var ccType = (OaAssigneeType)config.CcType;
             users.AddRange(await ResolveConfiguredUsersAsync(instance.Initiator, ccType, config.Assignees, config.Roles, config.LayerType, config.Layer, cancellationToken));
         }
-        var existing = await (await _ccRecords.GetQueryableAsync()).AsNoTracking().Where(x => x.InstanceId == instance.Id).Select(x => x.UserId).ToListAsync(cancellationToken);
+        var existing = await (await _ccRecords.GetQueryableAsync()).AsNoTracking()
+            .Where(x => x.InstanceId == instance.Id && x.NodeId == node.Id)
+            .Select(x => x.UserId).ToListAsync(cancellationToken);
         var records = users.Distinct().Except(existing).Select(userId => new OaCcRecord(_ids.Create()) { InstanceId = instance.Id, NodeId = node.Id, UserId = userId }).ToList();
         if (records.Count > 0) await _ccRecords.InsertManyAsync(records, autoSave: true, cancellationToken: cancellationToken);
+        if (!await _logs.AnyAsync(x => x.InstanceId == instance.Id && x.SourceNodeId == node.Id && x.OperationType == OaOperationType.Copy, cancellationToken))
+            await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.Copy, node.Id, node.ChildNodeId, null, cancellationToken);
+    }
+
+    private async Task<OaNode?> SelectInitiatorBranchAsync(Guid initiator, OaNode gateway, List<OaNode> allNodes, CancellationToken cancellationToken)
+    {
+        var graph = await LoadGatewayConditionsAsync(gateway, allNodes, cancellationToken);
+        var identities = await GetInitiatorIdentitiesAsync(initiator, cancellationToken);
+        var branch = SelectMatchingBranch(
+            graph,
+            condition => condition.VarName == "initiator" && MatchInitiatorCondition(identities, condition));
+        return branch == null ? GetNextNode(gateway, allNodes) : GetNextNode(branch, allNodes);
     }
 
     private async Task<OaNode?> SelectConditionBranchAsync(OaInstance instance, OaNode gateway, List<OaNode> allNodes, CancellationToken cancellationToken)
     {
-        var branches = allNodes.Where(x => x.ParentNodeId == gateway.Id && x.IsConditionBranch).OrderBy(x => x.PriorityLevel).ToList();
-        foreach (var branch in branches)
-        {
-            if (await MatchesBranchAsync(instance, branch, cancellationToken))
-                return branch.ChildNodeId.HasValue ? allNodes.FirstOrDefault(x => x.Id == branch.ChildNodeId.Value) : null;
-        }
-        var fallback = branches.FirstOrDefault(x => string.IsNullOrWhiteSpace(x.ConditionExpression));
-        return fallback?.ChildNodeId is Guid childId ? allNodes.FirstOrDefault(x => x.Id == childId) : null;
+        var graph = await LoadGatewayConditionsAsync(gateway, allNodes, cancellationToken);
+        var identities = await GetInitiatorIdentitiesAsync(instance.Initiator, cancellationToken);
+        using var document = JsonDocument.Parse(instance.FormValue);
+        var branch = SelectMatchingBranch(
+            graph,
+            condition => MatchCondition(identities, document.RootElement, condition));
+        return branch == null ? GetNextNode(gateway, allNodes) : GetNextNode(branch, allNodes);
     }
 
-    private async Task<bool> MatchesBranchAsync(OaInstance instance, OaNode branch, CancellationToken cancellationToken)
+    private async Task<GatewayConditionGraph> LoadGatewayConditionsAsync(
+        OaNode gateway,
+        List<OaNode> allNodes,
+        CancellationToken cancellationToken)
     {
-        var groups = await (await _conditionGroups.GetQueryableAsync()).AsNoTracking().Where(x => x.NodeId == branch.Id).ToListAsync(cancellationToken);
-        if (groups.Count == 0) return false;
+        var branches = allNodes.Where(x => x.ParentNodeId == gateway.Id && x.IsConditionBranch)
+            .OrderBy(x => x.PriorityLevel ?? int.MaxValue).ThenBy(x => x.Id).ToList();
+        var branchIds = branches.Select(x => x.Id).ToList();
+        var groups = await (await _conditionGroups.GetQueryableAsync()).AsNoTracking()
+            .Where(x => branchIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var groupIds = groups.Select(x => x.Id).ToList();
-        var conditions = await (await _conditions.GetQueryableAsync()).AsNoTracking().Where(x => groupIds.Contains(x.GroupId)).ToListAsync(cancellationToken);
-        var initiatorIdentities = await GetInitiatorIdentitiesAsync(instance.Initiator, cancellationToken);
-        using var document = JsonDocument.Parse(instance.FormValue);
-        return groups.Any(group => conditions.Where(x => x.GroupId == group.Id).All(condition => MatchCondition(initiatorIdentities, document.RootElement, condition)));
+        var conditions = await (await _conditions.GetQueryableAsync()).AsNoTracking()
+            .Where(x => groupIds.Contains(x.GroupId)).ToListAsync(cancellationToken);
+        return new GatewayConditionGraph(branches, groups, conditions);
+    }
+
+    private static OaNode? SelectMatchingBranch(
+        GatewayConditionGraph graph,
+        Func<OaCondition, bool> matchesCondition)
+    {
+        var groupsByBranch = graph.Groups.ToLookup(x => x.NodeId);
+        var conditionsByGroup = graph.Conditions.ToLookup(x => x.GroupId);
+        OaNode? fallback = null;
+        foreach (var branch in graph.Branches)
+        {
+            var branchGroups = groupsByBranch[branch.Id].ToList();
+            var groupsWithConditions = branchGroups
+                .Select(group => conditionsByGroup[group.Id].ToList())
+                .Where(conditions => conditions.Count > 0)
+                .ToList();
+            if (groupsWithConditions.Count == 0)
+            {
+                fallback ??= branch;
+                continue;
+            }
+            if (groupsWithConditions.Any(conditions => conditions.All(matchesCondition))) return branch;
+        }
+        return fallback;
+    }
+
+    private sealed record GatewayConditionGraph(
+        List<OaNode> Branches,
+        List<OaConditionGroup> Groups,
+        List<OaCondition> Conditions);
+
+    private static bool MatchInitiatorCondition(HashSet<string> initiatorIdentities, OaCondition condition)
+    {
+        var contains = (condition.Values ?? []).Any(initiatorIdentities.Contains);
+        return condition.Operator switch
+        {
+            20 => contains,
+            21 => !contains,
+            _ => false
+        };
     }
 
     private static bool MatchCondition(HashSet<string> initiatorIdentities, JsonElement form, OaCondition condition)
     {
         var expected = condition.Values ?? [];
         if (condition.VarName == "initiator")
-        {
-            var contains = expected.Any(initiatorIdentities.Contains);
-            return condition.Operator == 20 ? contains : !contains;
-        }
+            return MatchInitiatorCondition(initiatorIdentities, condition);
         var actualValues = GetConditionValues(form, condition.VarName);
         if (actualValues.Count == 0) return false;
         var actualText = actualValues.FirstOrDefault() ?? string.Empty;

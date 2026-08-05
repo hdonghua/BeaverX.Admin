@@ -163,7 +163,7 @@ public partial class OaWorkflowAppService
             return assignees.Where(IsGuid).Select(Guid.Parse).Distinct().ToList();
         if (assigneeType == OaAssigneeType.Role)
         {
-            var roleIds = (roles.Count > 0 ? roles : assignees).Where(IsGuid).Select(Guid.Parse).Distinct().ToList();
+            var roleIds = roles.Where(IsGuid).Select(Guid.Parse).Distinct().ToList();
             return roleIds.Count == 0
                 ? []
                 : await (await _userRoles.GetQueryableAsync()).AsNoTracking().Where(x => roleIds.Contains(x.RoleId))
