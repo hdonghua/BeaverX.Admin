@@ -29,6 +29,11 @@ public class OaFlowDefinitionIdRequest
     public Guid FlowDefId { get; set; }
 }
 
+public class OaViewProcessChartRequest : OaFlowDefinitionIdRequest
+{
+    public string? FlowValue { get; set; }
+}
+
 public class OaCopyProcessRequest : OaFlowDefinitionIdRequest
 {
     public string Name { get; set; } = null!;

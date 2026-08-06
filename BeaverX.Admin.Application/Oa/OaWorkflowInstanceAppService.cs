@@ -5,6 +5,7 @@ using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Oa;
 using BeaverX.Admin.Domain.Shared.Oa;
 using Microsoft.EntityFrameworkCore;
+using RulesEngine.Models;
 using Volo.Abp.Domain.Repositories;
 
 namespace BeaverX.Admin.Application.Oa;
@@ -38,17 +39,19 @@ public partial class OaWorkflowAppService
         await ContinueAsync(instance, start, allNodes, input.Designees, includeCurrent: true, cancellationToken);
     }
 
-    public async Task<List<OaFlowChartNodeDto>> ViewProcessChartAsync(Guid defId, CancellationToken cancellationToken = default)
+    public async Task<List<OaFlowChartNodeDto>> ViewProcessChartAsync(OaViewProcessChartRequest input, CancellationToken cancellationToken = default)
     {
         var initiator = GetCurrentUserId();
-        var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == defId).ToListAsync(cancellationToken);
+        var nodes = await (await _nodes.GetQueryableAsync()).AsNoTracking().Where(x => x.DefId == input.FlowDefId).ToListAsync(cancellationToken);
         var nodeIds = nodes.Select(x => x.Id).ToList();
         var approvers = await (await _approvers.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var ccs = await (await _ccConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
         var transactors = await (await _transactConfigs.GetQueryableAsync()).AsNoTracking().Where(x => nodeIds.Contains(x.NodeId)).ToListAsync(cancellationToken);
+        using var formDocument = JsonDocument.Parse(string.IsNullOrWhiteSpace(input.FlowValue) ? "{}" : input.FlowValue);
+        var form = formDocument.RootElement;
         var routeNodes = await ResolveFlowRouteAsync(
             nodes,
-            gateway => SelectInitiatorBranchAsync(initiator, gateway, nodes, cancellationToken));
+            gateway => SelectConditionBranchAsync(initiator, form, gateway, nodes, cancellationToken));
         var result = new List<OaFlowChartNodeDto>();
         foreach (var node in routeNodes)
         {
@@ -745,24 +748,25 @@ public partial class OaWorkflowAppService
             await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.Copy, node.Id, node.ChildNodeId, null, cancellationToken);
     }
 
-    private async Task<OaNode?> SelectInitiatorBranchAsync(Guid initiator, OaNode gateway, List<OaNode> allNodes, CancellationToken cancellationToken)
+    private async Task<OaNode?> SelectConditionBranchAsync(OaInstance instance, OaNode gateway, List<OaNode> allNodes, CancellationToken cancellationToken)
+    {
+        using var document = JsonDocument.Parse(instance.FormValue);
+        return await SelectConditionBranchAsync(instance.Initiator, document.RootElement, gateway, allNodes, cancellationToken);
+    }
+
+    private async Task<OaNode?> SelectConditionBranchAsync(
+        Guid initiator,
+        JsonElement form,
+        OaNode gateway,
+        List<OaNode> allNodes,
+        CancellationToken cancellationToken)
     {
         var graph = await LoadGatewayConditionsAsync(gateway, allNodes, cancellationToken);
         var identities = await GetInitiatorIdentitiesAsync(initiator, cancellationToken);
-        var branch = SelectMatchingBranch(
+        var branch = await SelectMatchingBranchAsync(
             graph,
-            condition => condition.VarName == "initiator" && MatchInitiatorCondition(identities, condition));
-        return branch == null ? GetNextNode(gateway, allNodes) : GetNextNode(branch, allNodes);
-    }
-
-    private async Task<OaNode?> SelectConditionBranchAsync(OaInstance instance, OaNode gateway, List<OaNode> allNodes, CancellationToken cancellationToken)
-    {
-        var graph = await LoadGatewayConditionsAsync(gateway, allNodes, cancellationToken);
-        var identities = await GetInitiatorIdentitiesAsync(instance.Initiator, cancellationToken);
-        using var document = JsonDocument.Parse(instance.FormValue);
-        var branch = SelectMatchingBranch(
-            graph,
-            condition => MatchCondition(identities, document.RootElement, condition));
+            condition => MatchCondition(identities, form, condition),
+            branch => EvaluateConditionExpressionAsync(branch.ConditionExpression, identities, form));
         return branch == null ? GetNextNode(gateway, allNodes) : GetNextNode(branch, allNodes);
     }
 
@@ -782,15 +786,21 @@ public partial class OaWorkflowAppService
         return new GatewayConditionGraph(branches, groups, conditions);
     }
 
-    private static OaNode? SelectMatchingBranch(
+    private static async Task<OaNode?> SelectMatchingBranchAsync(
         GatewayConditionGraph graph,
-        Func<OaCondition, bool> matchesCondition)
+        Func<OaCondition, bool> matchesCondition,
+        Func<OaNode, Task<bool>>? matchesExpression = null)
     {
         var groupsByBranch = graph.Groups.ToLookup(x => x.NodeId);
         var conditionsByGroup = graph.Conditions.ToLookup(x => x.GroupId);
         OaNode? fallback = null;
         foreach (var branch in graph.Branches)
         {
+            if (!string.IsNullOrWhiteSpace(branch.ConditionExpression) && matchesExpression != null)
+            {
+                if (await matchesExpression(branch)) return branch;
+            }
+
             var branchGroups = groupsByBranch[branch.Id].ToList();
             var groupsWithConditions = branchGroups
                 .Select(group => conditionsByGroup[group.Id].ToList())
@@ -810,6 +820,91 @@ public partial class OaWorkflowAppService
         List<OaNode> Branches,
         List<OaConditionGroup> Groups,
         List<OaCondition> Conditions);
+
+    private static async Task<bool> EvaluateConditionExpressionAsync(
+        string? expression,
+        HashSet<string> initiatorIdentities,
+        JsonElement? form)
+    {
+        if (string.IsNullOrWhiteSpace(expression)) return false;
+        var workflowName = $"OaCondition_{Guid.NewGuid():N}";
+        var workflow = new Workflow
+        {
+            WorkflowName = workflowName,
+            Rules =
+            [
+                new Rule
+                {
+                    RuleName = "Branch",
+                    RuleExpressionType = RuleExpressionType.LambdaExpression,
+                    Expression = expression
+                }
+            ]
+        };
+
+        try
+        {
+            var engine = new global::RulesEngine.RulesEngine([workflow]);
+            var results = await engine.ExecuteAllRulesAsync(
+                workflowName,
+                BuildRuleParameters(initiatorIdentities, form));
+            return results.Any(x => x.IsSuccess);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static RuleParameter[] BuildRuleParameters(HashSet<string> initiatorIdentities, JsonElement? form)
+    {
+        var parameters = new List<RuleParameter>
+        {
+            new("initiator", initiatorIdentities.ToList())
+        };
+        if (!form.HasValue || form.Value.ValueKind != JsonValueKind.Object) return parameters.ToArray();
+
+        foreach (var property in form.Value.EnumerateObject())
+        {
+            if (property.Name == "initiator" || !IsValidRuleParameterName(property.Name)) continue;
+            parameters.Add(new RuleParameter(property.Name, ToRuleValue(property.Value)));
+        }
+        return parameters.ToArray();
+    }
+
+    private static bool IsValidRuleParameterName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || !(char.IsLetter(name[0]) || name[0] == '_')) return false;
+        return name.Skip(1).All(ch => char.IsLetterOrDigit(ch) || ch == '_');
+    }
+
+    private static object ToRuleValue(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            JsonValueKind.Number when value.TryGetDecimal(out var number) => number,
+            JsonValueKind.Number => value.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Array => ToRuleArray(value),
+            JsonValueKind.Object when value.TryGetProperty("id", out var id) => ToRuleValue(id),
+            JsonValueKind.Object => JsonSerializer.Deserialize<Dictionary<string, object?>>(value.GetRawText()) ?? [],
+            _ => string.Empty
+        };
+    }
+
+    private static object ToRuleArray(JsonElement value)
+    {
+        var items = value.EnumerateArray().ToList();
+        if (items.All(x => x.ValueKind == JsonValueKind.String))
+            return items.Select(x => x.GetString() ?? string.Empty).ToList();
+        if (items.All(x => x.ValueKind == JsonValueKind.Number && x.TryGetDecimal(out _)))
+            return items.Select(x => x.GetDecimal()).ToList();
+        if (items.All(x => x.ValueKind == JsonValueKind.Object && x.TryGetProperty("id", out _)))
+            return items.Select(x => ToRuleValue(x.GetProperty("id"))).ToList();
+        return items.Select(ToRuleValue).ToList();
+    }
 
     private static bool MatchInitiatorCondition(HashSet<string> initiatorIdentities, OaCondition condition)
     {
@@ -831,8 +926,13 @@ public partial class OaWorkflowAppService
         if (actualValues.Count == 0) return false;
         var actualText = actualValues.FirstOrDefault() ?? string.Empty;
         var expectedText = expected.FirstOrDefault() ?? string.Empty;
-        if (condition.Operator is >= 0 and <= 5 && decimal.TryParse(expectedText, out var right))
-            return actualValues.Where(x => decimal.TryParse(x, out _)).Select(decimal.Parse).Any(left => condition.Operator switch
+        if (condition.Operator is >= 0 and <= 5 &&
+            decimal.TryParse(expectedText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var right))
+            return actualValues
+                .Select(x => decimal.TryParse(x, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var left) ? (decimal?)left : null)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Any(left => condition.Operator switch
             {
                 0 => left == right,
                 1 => left != right,

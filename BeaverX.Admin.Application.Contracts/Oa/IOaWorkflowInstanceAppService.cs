@@ -5,7 +5,7 @@ namespace BeaverX.Admin.Application.Contracts.Oa;
 public interface IOaWorkflowInstanceAppService
 {
     Task LaunchAsync(OaLaunchRequest input, CancellationToken cancellationToken = default);
-    Task<List<OaFlowChartNodeDto>> ViewProcessChartAsync(Guid defId, CancellationToken cancellationToken = default);
+    Task<List<OaFlowChartNodeDto>> ViewProcessChartAsync(OaViewProcessChartRequest input, CancellationToken cancellationToken = default);
     Task<PagedResultDto<OaFlowInstanceListDto>> QueryPendingAsync(OaFlowInstanceQuery input, CancellationToken cancellationToken = default);
     Task<PagedResultDto<OaFlowInstanceListDto>> QueryMyApplyAsync(OaFlowInstanceQuery input, CancellationToken cancellationToken = default);
     Task<PagedResultDto<OaFlowInstanceListDto>> QueryCcAsync(OaFlowInstanceQuery input, CancellationToken cancellationToken = default);

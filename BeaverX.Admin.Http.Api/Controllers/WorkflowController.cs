@@ -33,8 +33,8 @@ public class WorkflowController : AdminControllerBase
     public Task LaunchAsync([FromBody] OaLaunchRequest input, CancellationToken cancellationToken) => _workflowInstanceService.LaunchAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
-    [HttpGet("viewProcessChart")]
-    public Task<List<OaFlowChartNodeDto>> ViewChartAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _workflowInstanceService.ViewProcessChartAsync(defId, cancellationToken);
+    [HttpPost("viewProcessChart")]
+    public Task<List<OaFlowChartNodeDto>> ViewChartAsync([FromBody] OaViewProcessChartRequest input, CancellationToken cancellationToken) => _workflowInstanceService.ViewProcessChartAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpGet("queryPendingMyApprovalFlowInsts")]
