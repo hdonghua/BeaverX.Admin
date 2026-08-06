@@ -171,6 +171,8 @@ public partial class OaWorkflowAppService
             .Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
         var logs = await (await _logs.GetQueryableAsync()).AsNoTracking()
             .Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
+        var comments = await (await _comments.GetQueryableAsync()).AsNoTracking()
+            .Where(x => x.InstanceId == instanceId).OrderBy(x => x.CreationTime).ToListAsync(cancellationToken);
         if (_currentUser.Id is { } currentUserId)
         {
             var activeTask = tasks.FirstOrDefault(x => x.UserId == currentUserId && x.Status == OaTaskStatus.Pending);
@@ -213,6 +215,32 @@ public partial class OaWorkflowAppService
         foreach (var log in logs.Where(x => x.SourceNodeId.HasValue && x.OperationType is OaOperationType.AutoApproved or OaOperationType.AutoRejected))
             if (nodeMap.TryGetValue(log.SourceNodeId!.Value, out var node))
                 historyNodes.Add(CreateHistoryNode(instance, node, log.Id, log.OperationType, log.CreationTime, [], log.Operator, log.Remark));
+
+        foreach (var comment in comments)
+        {
+            var task = comment.TaskId.HasValue ? tasks.FirstOrDefault(x => x.Id == comment.TaskId.Value) : null;
+            var node = task != null && nodeMap.TryGetValue(task.NodeId, out var taskNode) ? taskNode : startNode;
+            if (node == null) continue;
+            historyNodes.Add(new OaFlowInstanceNodeDto
+            {
+                Id = comment.Id,
+                Name = node.NodeName,
+                FlowInstId = instanceId,
+                FlowNodeId = node.Id,
+                FlowNodeName = node.NodeName,
+                UserIds = [comment.Commenter.ToString()],
+                Underway = false,
+                Type = (int)node.NodeType,
+                NodeType = (int)node.NodeType,
+                MultiInstanceApprovalType = node.MultiInstanceApprovalType ?? 0,
+                FlowCmd = (int)OaOperationType.Comment,
+                AuditTime = comment.CreationTime,
+                Auditor = comment.Commenter.ToString(),
+                Assignee = comment.Commenter.ToString(),
+                Comment = comment.Content,
+                Files = ParseCommentFiles(comment.Attachment)
+            });
+        }
 
         var copyLogs = logs.Where(x => x.SourceNodeId.HasValue && x.OperationType == OaOperationType.Copy)
             .GroupBy(x => x.SourceNodeId!.Value).ToDictionary(x => x.Key, x => x.First());
@@ -291,6 +319,22 @@ public partial class OaWorkflowAppService
             Assignee = auditor?.ToString(),
             Comment = comment
         };
+
+    private static List<object> ParseCommentFiles(string? attachment)
+    {
+        if (string.IsNullOrWhiteSpace(attachment)) return [];
+        try
+        {
+            var fileIds = JsonSerializer.Deserialize<List<string>>(attachment, WorkflowJsonOptions) ?? [];
+            return fileIds.Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => (object)new { id = x, name = Path.GetFileName(x) })
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return [(object)new { id = attachment, name = Path.GetFileName(attachment) }];
+        }
+    }
 
     public async Task<OaFlowInstanceListDto> GetInstanceSummaryAsync(Guid instanceId, CancellationToken cancellationToken = default)
     {
