@@ -3,9 +3,11 @@ using BeaverX.Admin.Application.Contracts.Rbac;
 using BeaverX.Admin.Http.Api;
 using BeaverX.Admin.Http.Api.Authorization;
 using BeaverX.Admin.Http.Api.Filters;
+using BeaverX.Admin.Http.Api.Responses;
 using BeaverX.Admin.Infrastructure;
 using BeaverX.Admin.Infrastructure.Realtime;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Volo.Abp;
@@ -36,6 +38,23 @@ public class BeaverXAdminHttpHostModule : AbpModule
         services.AddControllers(options =>
         {
             options.Filters.Add<BusinessExceptionFilter>();
+            options.Filters.Add<ApiResponseResultFilter>();
+        });
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = actionContext =>
+            {
+                var details = actionContext.ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        x => x.Key,
+                        x => x.Value!.Errors.Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? e.Exception?.Message : e.ErrorMessage).ToArray());
+                return new BadRequestObjectResult(ApiResponse<object>.Fail(
+                    ApiResponseCodes.BadRequest,
+                    "参数校验失败",
+                    actionContext.HttpContext,
+                    details));
+            };
         });
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -66,6 +85,27 @@ public class BeaverXAdminHttpHostModule : AbpModule
                         }
 
                         return Task.CompletedTask;
+                    },
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        var payload = ApiResponse<object>.Fail(
+                            ApiResponseCodes.Unauthorized,
+                            "未登录或登录已过期",
+                            context.HttpContext);
+                        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(payload));
+                    },
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        var payload = ApiResponse<object>.Fail(
+                            ApiResponseCodes.Forbidden,
+                            "没有权限访问该资源",
+                            context.HttpContext);
+                        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(payload));
                     }
                 };
             });
