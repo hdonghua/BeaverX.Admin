@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using BeaverX.Admin.Application.Contracts.Oa;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 using BeaverX.Admin.Domain.Oa;
@@ -107,6 +108,7 @@ public partial class OaWorkflowAppService
         if (!await _groups.AnyAsync(x => x.Id == input.WorkFlowDef.GroupId && x.Status == 1, cancellationToken))
             throw new BusinessException("流程分组不存在或已停用");
         if (string.IsNullOrWhiteSpace(input.WorkFlowDef.Name)) throw new BusinessException("流程名称不能为空");
+        ValidateFieldKeys(input.FlowWidgets);
 
         var userId = GetCurrentUserId();
         var defId = _ids.Create();
@@ -157,6 +159,41 @@ public partial class OaWorkflowAppService
         if (flattened.Ccs.Count > 0) await _ccConfigs.InsertManyAsync(flattened.Ccs, autoSave: true, cancellationToken: cancellationToken);
         if (flattened.Transactors.Count > 0) await _transactConfigs.InsertManyAsync(flattened.Transactors, autoSave: true, cancellationToken: cancellationToken);
         return definition;
+    }
+
+    private static void ValidateFieldKeys(IEnumerable<OaFlowWidgetRequest> widgets)
+    {
+        ValidateFieldKeys(widgets, new HashSet<string>(StringComparer.Ordinal));
+    }
+
+    private static void ValidateFieldKeys(
+        IEnumerable<OaFlowWidgetRequest> widgets,
+        HashSet<string> keys)
+    {
+        foreach (var widget in widgets ?? [])
+        {
+            ValidateFieldKey(widget.Name, widget.Label, keys);
+
+            if (widget.Details is null) continue;
+            var detailsJson = JsonSerializer.Serialize(widget.Details, WorkflowJsonOptions);
+            var details = JsonSerializer.Deserialize<List<OaFlowWidgetRequest>>(
+                detailsJson,
+                WorkflowJsonOptions);
+            if (details is not null) ValidateFieldKeys(details, keys);
+        }
+    }
+
+    private static void ValidateFieldKey(
+        string? fieldKey,
+        string? label,
+        HashSet<string> keys)
+    {
+        if (string.IsNullOrWhiteSpace(fieldKey) ||
+            !Regex.IsMatch(fieldKey, "^[A-Za-z][A-Za-z0-9_]*$", RegexOptions.CultureInvariant))
+            throw new BusinessException($"表单控件“{label ?? string.Empty}”的字段标识格式不正确");
+
+        if (!keys.Add(fieldKey))
+            throw new BusinessException($"表单字段标识不能重复：{fieldKey}");
     }
 
     public async Task DeleteProcessAsync(Guid defId, CancellationToken cancellationToken = default)

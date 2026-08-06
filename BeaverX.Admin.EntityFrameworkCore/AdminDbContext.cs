@@ -364,6 +364,7 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
             entity.Property(x => x.Label).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Placeholder).HasMaxLength(200);
             entity.HasIndex(x => x.DefId);
+            entity.HasIndex(x => new { x.DefId, x.FieldKey }).IsUnique();
         });
         modelBuilder.Entity<OaInitiator>(entity =>
         {
