@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BeaverX.Admin.Application.Contracts.Rbac.Dtos;
 
 namespace BeaverX.Admin.Application.Contracts.Oa;
@@ -39,7 +40,11 @@ public class OaFlowInstanceListDto
 public class OaFlowInstanceSummaryItemDto
 {
     public string Label { get; set; } = null!;
-    public string Value { get; set; } = string.Empty;
+    public JsonElement Value { get; set; }
+    public int Type { get; set; }
+    public List<string> Options { get; set; } = [];
+    public string? Format { get; set; }
+    public bool Comma { get; set; }
 }
 
 public class OaFlowChartNodeDto

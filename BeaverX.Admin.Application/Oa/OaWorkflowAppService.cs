@@ -107,7 +107,11 @@ public partial class OaWorkflowAppService :
                     ? new OaFlowInstanceSummaryItemDto
                     {
                         Label = field.Label,
-                        Value = FormatSummaryValue(value)
+                        Value = value.Clone(),
+                        Type = field.FieldType,
+                        Options = ReadStringList(field.Extras, "options"),
+                        Format = ReadString(field.Extras, "format"),
+                        Comma = ReadBoolean(field.Extras, "comma")
                     }
                     : null)
                 .Where(x => x != null)
@@ -121,14 +125,41 @@ public partial class OaWorkflowAppService :
         }
     }
 
-    private static string FormatSummaryValue(JsonElement value) => value.ValueKind switch
+    private static string? ReadString(string? json, string property)
     {
-        JsonValueKind.Array => string.Join("/", value.EnumerateArray().Select(FormatSummaryValue)),
-        JsonValueKind.Object when value.TryGetProperty("name", out var name) => JsonValue(name),
-        JsonValueKind.Object when value.TryGetProperty("id", out var id) => JsonValue(id),
-        JsonValueKind.Null or JsonValueKind.Undefined => string.Empty,
-        _ => JsonValue(value)
-    };
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+        }
+        catch (JsonException) { return null; }
+    }
+
+    private static bool ReadBoolean(string? json, string property)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return false;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.True;
+        }
+        catch (JsonException) { return false; }
+    }
+
+    private static List<string> ReadStringList(string? json, string property)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.Array) return [];
+            return value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? string.Empty).ToList();
+        }
+        catch (JsonException) { return []; }
+    }
 
     private enum QueryScope { Pending, Mine, Cc, Audited }
     private sealed class NodeRuntimeOptions

@@ -61,7 +61,7 @@ public class ExportTaskMessageService : IScopedDependency
 
     public async Task ResetStuckProcessingAsync(CancellationToken cancellationToken = default)
     {
-        (await _exportTaskRepository.GetQueryableAsync())
+        await (await _exportTaskRepository.GetQueryableAsync())
             .Where(x => x.Status == ExportTaskStatus.Processing)
             .ExecuteUpdateAsync(
                 s => s.SetProperty(x => x.Status, ExportTaskStatus.Pending),
