@@ -16,9 +16,9 @@ internal class TestOaServiceTaskHandler : IOaServiceTaskHandler
 
     public string DisplayName => "测试任务";
 
-    public async Task HandleAsync(OaServiceTaskContext context, CancellationToken cancellationToken = default)
+    public async Task HandleAsync(OaServiceTaskContext context, CancellationToken cancellatiogitnToken = default)
     {
-        if (context.FormData.TryGetValue("num", out var numObj) && (int?)numObj >= 99)
+        if (context.FormData.TryGetValue("num", out var numObj) && numObj?.To<int>() >= 99)
         {
             _logger.LogWarning("数量超过99了");
         }
