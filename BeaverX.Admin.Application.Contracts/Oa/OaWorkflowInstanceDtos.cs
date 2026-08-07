@@ -89,6 +89,7 @@ public class OaFlowInstanceNodeDto
     public string? Auditor { get; set; }
     public string? Assignee { get; set; }
     public string? Comment { get; set; }
+    public string? SignatureData { get; set; }
     public List<object> Files { get; set; } = [];
 }
 
@@ -106,6 +107,7 @@ public class OaTaskActionRequest
     public int FlowCmd { get; set; }
     public List<string>? FileIds { get; set; }
     public string? Comment { get; set; }
+    public string? Base64SignatureData { get; set; }
     public string? Assignee { get; set; }
     public string? UserId { get; set; }
     public Guid? TargetNodeId { get; set; }

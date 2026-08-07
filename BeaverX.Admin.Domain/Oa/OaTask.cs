@@ -18,4 +18,5 @@ public class OaTask : FullAuditedEntity<Guid>
     public int? LoopCounter { get; set; }
     public DateTime? CompleteTime { get; set; }
     public string? Remark { get; set; }
+    public string? SignatureData { get; set; }
 }

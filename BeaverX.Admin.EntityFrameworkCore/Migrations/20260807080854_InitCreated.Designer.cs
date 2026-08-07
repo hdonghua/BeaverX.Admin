@@ -14,7 +14,7 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260804124154_InitCreated")]
+    [Migration("20260807080854_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -678,6 +678,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
                     b.HasIndex("DefId");
 
+                    b.HasIndex("DefId", "FieldKey")
+                        .IsUnique();
+
                     b.ToTable("oa_form_fields", (string)null);
                 });
 
@@ -1082,6 +1085,9 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Property<string>("Remark")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SignatureData")
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");

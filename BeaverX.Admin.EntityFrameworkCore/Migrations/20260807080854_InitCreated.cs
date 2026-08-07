@@ -375,6 +375,7 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     LoopCounter = table.Column<int>(type: "integer", nullable: true),
                     CompleteTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Remark = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SignatureData = table.Column<string>(type: "text", nullable: true),
                     CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
                     LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -943,6 +944,12 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 name: "IX_oa_form_fields_DefId",
                 table: "oa_form_fields",
                 column: "DefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_oa_form_fields_DefId_FieldKey",
+                table: "oa_form_fields",
+                columns: new[] { "DefId", "FieldKey" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_oa_initiators_DefId",

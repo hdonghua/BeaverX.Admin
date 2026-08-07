@@ -207,7 +207,8 @@ public partial class OaWorkflowAppService
                 AuditTime = task.CompleteTime,
                 Auditor = task.UserId.ToString(),
                 Assignee = task.UserId.ToString(),
-                Comment = task.Remark
+                Comment = task.Remark,
+                SignatureData = task.SignatureData
             };
         }).ToList();
 
@@ -466,14 +467,23 @@ public partial class OaWorkflowAppService
         if (input.FlowCmd != (int)OaOperationType.Approved && input.FlowCmd != (int)OaOperationType.Transact)
             throw new BusinessException("不支持的审批操作");
 
+        var node = await _nodes.GetAsync(task.NodeId, cancellationToken: cancellationToken);
+        var signatureData = string.IsNullOrWhiteSpace(input.Base64SignatureData) ? null : input.Base64SignatureData;
+        if (input.FlowCmd == (int)OaOperationType.Approved && node.Signature && signatureData == null)
+            throw new BusinessException("当前审批节点需要签名");
+        if (signatureData != null && !signatureData.StartsWith("data:image/png;base64,", StringComparison.OrdinalIgnoreCase))
+            throw new BusinessException("签名数据格式无效");
+        if (signatureData?.Length > 5 * 1024 * 1024)
+            throw new BusinessException("签名数据不能超过 5MB");
+
         task.Status = OaTaskStatus.Approved;
         task.FlowCmd = input.FlowCmd == (int)OaOperationType.Transact ? OaOperationType.Transact : OaOperationType.Approved;
         task.CompleteTime = DateTime.UtcNow;
         task.Remark = input.Comment;
+        task.SignatureData = signatureData;
         await _tasks.UpdateAsync(task, autoSave: true, cancellationToken: cancellationToken);
         await AddLogAsync(instance.Id, task.Id, userId, task.FlowCmd.Value, task.NodeId, null, input.Comment, cancellationToken);
 
-        var node = await _nodes.GetAsync(task.NodeId, cancellationToken: cancellationToken);
         if (node.MultiInstanceApprovalType == 3 && task.CandidateUsers is { Count: > 0 })
         {
             var nextUser = task.CandidateUsers.FirstOrDefault(IsGuid);

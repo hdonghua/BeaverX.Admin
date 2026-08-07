@@ -432,6 +432,7 @@ public class AdminDbContext : AbpDbContext<AdminDbContext>
             entity.Property(x => x.Id).ValueGeneratedNever();
             entity.Property(x => x.NodeName).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Remark).HasMaxLength(500);
+            entity.Property(x => x.SignatureData).HasColumnType("text");
             entity.HasIndex(x => new { x.UserId, x.Status });
             entity.HasIndex(x => x.InstanceId);
         });
