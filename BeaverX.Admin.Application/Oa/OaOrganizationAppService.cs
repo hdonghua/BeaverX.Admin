@@ -284,7 +284,13 @@ public class OaOrganizationAppService : IOaOrganizationAppService, IScopedDepend
 
         return new OaOrganizationOptionsDto
         {
-            Depts = BuildTree(departments, null),
+            Depts = departments.Select(x => new OaDepartmentOptionDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ParentId = x.ParentId,
+                Code = x.Code
+            }).ToList(),
             Roles = roles,
             Users = users
         };

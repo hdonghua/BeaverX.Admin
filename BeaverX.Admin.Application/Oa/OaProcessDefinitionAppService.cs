@@ -183,7 +183,7 @@ public partial class OaWorkflowAppService
         var key = requestedKey?.Trim();
         if (string.IsNullOrWhiteSpace(key)) return previous?.BelongKey ?? defId.ToString();
         if (key.Length > 64) throw new BusinessException("流程 Key 不能超过 64 个字符");
-        if (!Regex.IsMatch(key, "^[A-Za-z][A-Za-z0-9_.-]*$"))
+        if (!Guid.TryParse(key, out _) && !Regex.IsMatch(key, "^[A-Za-z][A-Za-z0-9_.-]*$"))
             throw new BusinessException("流程 Key 必须以字母开头，且只能包含字母、数字、下划线、点和横线");
 
         var normalized = key.ToLower();
