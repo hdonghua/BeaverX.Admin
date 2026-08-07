@@ -109,6 +109,7 @@ public partial class OaWorkflowAppService
             throw new BusinessException("流程分组不存在或已停用");
         if (string.IsNullOrWhiteSpace(input.WorkFlowDef.Name)) throw new BusinessException("流程名称不能为空");
         ValidateFieldKeys(input.FlowWidgets);
+        ValidateServiceTaskHandlers(input.NodeConfig);
 
         var userId = GetCurrentUserId();
         var defId = _ids.Create();
@@ -159,6 +160,29 @@ public partial class OaWorkflowAppService
         if (flattened.Ccs.Count > 0) await _ccConfigs.InsertManyAsync(flattened.Ccs, autoSave: true, cancellationToken: cancellationToken);
         if (flattened.Transactors.Count > 0) await _transactConfigs.InsertManyAsync(flattened.Transactors, autoSave: true, cancellationToken: cancellationToken);
         return definition;
+    }
+
+    public Task<List<OaServiceTaskHandlerDto>> GetServiceTaskHandlersAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(_serviceTaskHandlers.Values
+            .OrderBy(x => x.DisplayName)
+            .Select(x => new OaServiceTaskHandlerDto { Key = x.Key, Name = x.DisplayName })
+            .ToList());
+
+    private void ValidateServiceTaskHandlers(OaFlowNodeRequest node)
+    {
+        if (node.Type == (int)OaNodeType.ServiceTask)
+        {
+            var keys = (node.ServiceTaskHandlers ?? [])
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (keys.Count == 0) throw new BusinessException($"服务任务节点“{node.Name}”至少需要选择一个处理器");
+            var missing = keys.Where(x => !_serviceTaskHandlers.ContainsKey(x)).ToList();
+            if (missing.Count > 0) throw new BusinessException($"服务任务节点“{node.Name}”包含不可用的处理器：{string.Join("、", missing)}");
+        }
+
+        if (node.ChildNode != null) ValidateServiceTaskHandlers(node.ChildNode);
+        foreach (var branch in node.ConditionNodes ?? []) ValidateServiceTaskHandlers(branch);
     }
 
     private static void ValidateFieldKeys(IEnumerable<OaFlowWidgetRequest> widgets)
@@ -363,7 +387,8 @@ public partial class OaWorkflowAppService
             Extras = JsonSerializer.Serialize(new NodeRuntimeOptions
             {
                 FlowNodeAuditAdmin = source.FlowNodeAuditAdmin,
-                FormAuths = source.FormAuths ?? []
+                FormAuths = source.FormAuths ?? [],
+                ServiceTaskHandlers = source.ServiceTaskHandlers ?? []
             }, WorkflowJsonOptions)
         };
         result.Nodes.Add(node);

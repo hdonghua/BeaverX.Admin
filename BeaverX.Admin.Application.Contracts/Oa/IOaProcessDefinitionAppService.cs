@@ -14,4 +14,5 @@ public interface IOaProcessDefinitionAppService
     Task<OaFlowDefinitionDto> CopyProcessAsync(OaCopyProcessRequest input, CancellationToken cancellationToken = default);
     Task<OaProcessEditDto> GetProcessEditDataAsync(Guid defId, CancellationToken cancellationToken = default);
     Task<List<OaFlowFormFieldDto>> GetFlowFormWidgetsAsync(Guid defId, CancellationToken cancellationToken = default);
+    Task<List<OaServiceTaskHandlerDto>> GetServiceTaskHandlersAsync(CancellationToken cancellationToken = default);
 }

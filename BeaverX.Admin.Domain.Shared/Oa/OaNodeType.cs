@@ -8,6 +8,7 @@ public enum OaNodeType
     Condition = 3,
     ExclusiveGateway = 4,
     Transact = 5,
-    Trigger = 6, 
+    Trigger = 6,
+    ServiceTask = 7,
     End = 9
 }

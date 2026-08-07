@@ -87,6 +87,11 @@ public class ApproveManagementController : AdminControllerBase
     [HttpGet("getProcessEditData")]
     public Task<OaProcessEditDto> GetProcessEditDataAsync([FromQuery] Guid defId, CancellationToken cancellationToken) => _processDefinitionService.GetProcessEditDataAsync(defId, cancellationToken);
 
+    [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
+    [HttpGet("getServiceTaskHandlers")]
+    public Task<List<OaServiceTaskHandlerDto>> GetServiceTaskHandlersAsync(CancellationToken cancellationToken) =>
+        _processDefinitionService.GetServiceTaskHandlersAsync(cancellationToken);
+
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowData)]
     [HttpGet("queryFlowInstsData")]
     public Task<PagedResultDto<OaFlowInstanceListDto>> QueryFlowInstsDataAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowDataService.QueryInstancesAsync(input, cancellationToken);

@@ -88,6 +88,7 @@ public class OaFlowNodeRequest
     public List<OaAssigneeRequest>? Assignees { get; set; }
     public List<OaAssigneeRequest>? Ccs { get; set; }
     public List<OaAssigneeRequest>? Transactors { get; set; }
+    public List<string>? ServiceTaskHandlers { get; set; }
     public int ApprovalType { get; set; }
     public int FlowNodeNoAuditorType { get; set; }
     public int FlowNodeSelfAuditorType { get; set; }
@@ -99,6 +100,12 @@ public class OaFlowNodeRequest
     public bool Assignable { get; set; }
     public bool Signature { get; set; }
     public List<OaFormAuthRequest>? FormAuths { get; set; }
+}
+
+public class OaServiceTaskHandlerDto
+{
+    public string Key { get; set; } = null!;
+    public string Name { get; set; } = null!;
 }
 
 public class OaFormAuthRequest

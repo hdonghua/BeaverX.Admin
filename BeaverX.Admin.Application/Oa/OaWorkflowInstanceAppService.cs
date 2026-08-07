@@ -215,7 +215,8 @@ public partial class OaWorkflowAppService
         if (startNode != null && startLog != null)
             historyNodes.Add(CreateHistoryNode(instance, startNode, startLog.Id, OaOperationType.Start, startLog.CreationTime, [instance.Initiator], startLog.Operator, startLog.Remark));
 
-        foreach (var log in logs.Where(x => x.SourceNodeId.HasValue && x.OperationType is OaOperationType.AutoApproved or OaOperationType.AutoRejected))
+        foreach (var log in logs.Where(x => x.SourceNodeId.HasValue &&
+                     x.OperationType is OaOperationType.AutoApproved or OaOperationType.AutoRejected or OaOperationType.ServiceTask))
             if (nodeMap.TryGetValue(log.SourceNodeId!.Value, out var node))
                 historyNodes.Add(CreateHistoryNode(instance, node, log.Id, log.OperationType, log.CreationTime, [], log.Operator, log.Remark));
 
@@ -619,6 +620,12 @@ public partial class OaWorkflowAppService
                 node = GetNextNode(node, allNodes);
                 continue;
             }
+            if (node.NodeType == OaNodeType.ServiceTask)
+            {
+                await ExecuteServiceTaskAsync(instance, node, cancellationToken);
+                node = GetNextNode(node, allNodes);
+                continue;
+            }
             if ((node.NodeType == OaNodeType.Approve || node.NodeType == OaNodeType.Transact) && node.ApprovalType == 1)
             {
                 await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.AutoApproved, node.Id, node.ChildNodeId, null, cancellationToken);
@@ -706,6 +713,47 @@ public partial class OaWorkflowAppService
         }
         if (node == null) await CompleteInstanceAsync(instance, cancellationToken);
     }
+
+    private async Task ExecuteServiceTaskAsync(OaInstance instance, OaNode node, CancellationToken cancellationToken)
+    {
+        var keys = GetNodeRuntimeOptions(node).ServiceTaskHandlers;
+        if (keys.Count == 0) throw new BusinessException($"服务任务节点“{node.NodeName}”未配置处理器");
+
+        using var formDocument = JsonDocument.Parse(instance.FormValue);
+        var context = new OaServiceTaskContext
+        {
+            InstanceId = instance.Id,
+            DefinitionId = instance.DefId,
+            NodeId = node.Id,
+            InitiatorId = instance.Initiator,
+            FormData = formDocument.RootElement.EnumerateObject()
+                .ToDictionary(x => x.Name, x => ToServiceTaskFormValue(x.Value), StringComparer.Ordinal)
+        };
+        foreach (var key in keys)
+        {
+            if (!_serviceTaskHandlers.TryGetValue(key, out var handler))
+                throw new BusinessException($"服务任务节点“{node.NodeName}”的处理器“{key}”不可用");
+            await handler.HandleAsync(context, cancellationToken);
+        }
+
+        await AddLogAsync(instance.Id, null, instance.Initiator, OaOperationType.ServiceTask,
+            node.Id, node.ChildNodeId, $"已执行处理器：{string.Join("、", keys)}", cancellationToken);
+    }
+
+    private static object? ToServiceTaskFormValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString(),
+        JsonValueKind.Number when value.TryGetInt64(out var integer) => integer,
+        JsonValueKind.Number when value.TryGetDecimal(out var number) => number,
+        JsonValueKind.Number => value.GetDouble(),
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        JsonValueKind.Null or JsonValueKind.Undefined => null,
+        JsonValueKind.Array => value.EnumerateArray().Select(ToServiceTaskFormValue).ToList(),
+        JsonValueKind.Object => value.EnumerateObject()
+            .ToDictionary(x => x.Name, x => ToServiceTaskFormValue(x.Value), StringComparer.Ordinal),
+        _ => null
+    };
 
     private async Task<List<Guid>> ResolveAssigneesAsync(OaInstance instance, OaNode node, Dictionary<Guid, List<string>>? designees, CancellationToken cancellationToken)
     {

@@ -44,6 +44,7 @@ public partial class OaWorkflowAppService :
     private readonly IRepository<OaUserDepartment, Guid> _userDepartments;
     private readonly ICurrentUser _currentUser;
     private readonly IGuidGenerator _ids;
+    private readonly IReadOnlyDictionary<string, IOaServiceTaskHandler> _serviceTaskHandlers;
 
     public OaWorkflowAppService(
         IRepository<OaProcessGroup, Guid> groups,
@@ -65,7 +66,8 @@ public partial class OaWorkflowAppService :
         IRepository<OaDepartment, Guid> departments,
         IRepository<OaUserDepartment, Guid> userDepartments,
         ICurrentUser currentUser,
-        IGuidGenerator ids)
+        IGuidGenerator ids,
+        IEnumerable<IOaServiceTaskHandler> serviceTaskHandlers)
     {
         _groups = groups;
         _definitions = definitions;
@@ -87,6 +89,7 @@ public partial class OaWorkflowAppService :
         _userDepartments = userDepartments;
         _currentUser = currentUser;
         _ids = ids;
+        _serviceTaskHandlers = serviceTaskHandlers.ToDictionary(x => x.Key, StringComparer.OrdinalIgnoreCase);
     }
 
     private Guid GetCurrentUserId() => _currentUser.Id is { } id && id != Guid.Empty ? id : throw new BusinessException("未登录或用户信息无效");
@@ -166,6 +169,7 @@ public partial class OaWorkflowAppService :
     {
         public string? FlowNodeAuditAdmin { get; set; }
         public List<OaFormAuthRequest> FormAuths { get; set; } = [];
+        public List<string> ServiceTaskHandlers { get; set; } = [];
     }
 
     private sealed class FlattenResult

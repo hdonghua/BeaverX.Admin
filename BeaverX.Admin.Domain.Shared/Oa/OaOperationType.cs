@@ -89,5 +89,10 @@ public enum OaOperationType
 
     FormModified = 17,
 
-    Urge = 18
+    Urge = 18,
+
+    /// <summary>
+    /// 服务任务自动执行
+    /// </summary>
+    ServiceTask = 19
 }
