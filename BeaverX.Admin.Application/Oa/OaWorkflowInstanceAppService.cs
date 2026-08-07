@@ -12,7 +12,7 @@ namespace BeaverX.Admin.Application.Oa;
 
 public partial class OaWorkflowAppService
 {
-    public async Task LaunchAsync(OaLaunchRequest input, CancellationToken cancellationToken = default)
+    public async Task<Guid> LaunchAsync(OaLaunchRequest input, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
         var definition = await _definitions.GetAsync(input.FlowDefId, cancellationToken: cancellationToken);
@@ -37,6 +37,7 @@ public partial class OaWorkflowAppService
         var start = allNodes.FirstOrDefault(x => x.NodeType == OaNodeType.Start) ?? allNodes.FirstOrDefault();
         if (start == null) throw new BusinessException("流程定义没有节点");
         await ContinueAsync(instance, start, allNodes, input.Designees, includeCurrent: true, cancellationToken);
+        return instance.Id;
     }
 
     public async Task<List<OaFlowChartNodeDto>> ViewProcessChartAsync(OaViewProcessChartRequest input, CancellationToken cancellationToken = default)

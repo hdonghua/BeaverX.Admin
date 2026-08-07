@@ -113,12 +113,13 @@ public partial class OaWorkflowAppService
 
         var userId = GetCurrentUserId();
         var defId = _ids.Create();
+        var belongKey = await ResolveBelongKeyAsync(input.WorkFlowDef.ProcessKey, previous, defId, cancellationToken);
         var admins = input.WorkFlowDef.FlowAdminIds.Where(IsGuid).Distinct().ToList();
         if (admins.Count == 0) admins.Add(userId.ToString());
         var definition = new OaProcessDefinition(defId)
         {
             PermissionType = (OaPermissionType)input.FlowPermission.Type,
-            BelongKey = previous?.BelongKey ?? defId.ToString(),
+            BelongKey = belongKey,
             Version = previous?.Version + 1 ?? 1,
             Name = input.WorkFlowDef.Name.Trim(),
             Icon = input.WorkFlowDef.Icon,
@@ -167,6 +168,42 @@ public partial class OaWorkflowAppService
             .OrderBy(x => x.DisplayName)
             .Select(x => new OaServiceTaskHandlerDto { Key = x.Key, Name = x.DisplayName })
             .ToList());
+
+    public Task<List<OaWorkflowKeyOptionDto>> GetWorkflowKeyOptionsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(OaWorkflowKeys.Options
+            .Select(x => new OaWorkflowKeyOptionDto { Key = x.Key, Name = x.Value })
+            .ToList());
+
+    private async Task<string> ResolveBelongKeyAsync(
+        string? requestedKey,
+        OaProcessDefinition? previous,
+        Guid defId,
+        CancellationToken cancellationToken)
+    {
+        var key = requestedKey?.Trim();
+        if (string.IsNullOrWhiteSpace(key)) return previous?.BelongKey ?? defId.ToString();
+        if (key.Length > 64) throw new BusinessException("流程 Key 不能超过 64 个字符");
+        if (!Regex.IsMatch(key, "^[A-Za-z][A-Za-z0-9_.-]*$"))
+            throw new BusinessException("流程 Key 必须以字母开头，且只能包含字母、数字、下划线、点和横线");
+
+        var normalized = key.ToLower();
+        var matches = await (await _definitions.GetQueryableAsync())
+            .Where(x => x.BelongKey.ToLower() == normalized)
+            .ToListAsync(cancellationToken);
+        if (matches.Any(x => previous == null || !string.Equals(x.BelongKey, previous.BelongKey, StringComparison.OrdinalIgnoreCase)))
+            throw new BusinessException($"流程 Key“{key}”已被其他流程使用");
+
+        if (previous != null && !string.Equals(previous.BelongKey, key, StringComparison.Ordinal))
+        {
+            var versions = await (await _definitions.GetQueryableAsync())
+                .Where(x => x.BelongKey == previous.BelongKey)
+                .ToListAsync(cancellationToken);
+            foreach (var version in versions) version.BelongKey = key;
+            if (versions.Count > 0)
+                await _definitions.UpdateManyAsync(versions, autoSave: true, cancellationToken: cancellationToken);
+        }
+        return key;
+    }
 
     private void ValidateServiceTaskHandlers(OaFlowNodeRequest node)
     {
@@ -259,6 +296,7 @@ public partial class OaWorkflowAppService
         if (workflowNode is not JsonObject workflow) throw new BusinessException("流程设计数据无效");
         workflow["id"] = null;
         workflow["name"] = name;
+        workflow["processKey"] = null;
         var copiedJson = json.ToJsonString();
         var model = JsonSerializer.Deserialize<OaAddProcessRequest>(copiedJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new BusinessException("流程设计数据无效");
@@ -309,7 +347,10 @@ public partial class OaWorkflowAppService
     {
         var definition = await _definitions.GetAsync(defId, cancellationToken: cancellationToken);
         EnsureFlowAdmin(definition);
-        return new OaProcessEditDto { FlowDefId = definition.Id, FlowDefJson = definition.DefJson };
+        var json = JsonNode.Parse(definition.DefJson)?.AsObject() ?? throw new BusinessException("流程设计数据无效");
+        var workflow = json["workFlowDef"] ?? json["WorkFlowDef"];
+        if (workflow is JsonObject workflowObject) workflowObject["processKey"] = definition.BelongKey;
+        return new OaProcessEditDto { FlowDefId = definition.Id, FlowDefJson = json.ToJsonString() };
     }
 
     public async Task<List<OaFlowFormFieldDto>> GetFlowFormWidgetsAsync(Guid defId, CancellationToken cancellationToken = default)

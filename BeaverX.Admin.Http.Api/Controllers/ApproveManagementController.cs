@@ -92,6 +92,11 @@ public class ApproveManagementController : AdminControllerBase
     public Task<List<OaServiceTaskHandlerDto>> GetServiceTaskHandlersAsync(CancellationToken cancellationToken) =>
         _processDefinitionService.GetServiceTaskHandlersAsync(cancellationToken);
 
+    [RequirePermission(RbacPermissionCodes.Oa.WorkflowManage)]
+    [HttpGet("getWorkflowKeyOptions")]
+    public Task<List<OaWorkflowKeyOptionDto>> GetWorkflowKeyOptionsAsync(CancellationToken cancellationToken) =>
+        _processDefinitionService.GetWorkflowKeyOptionsAsync(cancellationToken);
+
     [RequirePermission(RbacPermissionCodes.Oa.WorkflowData)]
     [HttpGet("queryFlowInstsData")]
     public Task<PagedResultDto<OaFlowInstanceListDto>> QueryFlowInstsDataAsync([FromQuery] OaFlowInstanceQuery input, CancellationToken cancellationToken) => _workflowDataService.QueryInstancesAsync(input, cancellationToken);

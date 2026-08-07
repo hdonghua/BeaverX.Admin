@@ -147,11 +147,18 @@ public class OaFlowConditionRequest
 public class OaWorkflowDefinitionRequest
 {
     public Guid? Id { get; set; }
+    public string? ProcessKey { get; set; }
     public string? Icon { get; set; }
     public string Name { get; set; } = null!;
     public Guid GroupId { get; set; }
     public int Cancelable { get; set; }
     public List<string> FlowAdminIds { get; set; } = [];
+}
+
+public class OaWorkflowKeyOptionDto
+{
+    public string Key { get; set; } = null!;
+    public string Name { get; set; } = null!;
 }
 
 public class OaFlowPermissionRequest

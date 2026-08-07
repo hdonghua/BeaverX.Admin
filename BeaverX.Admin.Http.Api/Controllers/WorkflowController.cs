@@ -30,7 +30,7 @@ public class WorkflowController : AdminControllerBase
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("lanunch")]
-    public Task LaunchAsync([FromBody] OaLaunchRequest input, CancellationToken cancellationToken) => _workflowInstanceService.LaunchAsync(input, cancellationToken);
+    public Task<Guid> LaunchAsync([FromBody] OaLaunchRequest input, CancellationToken cancellationToken) => _workflowInstanceService.LaunchAsync(input, cancellationToken);
 
     [RequirePermission(RbacPermissionCodes.Oa.Approval)]
     [HttpPost("viewProcessChart")]
