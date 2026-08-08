@@ -22,13 +22,15 @@ ASP.NET Core admin API built on the official [ABP Framework](https://abp.io/) (`
 | ORM | Entity Framework Core + **PostgreSQL** (`master`) / **MySQL** (`master-mysql`); SqlSugar + **PostgreSQL** (`sqlsugar`) / **MySQL** (`sqlsugar-mysql`) |
 | Primary key | **Guid** (ABP `Entity<Guid>` / `FullAuditedEntity<Guid>`, etc.) |
 | Auth | JWT Bearer + Refresh Token |
+| Cache / realtime / messaging | **Redis** (distributed cache, SignalR backplane, CAP Redis Streams, online users) |
 | Logging | Serilog (console + local files) |
 | Object storage | MinIO (optional) |
 
 ## Requirements
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- **PostgreSQL 14+** (`master` / `sqlsugar`) or **MySQL 8+** (`master-mysql` / `sqlsugar-mysql`鈥攕ee below)
+- **PostgreSQL 14+** (`master` / `sqlsugar`) or **MySQL 8+** (`master-mysql` / `sqlsugar-mysql`, see below)
+- **Redis 6+** (required for cache, SignalR backplane, CAP transport, online users)
 - (Optional) MinIO for file uploads
 - Frontend: [beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
@@ -157,7 +159,7 @@ Also update the connection string and **create an empty database first**; tables
 
 ## Quick Start
 
-### 1. Configure Database
+### 1. Configure Database and Redis
 
 Edit `BeaverX.Admin.Http.Host/appsettings.Development.json`:
 
@@ -165,9 +167,14 @@ Edit `BeaverX.Admin.Http.Host/appsettings.Development.json`:
 {
   "ConnectionStrings": {
     "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=postgres;..."
+  },
+  "Cache": {
+    "RedisConnectionString": "localhost:6379"
   }
 }
 ```
+
+Configure Redis only via `Cache:RedisConnectionString` in `appsettings.json`.
 
 > On `sqlsugar` / `sqlsugar-mysql`: **create the empty database first**, then start the API (tables sync automatically).
 
@@ -247,10 +254,11 @@ Classes implementing `IScopedDependency` (or `ITransientDependency` / `ISingleto
 | Section | File | Description |
 |---------|------|-------------|
 | `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL (`master`) or MySQL (`master-mysql`) |
+| `Cache:RedisConnectionString` | appsettings.json | Redis (cache / SignalR / CAP / online users) |
 | `Jwt` | appsettings.json | Issue and validate tokens |
 | `CorsOrgins` | appsettings.Development.json | Frontend origins (comma-separated) |
 | `Minio` | appsettings.json | File storage (optional) |
-| `Cache` | appsettings.json | Cache driver (Memory/Redis), key prefix, default TTL |
+| `Cache` | appsettings.json | Redis key prefix, connection string, default TTL |
 | `Serilog` | appsettings.json | Log levels; files at `Logs/log-*.txt` |
 
 ## Database Migrations
@@ -370,7 +378,7 @@ Frontend page: `/system/message` (send site message); menu seeded by `MessageMen
 
 ## Realtime Notifications (SignalR)
 
-Export tasks and unread messages are pushed via SignalR instead of polling.
+Export tasks and unread messages are pushed via SignalR instead of polling. **Redis Backplane** and **`RedisOnlineUserTracker`** are enabled by default for multi-instance push.
 
 | Component | Description |
 |-----------|-------------|
@@ -378,6 +386,7 @@ Export tasks and unread messages are pushed via SignalR instead of polling.
 | `SignalRRealtimeNotifier` | SignalR implementation (Infrastructure) |
 | `RealtimePublisher` | Builds payload and pushes |
 | `AdminNotificationHub` | Hub at `/hubs/notifications` |
+| Redis Backplane | `AddStackExchangeRedis`, channel prefix `BeaverXAdmin:SignalR:` |
 
 ### Events
 
@@ -495,26 +504,27 @@ Detailed guide: `doc-beaverx-admin/docs/backend/scheduled-jobs.md`.
 
 ## Async Export (DotNetCap)
 
-Export uses **CAP + DB storage (PostgreSQL / MySQL by branch) + in-memory queue + MinIO files**:
+Export uses **CAP + DB storage (PostgreSQL / MySQL by branch) + Redis Streams transport + MinIO files**:
 
 | Component | Description |
 |-----------|-------------|
 | `export_tasks` | Task table (status, params, file link) |
 | `local_message_outbox` | CAP dedup by `cap_message_id` (process each message once) |
 | `cap` schema | CAP published/received tables |
-| `ExportTaskCapSubscriber` (Infrastructure) | Consumer: Excel in memory 鈫?MinIO |
+| Redis Streams | CAP transport (`DotNetCore.CAP.RedisStreams`) |
+| `ExportTaskCapSubscriber` (Infrastructure) | Consumer: Excel in memory → MinIO |
 
 ### Flow
 
 1. `POST /api/ExportTask` creates `export_tasks`, publishes CAP message
-2. `ICapPublisher` publishes `export.task.execute`
-3. Consumer checks `cap_message_id` not consumed 鈫?claim (`Pending 鈫?Processing`) 鈫?export 鈫?MinIO 鈫?`Completed` 鈫?record `cap_message_id`
+2. `ICapPublisher` publishes `export.task.execute` (via Redis Streams)
+3. Consumer checks `cap_message_id` not consumed → claim (`Pending → Processing`) → export → MinIO → `Completed` → record `cap_message_id`
 4. `ExportTaskRecoveryHostedService` requeues stuck Pending tasks on startup
 
 ### Idempotency
 
 - **CAP layer** (`CapMessageConsumeService`): after success, write `local_message_outbox.cap_message_id`; replays skip
-- **Business layer** (e.g. `ExportTaskMessageService`): atomic claim on `export_tasks.Status` (`Pending 鈫?Processing`)
+- **Business layer** (e.g. `ExportTaskMessageService`): atomic claim on `export_tasks.Status` (`Pending → Processing`)
 - **Retry**: on failure, status back to `Pending`; CAP retries (max 5); `cap_message_id` only after success
 
 New CAP consumers: ensure business idempotency; call `CapMessageConsumeService.MarkConsumedAsync(capMessageId)` after success.
@@ -523,20 +533,15 @@ New CAP consumers: ensure business idempotency; call `CapMessageConsumeService.M
 
 Implement `IExportHandler`, register `ExportType` constant; frontend passes `exportType` and `parameters`.
 
-### Production
+## Caching (Redis)
 
-Default: `Savorboard.CAP.InMemoryMessageQueue` (single instance). For multi-instance, use Redis / RabbitMQ transport.
-
-## Caching
-
-Generic cache via `ICacheService` (Contracts) + `CacheService` (Infrastructure)鈥?*Memory** / **Redis** drivers.
+Generic cache via `ICacheService` (Contracts) + `CacheService` (Infrastructure). **Redis distributed cache is required** (no Memory driver).
 
 ### Configuration
 
 ```json
 {
   "Cache": {
-    "Driver": "Memory",
     "KeyPrefix": "beaverx:admin:",
     "RedisConnectionString": "localhost:6379",
     "DefaultExpirationSeconds": 3600
@@ -546,9 +551,8 @@ Generic cache via `ICacheService` (Contracts) + `CacheService` (Infrastructure)�
 
 | Field | Description |
 |-------|-------------|
-| `Driver` | `Memory` (default, single instance) or `Redis` (shared) |
 | `KeyPrefix` | Global key prefix, e.g. `beaverx:admin:` |
-| `RedisConnectionString` | Redis connection; falls back to `ConnectionStrings:Redis` |
+| `RedisConnectionString` | Redis connection string (required) |
 | `DefaultExpirationSeconds` | Default TTL when `SetAsync` omits expiration |
 
 ### Usage
@@ -567,99 +571,24 @@ Use logical keys (e.g. `user:1`); prefix is applied from config.
 
 ## Multi-Node Deployment
 
-Default config targets **single-instance** dev/small deployments. For horizontal scale (multiple pods/processes), switch to shared storage or distributed middleware:
+Cache, SignalR, CAP, and online users **already use Redis by default** (see `BeaverXAdminInfrastructureModule`). For multi-instance deploys, share the same Redis and database across nodes.
 
-| Capability | Single instance (default) | Multi-node adjustment |
-|------------|---------------------------|------------------------|
-| Cache `ICacheService` | `Cache:Driver = Memory` | **Redis** + `RedisConnectionString` |
-| SignalR | Local hub connections | **Redis Backplane**鈥攐therwise `SendToUser` only hits local connections |
-| Online users `IOnlineUserTracker` | In-memory `OnlineUserTracker` | **`RedisOnlineUserTracker`** (StackExchange.Redis `IDatabase`) |
-| CAP export | `UseInMemoryMessageQueue()` | Redis / RabbitMQ shared queue |
-| Hangfire | DB persistence (PostgreSQL / MySQL) | Multiple workers OK鈥攅nsure idempotent jobs |
-| JWT / DB / MinIO | No node affinity | Usually unchanged |
+| Capability | Implementation |
+|------------|----------------|
+| Cache `ICacheService` | `AddStackExchangeRedisCache` |
+| SignalR | Redis Backplane (`AddStackExchangeRedis`) |
+| Online users `IOnlineUserTracker` | `RedisOnlineUserTracker` (Redis Hash) |
+| CAP export | `UseRedis` (Redis Streams) |
+| Hangfire | DB persistence (PostgreSQL / MySQL); ensure idempotent jobs with multiple workers |
+| JWT / DB / MinIO | No node affinity |
 
-### 1. Redis Cache
+Connection string is read only from `Cache:RedisConnectionString` (`RedisConnectionHelper`).
 
-```json
-{
-  "Cache": {
-    "Driver": "Redis",
-    "KeyPrefix": "beaverx:admin:",
-    "RedisConnectionString": "localhost:6379"
-  }
-}
-```
-
-### 2. SignalR Redis Backplane
-
-In `BeaverXAdminInfrastructureModule`, add Backplane to `AddSignalR()` (package `Microsoft.AspNetCore.SignalR.StackExchangeRedis`):
-
-```csharp
-using BeaverX.Admin.Infrastructure.Realtime;
-
-var redisConnection = RealtimeDistributedExtensions.ResolveRedisConnectionString(configuration);
-
-services.AddSignalR()
-    .AddStackExchangeRedis(redisConnection, options =>
-    {
-        options.Configuration.ChannelPrefix = RedisChannel.Literal("BeaverXAdmin:SignalR:");
-    })
-    .AddJsonProtocol(/* keep existing JSON config */);
-```
-
-Frontend still connects to `/hubs/notifications` behind the load balancer; Backplane forwards across nodes.
-
-### 3. Online Users: RedisOnlineUserTracker
-
-Implementation: `Infrastructure/Realtime/RedisOnlineUserTracker.cs`鈥攗ses injected **`IDatabase`** for Redis Hash (key: `{KeyPrefix}online:connections`), **not** `IDistributedCache`.
-
-**Disabled by default**. In `BeaverXAdminHttpHostModule.ConfigureServices`, **after** Infrastructure module:
-
-```csharp
-using BeaverX.Admin.Infrastructure.Realtime;
-
-public override void ConfigureServices(ServiceConfigurationContext context)
-{
-    // ... existing JWT, CORS, etc. ...
-
-    context.Services.AddRedisOnlineUserTracker(context.Configuration);
-}
-```
-
-`AddRedisOnlineUserTracker`:
-
-1. Registers `IConnectionMultiplexer` and `IDatabase` (from `Cache:RedisConnectionString` or `ConnectionStrings:Redis`)
-2. **Replaces** default `OnlineUserTracker` with `RedisOnlineUserTracker`
-
-Manual registration if needed:
-
-```csharp
-services.AddSingleton<IConnectionMultiplexer>(_ =>
-    ConnectionMultiplexer.Connect(configuration["Cache:RedisConnectionString"]!));
-services.AddSingleton(sp => sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
-services.Replace(ServiceDescriptor.Singleton<IOnlineUserTracker, RedisOnlineUserTracker>());
-```
-
-### 4. CAP Message Queue
-
-In `BeaverXAdminInfrastructureModule.ConfigureCap`, replace `UseInMemoryMessageQueue()` with e.g.:
-
-```csharp
-// Reference DotNetCore.CAP.RedisStreams or DotNetCore.CAP.RabbitMQ
-options.UseRedis(redisConnectionString);
-```
-
-Otherwise export messages stay in-process and other nodes cannot consume them.
-
-### 5. Checklist
+### Checklist
 
 - [ ] Database (PostgreSQL or MySQL), Redis, MinIO reachable from all API instances
-- [ ] `Cache:Driver = Redis`
-- [ ] SignalR Redis Backplane configured
-- [ ] Host module calls `AddRedisOnlineUserTracker`
-- [ ] CAP uses shared queue
-- [ ] Load balancer WebSocket sticky sessions **or** Backplane (Backplane preferred; sticky not required)
-- [ ] Same `Jwt:SecretKey` and CORS on all instances
+- [ ] Same Redis / JWT / CORS config on all instances
+- [ ] Load balancer WebSocket sticky sessions **or** Backplane (Backplane is built-in; sticky not required)
 
 ## Logging
 
@@ -676,7 +605,8 @@ Otherwise export messages stay in-process and other nodes cannot consume them.
 | Frontend 403 | Role has menus; `Component` matches `views/`; permission codes match controller |
 | CORS errors | `CorsOrgins` includes frontend URL |
 | MinIO errors | Export/upload needs MinIO鈥攙erify service and config |
-| Export stuck Pending | CAP running; check `cap` schema and `Logs/` |
+| Export stuck Pending | CAP / Redis running; check `cap` schema and `Logs/` |
+| Startup missing Redis connection | Set `Cache:RedisConnectionString` |
 
 ## Related Repositories
 

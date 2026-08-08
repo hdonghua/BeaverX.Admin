@@ -15,7 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Minio;
-using Savorboard.CAP.InMemoryMessageQueue;
+using StackExchange.Redis;
 
 namespace BeaverX.Admin.Infrastructure;
 
@@ -29,6 +29,7 @@ public class BeaverXAdminInfrastructureModule : AbpModule
     {
         var services = context.Services;
         var configuration = context.Configuration;
+        var redisConnection = RedisConnectionHelper.ResolveConnectionString(configuration);
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
@@ -39,12 +40,15 @@ public class BeaverXAdminInfrastructureModule : AbpModule
 
         services.AddBeaverXHangfire(configuration);
         services.AddBeaverXCache(configuration);
-        services.AddSignalR();
+        services.AddSignalR()
+            .AddStackExchangeRedis(redisConnection, options =>
+            {
+                options.Configuration.ChannelPrefix = RedisChannel.Literal("BeaverXAdmin:SignalR:");
+            });
         services.AddSingleton<IUserIdProvider, UserIdHubConnectionProvider>();
-        // 单实例默认内存实现；多节点见 README「多节点部署」→ AddRedisOnlineUserTracker
-        services.AddSingleton<IOnlineUserTracker, OnlineUserTracker>();
+        services.AddSingleton<IOnlineUserTracker, RedisOnlineUserTracker>();
         ConfigureMinio(services, configuration);
-        ConfigureCap(services, configuration);
+        ConfigureCap(services, configuration, redisConnection);
 
         services.AddHostedService<Exports.ExportTaskRecoveryHostedService>();
     }
@@ -71,7 +75,10 @@ public class BeaverXAdminInfrastructureModule : AbpModule
             .Build());
     }
 
-    private static void ConfigureCap(IServiceCollection services, IConfiguration configuration)
+    private static void ConfigureCap(
+        IServiceCollection services,
+        IConfiguration configuration,
+        string redisConnection)
     {
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("Connection string 'Default' is required.");
@@ -83,7 +90,7 @@ public class BeaverXAdminInfrastructureModule : AbpModule
                 postgresOptions.ConnectionString = connectionString;
                 postgresOptions.Schema = "cap";
             });
-            options.UseInMemoryMessageQueue();
+            options.UseRedis(redisConnection);
             options.FailedRetryCount = 5;
             options.FailedRetryInterval = 60;
             options.CollectorCleaningInterval = 3600;

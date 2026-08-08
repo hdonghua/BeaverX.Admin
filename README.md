@@ -22,6 +22,7 @@
 | ORM | Entity Framework Core + **PostgreSQL**（`master`）/ **MySQL**（`master-mysql`）；SqlSugar + **PostgreSQL**（`sqlsugar`）/ **MySQL**（`sqlsugar-mysql`） |
 | 主键 | **Guid**（ABP `Entity<Guid>` / `FullAuditedEntity<Guid>` 等） |
 | 认证 | JWT Bearer + Refresh Token |
+| 缓存 / 实时 / 消息 | **Redis**（分布式缓存、SignalR Backplane、CAP Redis Streams、在线用户） |
 | 日志 | Serilog（控制台 + 本地文件） |
 | 对象存储 | MinIO（可选） |
 
@@ -29,6 +30,7 @@
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - **PostgreSQL 14+**（`master` / `sqlsugar`）或 **MySQL 8+**（`master-mysql` / `sqlsugar-mysql`，见下文）
+- **Redis 6+**（业务缓存、SignalR Backplane、CAP 消息传输、在线用户，必填）
 - （可选）MinIO，用于文件上传
 - 前端项目：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
@@ -157,7 +159,7 @@ options.ConnectionString = "你的连接串";
 
 ## 快速开始
 
-### 1. 配置数据库
+### 1. 配置数据库与 Redis
 
 编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
 
@@ -165,9 +167,14 @@ options.ConnectionString = "你的连接串";
 {
   "ConnectionStrings": {
     "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=postgres;..."
+  },
+  "Cache": {
+    "RedisConnectionString": "localhost:6379"
   }
 }
 ```
+
+Redis 连接串统一配置在 `appsettings.json` 的 `Cache:RedisConnectionString`。
 
 > `sqlsugar` / `sqlsugar-mysql`：请先**手动创建**连接串中的空库，再启动（表会自动同步）。
 
@@ -247,10 +254,11 @@ BeaverX.Admin/
 | 配置节 | 文件 | 说明 |
 |--------|------|------|
 | `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL（`master`）或 MySQL（`master-mysql`） |
+| `Cache:RedisConnectionString` | appsettings.json | Redis（缓存 / SignalR / CAP / 在线用户） |
 | `Jwt` | appsettings.json | 签发与校验 |
 | `CorsOrgins` | appsettings.Development.json | 前端源，逗号分隔 |
 | `Minio` | appsettings.json | 文件服务（可不配） |
-| `Cache` | appsettings.json | 缓存驱动（Memory/Redis）、键前缀、默认 TTL |
+| `Cache` | appsettings.json | Redis 键前缀、连接串、默认 TTL |
 | `Serilog` | appsettings.json | 日志级别与文件路径 `Logs/log-*.txt` |
 
 ## 数据库迁移
@@ -370,7 +378,7 @@ public class ConfigController : AdminControllerBase
 
 ## 实时通知（SignalR）
 
-导出任务与未读消息通过 SignalR 推送，替代前端轮询。
+导出任务与未读消息通过 SignalR 推送，替代前端轮询。已启用 **Redis Backplane** 与 **`RedisOnlineUserTracker`**，多实例下可跨节点推送。
 
 | 组件 | 说明 |
 |------|------|
@@ -378,6 +386,7 @@ public class ConfigController : AdminControllerBase
 | `SignalRRealtimeNotifier` | SignalR 实现（Infrastructure） |
 | `RealtimePublisher` | 业务编排：组装 payload 并推送 |
 | `AdminNotificationHub` | Hub 地址 `/hubs/notifications` |
+| Redis Backplane | `AddStackExchangeRedis`，频道前缀 `BeaverXAdmin:SignalR:` |
 
 ### 事件
 
@@ -495,19 +504,20 @@ public class SampleDailyRecurringJob : IRecurringJob
 
 ## 异步导出（DotNetCap）
 
-导出任务采用 **CAP + 数据库存储（PostgreSQL / MySQL，随分支）+ 内存队列 + MinIO 文件**：
+导出任务采用 **CAP + 数据库存储（PostgreSQL / MySQL，随分支）+ Redis Streams 传输 + MinIO 文件**：
 
 | 组件 | 说明 |
 |------|------|
 | `export_tasks` | 业务任务表（状态、参数、文件链接） |
 | `local_message_outbox` | CAP 消息消费去重，仅记录 `cap_message_id`（同一消息只成功消费一次） |
 | `cap` schema | CAP 自带的 published / received 消息表 |
+| Redis Streams | CAP 消息传输（`DotNetCore.CAP.RedisStreams`） |
 | `ExportTaskCapSubscriber`（Infrastructure） | CAP 消费者，生成 Excel（内存流）后上传 MinIO |
 
 ### 流程
 
 1. `POST /api/ExportTask` 写入 `export_tasks`，发布 CAP 消息
-2. `ICapPublisher` 发布 `export.task.execute` 消息
+2. `ICapPublisher` 发布 `export.task.execute` 消息（经 Redis Streams）
 3. 消费者校验 `cap_message_id` 未消费 → 认领任务（`Pending → Processing`）→ 导出 → 上传 MinIO → `Completed` → 记录 `cap_message_id`
 4. 启动时 `ExportTaskRecoveryHostedService` 恢复中断的 Pending 任务
 
@@ -523,20 +533,15 @@ public class SampleDailyRecurringJob : IRecurringJob
 
 实现 `IExportHandler` 并注册 `ExportType` 常量，前端传对应 `exportType` 与 `parameters` 即可。
 
-### 生产部署
+## 缓存（Redis）
 
-当前使用 `Savorboard.CAP.InMemoryMessageQueue`（单实例）。多实例部署请改用 Redis / RabbitMQ 等 CAP 传输。
-
-## 缓存
-
-通用缓存通过 `ICacheService`（Contracts）+ `CacheService`（Infrastructure）提供，支持 **Memory** / **Redis** 驱动切换。
+通用缓存通过 `ICacheService`（Contracts）+ `CacheService`（Infrastructure）提供，**固定使用 Redis 分布式缓存**。
 
 ### 配置
 
 ```json
 {
   "Cache": {
-    "Driver": "Memory",
     "KeyPrefix": "beaverx:admin:",
     "RedisConnectionString": "localhost:6379",
     "DefaultExpirationSeconds": 3600
@@ -546,9 +551,8 @@ public class SampleDailyRecurringJob : IRecurringJob
 
 | 字段 | 说明 |
 |------|------|
-| `Driver` | `Memory`（默认，单实例）或 `Redis`（多实例共享） |
 | `KeyPrefix` | 全局键前缀，如 `beaverx:admin:` |
-| `RedisConnectionString` | Redis 连接串；未配置时回退 `ConnectionStrings:Redis` |
+| `RedisConnectionString` | Redis 连接串（必填） |
 | `DefaultExpirationSeconds` | `SetAsync` 未指定过期时间时的默认 TTL |
 
 ### 使用
@@ -567,99 +571,24 @@ var user = await _cache.GetOrSetAsync(
 
 ## 多节点部署
 
-默认配置面向**单实例**开发/小规模部署。水平扩展（多 Pod / 多进程）时，以下组件需改为共享存储或分布式中间件：
+缓存、SignalR、CAP、在线用户**默认已走 Redis 分布式方案**（见 `BeaverXAdminInfrastructureModule`），多实例部署时确保各节点共用同一 Redis 与数据库即可。
 
-| 能力 | 单实例（默认） | 多节点需调整 |
-|------|----------------|--------------|
-| 业务缓存 `ICacheService` | `Cache:Driver = Memory` | 改为 `Redis`，并配置 `RedisConnectionString` |
-| SignalR 实时推送 | 本机 Hub 连接 | 增加 **Redis Backplane**，否则 `SendToUser` 只能命中本节点连接 |
-| 在线用户 `IOnlineUserTracker` | 内存 `OnlineUserTracker` | 启用 **`RedisOnlineUserTracker`**（基于 StackExchange.Redis `IDatabase`） |
-| CAP 异步导出 | `UseInMemoryMessageQueue()` | 改为 Redis / RabbitMQ 等共享队列 |
-| Hangfire | 数据库持久化（PostgreSQL / MySQL） | 多实例可同时跑 Worker，注意任务幂等 |
-| JWT / 数据库 / MinIO | 无节点亲和 | 一般无需改动 |
+| 能力 | 实现 |
+|------|------|
+| 业务缓存 `ICacheService` | `AddStackExchangeRedisCache` |
+| SignalR 实时推送 | Redis Backplane（`AddStackExchangeRedis`） |
+| 在线用户 `IOnlineUserTracker` | `RedisOnlineUserTracker`（Redis Hash） |
+| CAP 异步导出 | `UseRedis`（Redis Streams） |
+| Hangfire | 数据库持久化（PostgreSQL / MySQL）；多 Worker 时任务需幂等 |
+| JWT / 数据库 / MinIO | 无节点亲和 |
 
-### 1. 缓存切 Redis
+连接串仅读取 `Cache:RedisConnectionString`（见 `RedisConnectionHelper`）。
 
-```json
-{
-  "Cache": {
-    "Driver": "Redis",
-    "KeyPrefix": "beaverx:admin:",
-    "RedisConnectionString": "localhost:6379"
-  }
-}
-```
-
-### 2. SignalR Redis Backplane
-
-在 `BeaverXAdminInfrastructureModule` 中为 `AddSignalR()` 追加 Backplane（需引用 `Microsoft.AspNetCore.SignalR.StackExchangeRedis`）：
-
-```csharp
-using BeaverX.Admin.Infrastructure.Realtime;
-
-var redisConnection = RealtimeDistributedExtensions.ResolveRedisConnectionString(configuration);
-
-services.AddSignalR()
-    .AddStackExchangeRedis(redisConnection, options =>
-    {
-        options.Configuration.ChannelPrefix = RedisChannel.Literal("BeaverXAdmin:SignalR:");
-    })
-    .AddJsonProtocol(/* 保持现有 JSON 配置 */);
-```
-
-前端仍连接负载均衡后的同一 Hub 地址 `/hubs/notifications`；Backplane 负责跨节点转发消息。
-
-### 3. 在线用户：RedisOnlineUserTracker
-
-实现位于 `Infrastructure/Realtime/RedisOnlineUserTracker.cs`，通过注入的 **`IDatabase`** 读写 Redis Hash（键：`{KeyPrefix}online:connections`），**不**使用 `IDistributedCache`。
-
-**默认不启用**。在 `BeaverXAdminHttpHostModule.ConfigureServices` 中、于 Infrastructure 模块加载**之后**调用：
-
-```csharp
-using BeaverX.Admin.Infrastructure.Realtime;
-
-public override void ConfigureServices(ServiceConfigurationContext context)
-{
-    // ... 现有 JWT、CORS 等 ...
-
-    context.Services.AddRedisOnlineUserTracker(context.Configuration);
-}
-```
-
-扩展方法 `AddRedisOnlineUserTracker` 会：
-
-1. 注册 `IConnectionMultiplexer` 与 `IDatabase`（连接串读取 `Cache:RedisConnectionString` 或 `ConnectionStrings:Redis`）
-2. 用 `RedisOnlineUserTracker` **替换**默认的 `OnlineUserTracker` 注册
-
-若仅需自定义 Redis 连接、仍使用分布式追踪，也可手动注册：
-
-```csharp
-services.AddSingleton<IConnectionMultiplexer>(_ =>
-    ConnectionMultiplexer.Connect(configuration["Cache:RedisConnectionString"]!));
-services.AddSingleton(sp => sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
-services.Replace(ServiceDescriptor.Singleton<IOnlineUserTracker, RedisOnlineUserTracker>());
-```
-
-### 4. CAP 消息队列
-
-在 `BeaverXAdminInfrastructureModule.ConfigureCap` 中，将 `UseInMemoryMessageQueue()` 替换为例如：
-
-```csharp
-// 需引用 DotNetCore.CAP.RedisStreams 或 DotNetCore.CAP.RabbitMQ 等
-options.UseRedis(redisConnectionString);
-```
-
-否则导出任务消息只会被发布到本进程内存队列，其他节点无法消费。
-
-### 5. 推荐检查清单
+### 推荐检查清单
 
 - [ ] 数据库（PostgreSQL 或 MySQL）、Redis、MinIO 对所有 API 实例可达
-- [ ] `Cache:Driver = Redis`
-- [ ] SignalR 已配置 Redis Backplane
-- [ ] Host 模块已调用 `AddRedisOnlineUserTracker`
-- [ ] CAP 已改用共享队列
-- [ ] 负载均衡开启 WebSocket 粘性会话**或**依赖 Backplane（推荐后者，粘性非必须）
-- [ ] 各实例 `Jwt:SecretKey`、CORS 配置一致
+- [ ] 各实例 Redis / JWT / CORS 配置一致
+- [ ] 负载均衡开启 WebSocket 粘性会话**或**依赖 Backplane（已内置 Backplane，粘性非必须）
 
 ## 日志
 
@@ -676,7 +605,8 @@ options.UseRedis(redisConnectionString);
 | 前端 403 | 角色是否分配菜单；`Component` 是否与 `views/` 一致；权限码是否与 Controller 一致 |
 | CORS 错误 | `CorsOrgins` 是否包含前端地址 |
 | MinIO 相关错误 | 导出/上传依赖 MinIO，请确认服务与配置 |
-| 导出一直 Pending | 检查 CAP 是否启动；查看 `cap` schema 与 `Logs/` |
+| 导出一直 Pending | 检查 CAP / Redis 是否启动；查看 `cap` schema 与 `Logs/` |
+| 启动报 Redis 连接串缺失 | 配置 `Cache:RedisConnectionString` |
 
 ## 相关仓库
 

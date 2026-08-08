@@ -1,6 +1,8 @@
 using BeaverX.Admin.Application.Contracts.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using StackExchange.Redis;
 
 namespace BeaverX.Admin.Infrastructure.Caching;
 
@@ -10,23 +12,14 @@ internal static class CacheServiceCollectionExtensions
     {
         services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
 
-        var cacheOptions = configuration
-            .GetSection(CacheOptions.SectionName)
-            .Get<CacheOptions>() ?? new CacheOptions();
+        var redisConnection = RedisConnectionHelper.ResolveConnectionString(configuration);
 
-        if (string.Equals(cacheOptions.Driver, CacheDrivers.Redis, StringComparison.OrdinalIgnoreCase))
-        {
-            var redisConnection = cacheOptions.RedisConnectionString
-                ?? configuration.GetConnectionString("Redis")
-                ?? throw new InvalidOperationException(
-                    "Cache driver is Redis but no connection string was configured. " +
-                    "Set Cache:RedisConnectionString or ConnectionStrings:Redis.");
+        services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
 
-            services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-        }
-        else
-        {
-            services.AddDistributedMemoryCache();
-        }
+        services.TryAddSingleton<IConnectionMultiplexer>(_ =>
+            ConnectionMultiplexer.Connect(redisConnection));
+
+        services.TryAddSingleton(sp =>
+            sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
     }
 }

@@ -9,7 +9,6 @@ namespace BeaverX.Admin.Infrastructure.Realtime;
 
 /// <summary>
 /// 基于 Redis Hash 的集群在线用户追踪（多节点共享）。
-/// 默认未启用；见 <see cref="RealtimeDistributedExtensions.AddRedisOnlineUserTracker"/>。
 /// </summary>
 public class RedisOnlineUserTracker : IOnlineUserTracker
 {

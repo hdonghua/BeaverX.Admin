@@ -1,5 +1,5 @@
-using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Realtime;
+using BeaverX.Admin.Infrastructure.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -10,8 +10,7 @@ namespace BeaverX.Admin.Infrastructure.Realtime;
 public static class RealtimeDistributedExtensions
 {
     /// <summary>
-    /// 注册 Redis <see cref="IDatabase"/> 并将 <see cref="IOnlineUserTracker"/> 替换为 <see cref="RedisOnlineUserTracker"/>。
-    /// 需在 Infrastructure 模块注册之后调用（会覆盖默认内存实现）。
+    /// 注册 Redis <see cref="IDatabase"/> 与 <see cref="RedisOnlineUserTracker"/>。
     /// </summary>
     public static IServiceCollection AddRedisOnlineUserTracker(
         this IServiceCollection services,
@@ -30,22 +29,6 @@ public static class RealtimeDistributedExtensions
         return services;
     }
 
-    internal static string ResolveRedisConnectionString(IConfiguration configuration)
-    {
-        var cacheOptions = configuration
-            .GetSection(CacheOptions.SectionName)
-            .Get<CacheOptions>();
-
-        var connectionString = cacheOptions?.RedisConnectionString
-            ?? configuration.GetConnectionString("Redis");
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Redis connection string is required for distributed online user tracking. " +
-                "Set Cache:RedisConnectionString or ConnectionStrings:Redis.");
-        }
-
-        return connectionString;
-    }
+    public static string ResolveRedisConnectionString(IConfiguration configuration) =>
+        RedisConnectionHelper.ResolveConnectionString(configuration);
 }
