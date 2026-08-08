@@ -385,8 +385,9 @@ public class ConfigController : AdminControllerBase
 | `IRealtimeNotifier` | 通用推送接口（Contracts） |
 | `SignalRRealtimeNotifier` | SignalR 实现（Infrastructure） |
 | `RealtimePublisher` | 业务编排：组装 payload 并推送 |
-| `AdminNotificationHub` | Hub 地址 `/hubs/notifications` |
+| `AdminNotificationHub` | Hub 地址 `/hubs/notifications`；查询参数 `deviceId` 为浏览器设备指纹 |
 | Redis Backplane | `AddStackExchangeRedis`，频道前缀 `BeaverXAdmin:SignalR:` |
+| 在线态 | 按 `userId + deviceId` 聚合；心跳约 25s，Redis TTL 90s，无心跳自动离线 |
 
 ### 事件
 
@@ -577,7 +578,7 @@ var user = await _cache.GetOrSetAsync(
 |------|------|
 | 业务缓存 `ICacheService` | `AddStackExchangeRedisCache` |
 | SignalR 实时推送 | Redis Backplane（`AddStackExchangeRedis`） |
-| 在线用户 `IOnlineUserTracker` | `RedisOnlineUserTracker`（Redis Hash） |
+| 在线用户 `IOnlineUserTracker` | `RedisOnlineUserTracker`（按设备指纹聚合，TTL + 心跳续期） |
 | CAP 异步导出 | `UseRedis`（Redis Streams） |
 | Hangfire | 数据库持久化（PostgreSQL / MySQL）；多 Worker 时任务需幂等 |
 | JWT / 数据库 / MinIO | 无节点亲和 |

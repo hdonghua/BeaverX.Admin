@@ -34,6 +34,15 @@ public class AdminNotificationHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
+    /// <summary>
+    /// 前端定时心跳，续期 Redis 在线 TTL；无心跳约 90s 后视为离线。
+    /// </summary>
+    public Task Heartbeat()
+    {
+        _tracker.TouchConnection(Context.ConnectionId);
+        return Task.CompletedTask;
+    }
+
     private async Task RegisterConnectionAsync()
     {
         var userIdStr = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -52,8 +61,22 @@ public class AdminNotificationHub : Hub
             nickName = user?.NickName;
         });
 
-        _tracker.AddConnection(userId, userName, nickName, Context.ConnectionId);
+        var deviceId = ResolveDeviceId();
+        _tracker.AddConnection(userId, userName, nickName, Context.ConnectionId, deviceId);
         await NotifyOnlineUsersChangedAsync();
+    }
+
+    private string ResolveDeviceId()
+    {
+        var http = Context.GetHttpContext();
+        var deviceId = http?.Request.Query["deviceId"].FirstOrDefault()?.Trim();
+        if (!string.IsNullOrWhiteSpace(deviceId) && deviceId.Length <= 128)
+        {
+            return deviceId;
+        }
+
+        // 未传指纹时退化为按连接计，避免阻断实时通道
+        return Context.ConnectionId;
     }
 
     private async Task NotifyOnlineUsersChangedAsync()
