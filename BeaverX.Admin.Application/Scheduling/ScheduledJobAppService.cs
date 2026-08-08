@@ -77,7 +77,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         var jobCode = input.JobCode.Trim();
         if (await _jobRepository.AnyAsync(x => x.JobCode == jobCode, cancellationToken))
         {
-            throw new BusinessException($"任务编码已存�? {jobCode}");
+            throw new BusinessException($"任务编码已存在: {jobCode}");
         }
 
         var entity = new ScheduledJob
@@ -236,7 +236,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
 
         if (input.JobType != ScheduledJobType.HttpApi)
         {
-            throw new BusinessException("当前仅支�?HTTP API 类型任务");
+            throw new BusinessException("当前仅支持 HTTP API 类型任务");
         }
 
         CronExpressionHelper.EnsureValid(input.CronExpression);
@@ -269,7 +269,7 @@ public class ScheduledJobAppService : IScheduledJobAppService, IScopedDependency
         var entity = await _jobRepository.GetAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
-            throw new BusinessException($"定时任务不存�? {id}");
+            throw new BusinessException($"定时任务不存在: {id}");
         }
 
         return entity;

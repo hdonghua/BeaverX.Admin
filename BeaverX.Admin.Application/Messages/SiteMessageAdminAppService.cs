@@ -97,7 +97,7 @@ public class SiteMessageAdminAppService : ISiteMessageAdminAppService, IScopedDe
         var type = input.Type?.Trim();
         if (string.IsNullOrWhiteSpace(type) || !AllowedTypes.Contains(type))
         {
-            throw new BusinessException("消息分类无效，可�?message / notice / todo");
+            throw new BusinessException("消息分类无效，可选：message / notice / todo");
         }
     }
 
