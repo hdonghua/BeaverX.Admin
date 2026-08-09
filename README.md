@@ -81,15 +81,16 @@ BeaverX.Admin/
 
 ## 配置说明
 
+本地开发配置集中在 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
 
-| 配置节                                            | 文件                           | 说明                                         |
-| ---------------------------------------------- | ---------------------------- | ------------------------------------------ |
-| `ConnectionStrings:Default`                    | appsettings.Development.json | PostgreSQL 连接串                             |
-| `Cache:RedisConnectionString`                  | appsettings.json             | Redis（缓存 / SignalR / CAP / 刷新令牌 / 在线用户），必填 |
-| `Cache:KeyPrefix` / `DefaultExpirationSeconds` | appsettings.json             | 缓存键前缀与默认 TTL                               |
-| `Jwt`                                          | appsettings.json             | 签发与校验（Issuer、Audience、SecretKey、过期时间）      |
-| `CorsOrgins`                                   | appsettings.Development.json | 前端源，逗号分隔                                   |
-| `Minio`                                        | appsettings.json             | 对象存储（可选；导出/上传依赖时需配置）                       |
-| `Hangfire`                                     | appsettings.json             | Schema、Dashboard、启动同步策略                    |
-| `Payment`                                      | appsettings.json             | 支付回调与证书路径等                                 |
-| `Serilog`                                      | appsettings.json             | 日志级别与 `Logs/log-*.txt`                     |
+| 配置节 | 说明 |
+|--------|------|
+| `ConnectionStrings:Default` | PostgreSQL 连接串 |
+| `Cache:RedisConnectionString` | Redis（缓存 / SignalR / CAP / 刷新令牌 / 在线用户），必填 |
+| `Cache:KeyPrefix` / `DefaultExpirationSeconds` | 缓存键前缀与默认 TTL |
+| `Jwt` | 签发与校验（Issuer、Audience、SecretKey、过期时间） |
+| `CorsOrgins` | 前端源，逗号分隔 |
+| `Minio` | 对象存储（可选；导出/上传依赖时需配置） |
+| `Hangfire` | Schema、Dashboard、启动同步策略 |
+| `Payment` | 支付回调与证书路径等 |
+| `Serilog` | 日志级别与 `Logs/log-*.txt` |

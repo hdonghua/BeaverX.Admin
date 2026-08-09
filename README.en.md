@@ -75,14 +75,16 @@ Types implementing `IScopedDependency` / `ITransientDependency` / `ISingletonDep
 
 ## Configuration
 
-| Section | File | Description |
-|---------|------|-------------|
-| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL connection string |
-| `Cache:RedisConnectionString` | appsettings.json | Redis (cache / SignalR / CAP / refresh tokens / online users), required |
-| `Cache:KeyPrefix` / `DefaultExpirationSeconds` | appsettings.json | Cache key prefix and default TTL |
-| `Jwt` | appsettings.json | Issuer, Audience, SecretKey, expiration |
-| `CorsOrgins` | appsettings.Development.json | Frontend origins, comma-separated |
-| `Minio` | appsettings.json | Object storage (optional; needed for export/upload) |
-| `Hangfire` | appsettings.json | Schema, dashboard, startup sync |
-| `Payment` | appsettings.json | Payment notify URL, cert paths, etc. |
-| `Serilog` | appsettings.json | Log levels and `Logs/log-*.txt` |
+Local development settings are centralized in `BeaverX.Admin.Http.Host/appsettings.Development.json`:
+
+| Section | Description |
+|---------|-------------|
+| `ConnectionStrings:Default` | PostgreSQL connection string |
+| `Cache:RedisConnectionString` | Redis (cache / SignalR / CAP / refresh tokens / online users), required |
+| `Cache:KeyPrefix` / `DefaultExpirationSeconds` | Cache key prefix and default TTL |
+| `Jwt` | Issuer, Audience, SecretKey, expiration |
+| `CorsOrgins` | Frontend origins, comma-separated |
+| `Minio` | Object storage (optional; needed for export/upload) |
+| `Hangfire` | Schema, dashboard, startup sync |
+| `Payment` | Payment notify URL, cert paths, etc. |
+| `Serilog` | Log levels and `Logs/log-*.txt` |
