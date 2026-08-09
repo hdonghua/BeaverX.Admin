@@ -21,7 +21,7 @@
 | Web | ASP.NET Core + Volo.Abp.AspNetCore.Mvc |
 | ORM | Entity Framework Core + **PostgreSQL**（`master`）/ **MySQL**（`master-mysql`）；SqlSugar + **PostgreSQL**（`sqlsugar`）/ **MySQL**（`sqlsugar-mysql`） |
 | 主键 | **Guid**（ABP `Entity<Guid>` / `FullAuditedEntity<Guid>` 等） |
-| 认证 | JWT Bearer + Refresh Token |
+| 认证 | JWT Bearer + Refresh Token（刷新令牌仅存 Redis，TTL 自动过期） |
 | 缓存 / 实时 / 消息 | **Redis**（分布式缓存、SignalR Backplane、CAP Redis Streams、在线用户） |
 | 日志 | Serilog（控制台 + 本地文件） |
 | 对象存储 | MinIO（可选） |

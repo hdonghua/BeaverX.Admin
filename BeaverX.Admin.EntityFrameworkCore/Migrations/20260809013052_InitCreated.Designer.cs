@@ -14,7 +14,7 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(AdminDbContext))]
-    [Migration("20260807080854_InitCreated")]
+    [Migration("20260809013052_InitCreated")]
     partial class InitCreated
     {
         /// <inheritdoc />
@@ -1751,69 +1751,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.ToTable("sys_users", (string)null);
                 });
 
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<Guid?>("DeleterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("DeleterId");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("DeletionTime");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsDeleted");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("LastModificationTime");
-
-                    b.Property<Guid?>("LastModifierId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("LastModifierId");
-
-                    b.Property<string>("ReplacedByTokenHash")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId", "RevokedAt");
-
-                    b.ToTable("sys_user_refresh_tokens", (string)null);
-                });
-
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2130,17 +2067,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                     b.Navigation("Menu");
 
                     b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRefreshToken", b =>
-                {
-                    b.HasOne("BeaverX.Admin.Domain.Rbac.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BeaverX.Admin.Domain.Rbac.UserRole", b =>

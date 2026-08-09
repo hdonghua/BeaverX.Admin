@@ -2,26 +2,21 @@ using System.Security.Cryptography;
 using System.Text;
 using BeaverX.Admin.Application.Contracts.Caching;
 using BeaverX.Admin.Application.Contracts.Rbac;
-using BeaverX.Admin.Domain.Rbac;
 using Volo.Abp.DependencyInjection;
-using Volo.Abp.Domain.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace BeaverX.Admin.Application.Rbac;
 
+/// <summary>
+/// ?????? Redis?TTL ???????????? used ?????????
+/// </summary>
 public class RefreshTokenService : IScopedDependency
 {
-    private readonly IRepository<UserRefreshToken, Guid> _refreshTokenRepository;
     private readonly ICacheService _cache;
     private readonly JwtOptions _options;
 
-    public RefreshTokenService(
-        IRepository<UserRefreshToken, Guid> refreshTokenRepository,
-        ICacheService cache,
-        IOptions<JwtOptions> options)
+    public RefreshTokenService(ICacheService cache, IOptions<JwtOptions> options)
     {
-        _refreshTokenRepository = refreshTokenRepository;
         _cache = cache;
         _options = options.Value;
     }
@@ -41,109 +36,70 @@ public class RefreshTokenService : IScopedDependency
     {
         var plainToken = GenerateToken();
         var hash = HashToken(plainToken);
-        var entity = new UserRefreshToken
-        {
-            UserId = userId,
-            TokenHash = hash,
-            ExpiresAt = DateTime.UtcNow.AddDays(_options.RefreshTokenExpiresInDays),
-        };
-
-        await _refreshTokenRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-        await CacheTokenAsync(userId, hash, entity.Id, entity.ExpiresAt, cancellationToken);
-        return (plainToken, entity.ExpiresAt);
-    }
-
-    /// <summary>
-    /// 一次性消费刷新令牌：标记 RevokedAt 并软删除，防止重复使用�?
-    /// 优先读缓存校验，命中时跳过数据库查询�?
-    /// </summary>
-    public async Task<Guid?> TryConsumeAsync(
-        string refreshToken,
-        string? replacedByTokenHash = null,
-        CancellationToken cancellationToken = default)
-    {
-        var hash = HashToken(refreshToken.Trim());
-        var now = DateTime.UtcNow;
-
-        var cached = await _cache.GetAsync<RefreshTokenCacheEntry>(
-            CacheKeys.RefreshToken(hash),
-            cancellationToken);
-
-        if (cached != null)
-        {
-            if (cached.ExpiresAt <= now)
-            {
-                await RemoveCachedTokenAsync(cached.UserId, hash, cancellationToken);
-                return null;
-            }
-
-            var affected = await RevokeByHashAsync(hash, now, replacedByTokenHash, cancellationToken);
-            await RemoveCachedTokenAsync(cached.UserId, hash, cancellationToken);
-            return affected > 0 ? cached.UserId : null;
-        }
-
-        var token = await (await _refreshTokenRepository.GetQueryableAsync())
-            .AsNoTracking()
-            .Where(x =>
-                x.TokenHash == hash &&
-                x.RevokedAt == null &&
-                !x.IsDeleted &&
-                x.ExpiresAt > now)
-            .Select(x => new { x.Id, x.UserId, x.ExpiresAt })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (token == null)
-        {
-            return null;
-        }
-
-        var revoked = await RevokeByIdAsync(token.Id, now, replacedByTokenHash, cancellationToken);
-        if (revoked)
-        {
-            await RemoveCachedTokenAsync(token.UserId, hash, cancellationToken);
-            return token.UserId;
-        }
-
-        return null;
-    }
-
-    public async Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        await RemoveAllCachedTokensForUserAsync(userId, cancellationToken);
-
-        var now = DateTime.UtcNow;
-        (await _refreshTokenRepository.GetQueryableAsync())
-            .Where(x => x.UserId == userId && x.RevokedAt == null && !x.IsDeleted)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.RevokedAt, now)
-                    .SetProperty(x => x.IsDeleted, true)
-                    .SetProperty(x => x.DeletionTime, now),
-                cancellationToken);
-    }
-
-    private async Task CacheTokenAsync(
-        Guid userId,
-        string hash,
-        Guid tokenId,
-        DateTime expiresAt,
-        CancellationToken cancellationToken)
-    {
+        var expiresAt = DateTime.UtcNow.AddDays(_options.RefreshTokenExpiresInDays);
         var ttl = expiresAt - DateTime.UtcNow;
         if (ttl <= TimeSpan.Zero)
         {
-            return;
+            throw new InvalidOperationException("Refresh token TTL must be positive.");
         }
 
         var entry = new RefreshTokenCacheEntry
         {
             UserId = userId,
-            TokenId = tokenId,
-            ExpiresAt = expiresAt,
+            ExpiresAt = expiresAt
         };
 
         await _cache.SetAsync(CacheKeys.RefreshToken(hash), entry, ttl, cancellationToken);
         await AddToUserTokenListAsync(userId, hash, ttl, cancellationToken);
+        return (plainToken, expiresAt);
+    }
+
+    /// <summary>
+    /// ??????????????? key???? used ??????????
+    /// ????????????????????????
+    /// </summary>
+    public async Task<Guid?> TryConsumeAsync(
+        string refreshToken,
+        CancellationToken cancellationToken = default)
+    {
+        var hash = HashToken(refreshToken.Trim());
+        var now = DateTime.UtcNow;
+        var key = CacheKeys.RefreshToken(hash);
+
+        var entry = await _cache.GetAsync<RefreshTokenCacheEntry>(key, cancellationToken);
+        if (entry == null)
+        {
+            var used = await _cache.GetAsync<RefreshTokenUsedEntry>(
+                CacheKeys.RefreshTokenUsed(hash),
+                cancellationToken);
+            if (used != null)
+            {
+                await RevokeAllForUserAsync(used.UserId, cancellationToken);
+            }
+
+            return null;
+        }
+
+        if (entry.ExpiresAt <= now)
+        {
+            await RemoveCachedTokenAsync(entry.UserId, hash, cancellationToken);
+            return null;
+        }
+
+        var remaining = entry.ExpiresAt - now;
+        await _cache.SetAsync(
+            CacheKeys.RefreshTokenUsed(hash),
+            new RefreshTokenUsedEntry { UserId = entry.UserId },
+            remaining,
+            cancellationToken);
+
+        await RemoveCachedTokenAsync(entry.UserId, hash, cancellationToken);
+        return entry.UserId;
+    }
+
+    public async Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await RemoveAllCachedTokensForUserAsync(userId, cancellationToken);
     }
 
     private async Task AddToUserTokenListAsync(
@@ -159,7 +115,14 @@ public class RefreshTokenService : IScopedDependency
             hashes.Add(hash);
         }
 
-        await _cache.SetAsync(key, hashes, ttl, cancellationToken);
+        // ???? TTL ????????? token ??????????
+        var indexTtl = TimeSpan.FromDays(_options.RefreshTokenExpiresInDays);
+        if (ttl > indexTtl)
+        {
+            indexTtl = ttl;
+        }
+
+        await _cache.SetAsync(key, hashes, indexTtl, cancellationToken);
     }
 
     private async Task RemoveCachedTokenAsync(
@@ -183,8 +146,11 @@ public class RefreshTokenService : IScopedDependency
             return;
         }
 
-        var ttl = TimeSpan.FromDays(_options.RefreshTokenExpiresInDays);
-        await _cache.SetAsync(key, hashes, ttl, cancellationToken);
+        await _cache.SetAsync(
+            key,
+            hashes,
+            TimeSpan.FromDays(_options.RefreshTokenExpiresInDays),
+            cancellationToken);
     }
 
     private async Task RemoveAllCachedTokensForUserAsync(
@@ -198,52 +164,21 @@ public class RefreshTokenService : IScopedDependency
             foreach (var hash in hashes)
             {
                 await _cache.RemoveAsync(CacheKeys.RefreshToken(hash), cancellationToken);
+                await _cache.RemoveAsync(CacheKeys.RefreshTokenUsed(hash), cancellationToken);
             }
         }
 
         await _cache.RemoveAsync(key, cancellationToken);
     }
 
-    private async Task<int> RevokeByHashAsync(
-        string hash,
-        DateTime now,
-        string? replacedByTokenHash,
-        CancellationToken cancellationToken)
-    {
-        return await (await _refreshTokenRepository.GetQueryableAsync())
-            .Where(x => x.TokenHash == hash && x.RevokedAt == null && !x.IsDeleted)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.RevokedAt, now)
-                    .SetProperty(x => x.IsDeleted, true)
-                    .SetProperty(x => x.DeletionTime, now)
-                    .SetProperty(x => x.ReplacedByTokenHash, replacedByTokenHash),
-                cancellationToken);
-    }
-
-    private async Task<bool> RevokeByIdAsync(
-        Guid tokenId,
-        DateTime now,
-        string? replacedByTokenHash,
-        CancellationToken cancellationToken)
-    {
-        var affected = await (await _refreshTokenRepository.GetQueryableAsync())
-            .Where(x => x.Id == tokenId && x.RevokedAt == null && !x.IsDeleted)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(x => x.RevokedAt, now)
-                    .SetProperty(x => x.IsDeleted, true)
-                    .SetProperty(x => x.DeletionTime, now)
-                    .SetProperty(x => x.ReplacedByTokenHash, replacedByTokenHash),
-                cancellationToken);
-
-        return affected > 0;
-    }
-
     private sealed class RefreshTokenCacheEntry
     {
         public Guid UserId { get; init; }
-        public Guid TokenId { get; init; }
         public DateTime ExpiresAt { get; init; }
+    }
+
+    private sealed class RefreshTokenUsedEntry
+    {
+        public Guid UserId { get; init; }
     }
 }

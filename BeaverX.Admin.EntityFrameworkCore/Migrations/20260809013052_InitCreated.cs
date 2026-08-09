@@ -817,35 +817,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "sys_user_refresh_tokens",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ReplacedByTokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatorId = table.Column<Guid>(type: "uuid", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifierId = table.Column<Guid>(type: "uuid", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    DeleterId = table.Column<Guid>(type: "uuid", nullable: true),
-                    DeletionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_sys_user_refresh_tokens", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_sys_user_refresh_tokens_sys_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "sys_users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "sys_user_roles",
                 columns: table => new
                 {
@@ -1128,17 +1099,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
                 columns: new[] { "UserId", "Type" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_sys_user_refresh_tokens_TokenHash",
-                table: "sys_user_refresh_tokens",
-                column: "TokenHash",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_sys_user_refresh_tokens_UserId_RevokedAt",
-                table: "sys_user_refresh_tokens",
-                columns: new[] { "UserId", "RevokedAt" });
-
-            migrationBuilder.CreateIndex(
                 name: "IX_sys_user_roles_RoleId",
                 table: "sys_user_roles",
                 column: "RoleId");
@@ -1242,9 +1202,6 @@ namespace BeaverX.Admin.EntityFrameworkCore.Migrations
 
             migrationBuilder.DropTable(
                 name: "sys_user_messages");
-
-            migrationBuilder.DropTable(
-                name: "sys_user_refresh_tokens");
 
             migrationBuilder.DropTable(
                 name: "sys_user_roles");
