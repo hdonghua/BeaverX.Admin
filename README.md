@@ -2,613 +2,94 @@
 
 > **Language**: 简体中文 | [English](README.en.md)
 
-基于 [ABP Framework](https://abp.io/)（官方 NuGet：`Volo.Abp.*`）的 ASP.NET Core 管理后台 API，提供 RBAC、字典、系统配置、消息、文件存储等能力。实体主键统一使用 **Guid**。
+基于 [ABP Framework](https://abp.io/)（`Volo.Abp.*`）的 ASP.NET Core 管理后台 API。实体主键统一为 **Guid**。
 
-## 在线预览
+前端：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
-| 项目 | 说明 |
+> **分支说明**：本仓库以 `master`（EF Core + PostgreSQL）为唯一持续维护分支。其它beaverx-xxx分支**不再更新**。
+
+## 实现功能
+
+| 能力 | 说明 |
 |------|------|
-| 地址 | [https://beaverxadmin.com/](https://beaverxadmin.com/) |
-| 账号 | `admin` / `Admin@123` |
+| **实时消息** | SignalR + Redis Backplane：未读站内信、导出进度、在线用户、强制下线等实时推送；按浏览器设备指纹聚合在线态，心跳 + TTL 自动离线 |
+| **异步导出** | CAP + Redis Streams：创建导出任务后异步生成 Excel 并上传 MinIO，前端经 SignalR 感知状态变化，支持幂等消费与失败重试 |
+| **完整工作流** | 流程设计 / 表单设计、发起与审批、转交 / 加签 / 减签 / 回退 / 催办 / 撤销、抄送与打印、服务任务节点等 OA 审批能力 |
 
-> **演示环境说明**：系统每 **5 分钟** 会定时清理并覆盖数据，请勿保存重要信息或用于生产。
+另含 RBAC、字典、系统配置、支付渠道、工单、定时任务（Hangfire）等管理后台常用模块。
 
 ## 技术栈
 
-| 类别 | 技术 |
-|------|------|
-| 运行时 | .NET 10 |
-| Web | ASP.NET Core + Volo.Abp.AspNetCore.Mvc |
-| ORM | Entity Framework Core + **PostgreSQL**（`master`）/ **MySQL**（`master-mysql`）；SqlSugar + **PostgreSQL**（`sqlsugar`）/ **MySQL**（`sqlsugar-mysql`） |
-| 主键 | **Guid**（ABP `Entity<Guid>` / `FullAuditedEntity<Guid>` 等） |
-| 认证 | JWT Bearer + Refresh Token（刷新令牌仅存 Redis，TTL 自动过期） |
-| 缓存 / 实时 / 消息 | **Redis**（分布式缓存、SignalR Backplane、CAP Redis Streams、在线用户） |
-| 日志 | Serilog（控制台 + 本地文件） |
-| 对象存储 | MinIO（可选） |
 
-## 环境要求
+| 类别           | 技术                                                    |
+| ------------ | ----------------------------------------------------- |
+| 运行时          | .NET 10                                               |
+| Web          | ASP.NET Core + Volo.Abp.AspNetCore.Mvc                |
+| ORM          | Entity Framework Core + PostgreSQL                    |
+| 主键           | Guid  |
+| 认证           | JWT Bearer + Refresh Token             |
+| 缓存 / 实时 / 消息 | Redis（分布式缓存、SignalR Backplane、CAP Redis Streams、在线用户） |
+| 定时任务         | Hangfire（PostgreSQL 存储）                               |
+| 日志           | Serilog（控制台 + 本地文件）                                   |
+| 对象存储         | MinIO（可选）                                             |
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- **PostgreSQL 14+**（`master` / `sqlsugar`）或 **MySQL 8+**（`master-mysql` / `sqlsugar-mysql`，见下文）
-- **Redis 6+**（业务缓存、SignalR Backplane、CAP 消息传输、在线用户，必填）
-- （可选）MinIO，用于文件上传
-- 前端项目：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
 
-## 数据库选型（EF Core / SqlSugar）
+**环境要求**：[.NET 10 SDK](https://dotnet.microsoft.com/download)、PostgreSQL 14+、Redis 6+；（可选）MinIO。
 
-后端按 **Git 分支** 区分 ORM / 数据库驱动，**前端无需改动**。
+## 数据库迁移
 
-| 分支 | ORM / 数据库 | 说明 |
-|------|--------------|------|
-| `master`（默认） | EF Core + PostgreSQL | 主开发分支，CAP / Hangfire 使用 PostgreSQL |
-| `master-mysql` | EF Core + MySQL 8+ | MySQL 版本，需手动切换分支 |
-| `sqlsugar` | **SqlSugar** + PostgreSQL | CodeFirst 自动同步表；**须先手动建空库**；改 `DbType` 可接其它库 |
-| `sqlsugar-mysql` | **SqlSugar** + MySQL 8+ | SqlSugar 的 MySQL 预置分支；同样须先手动建空库 |
+配置 `BeaverX.Admin.Http.Host/appsettings.Development.json` 中的 `ConnectionStrings:Default` 后执行：
 
-### 切换到 MySQL（`master-mysql`）
+首次启动前：
 
 ```bash
-git clone https://github.com/hdonghua/BeaverX.Admin.git
-cd BeaverX.Admin
+# 切换到BeaverX.Admin.EntityFrameworkCore目录，打开终端，执行以下命令
 
-git fetch origin
-git checkout master-mysql
+dotnet ef database update
 ```
 
-编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
+默认地址见 `Properties/launchSettings.json`（一般为 `http://localhost:5216`）。种子数据含默认管理员：**admin / Admin@123**。
 
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Server=localhost;Port=3306;Database=beaverx-admin;User=root;Password=你的密码;Allow User Variables=True;"
-  }
-}
-```
-
-> `Allow User Variables=True` 为 Hangfire.MySql 所需，请勿省略。
-
-MySQL 分支差异摘要：
-
-- EF Core 驱动：`Volo.Abp.EntityFrameworkCore.MySql`（见 `master-mysql` 分支）
-- Hangfire 存储：MySQL（表前缀见 `Hangfire:SchemaName`）
-- CAP 消息存储：MySQL（与业务库共用 `ConnectionStrings:Default`）
-- API 时间字段：全局 UTC JSON 序列化 + 写入库前 UTC 规范化（兼容 MySQL `DATETIME`）
-
-迁移与启动命令与 PostgreSQL 相同（见「快速开始」）。**不要在同一分支混用两种数据库的迁移历史**；从 PostgreSQL 迁到 MySQL 请使用 `master-mysql` 分支重新 `dotnet ef database update`。
-
-演示站点 [beaverxadmin.com](https://beaverxadmin.com/) 使用 **MySQL** 分支部署。
-
-### 切换到 SqlSugar（`sqlsugar`）
-
-```bash
-git fetch origin
-git checkout sqlsugar
-```
-
-编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`（PostgreSQL 连接串，与 `master` 相同格式）：
-
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=你的密码"
-  }
-}
-```
-
-> **必须先手动建库**：SqlSugar 分支启动时 Hangfire 会立刻连库，若库不存在会直接报错。
->
-> 请先在 PostgreSQL 中**手动创建空库**（例如 `beaverx-admin`），再启动 API。业务表会在启动时 **CodeFirst 自动同步**（`InitTables`），一般无需手写 DDL。
-
-差异摘要：
-
-- ORM：SqlSugar（`BeaverX.Data.SqlSugar`）
-- 建库：手动创建空数据库
-- 建表：启动自动同步实体到表结构
-- Hangfire / CAP：仍使用同一业务连接串（库必须已存在）
-
-```bash
-# 先手动建空库 beaverx-admin，再启动
-dotnet run --project BeaverX.Admin.Http.Host
-```
-
-### 切换到 SqlSugar + MySQL（`sqlsugar-mysql`）
-
-```bash
-git fetch origin
-git checkout sqlsugar-mysql
-```
-
-编辑连接串（与 `master-mysql` 类似）：
-
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Server=localhost;Port=3306;Database=beaverx-admin;User=root;Password=你的密码;Allow User Variables=True;"
-  }
-}
-```
-
-> 同样**必须先手动创建空库**；表启动时自动同步。`Allow User Variables=True` 为 Hangfire.MySql 所需。
-
-### 切换到其它数据库（SQL Server / Oracle 等）
-
-官方分支目前只预置 **PostgreSQL** 与 **MySQL**。若要接 **SQL Server、Oracle** 等，按所用 ORM 不同：
-
-#### EF Core（`master` / `master-mysql`）
-
-本仓库 **未预置** SQL Server / Oracle 等驱动（`master` 使用 `Volo.Abp.EntityFrameworkCore.PostgreSql`）。
-
-需要自行实现（可参考现有 PostgreSQL / MySQL 分支与 `AbpDbContextOptions` 配置）：
-
-1. **EF Core 驱动**：在 `BeaverXAdminEntityFrameworkCoreModule` 中配置 `UseSqlServer` / `UseOracle` 等，并引入对应 ABP / EF 包
-2. **Admin 侧**：按现有分层接线 DbContext、仓储、迁移；Hangfire、CAP 等中间件也需换成目标库存储
-3. 重新生成并执行 **EF Migrations**（不要混用其它库的迁移历史）
-
-业务实体与 Application 层可复用，但驱动与基础设施需自行适配。
-
-#### SqlSugar（`sqlsugar` / `sqlsugar-mysql`）
-
-将 `BeaverXSqlSugarOptions.DbType`（或 `AddBeaverXSqlSugar(..., DbType.Xxx, ...)`）改为目标库即可，例如：
-
-```csharp
-options.DbType = DbType.SqlServer; // 或 DbType.Oracle、DbType.MySql 等
-options.ConnectionString = "你的连接串";
-```
-
-同时更换连接串，并**先手动建空库**；业务表仍由 CodeFirst 同步。Hangfire / CAP 若目标库无现成适配，需自行换成对应存储。
-
-## 快速开始
-
-### 1. 配置数据库与 Redis
-
-编辑 `BeaverX.Admin.Http.Host/appsettings.Development.json`：
-
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Host=localhost;Port=5432;Database=beaverx-admin;Username=postgres;Password=postgres;..."
-  },
-  "Cache": {
-    "RedisConnectionString": "localhost:6379"
-  }
-}
-```
-
-Redis 连接串统一配置在 `appsettings.json` 的 `Cache:RedisConnectionString`。
-
-> `sqlsugar` / `sqlsugar-mysql`：请先**手动创建**连接串中的空库，再启动（表会自动同步）。
-
-### 2. 执行迁移
-
-`master` / `master-mysql`（EF Core）：
-
-```bash
-cd BeaverX.Admin
-
-dotnet ef database update \
-  --project BeaverX.Admin.EntityFrameworkCore \
-  --startup-project BeaverX.Admin.Http.Host
-```
-
-`sqlsugar` / `sqlsugar-mysql`：**跳过本步**（无 EF 迁移）；确保空库已创建即可。
-
-### 3. 启动 API
-
-```bash
-dotnet run --project BeaverX.Admin.Http.Host
-```
-
-默认地址：`http://localhost:5216`（见 `Properties/launchSettings.json`）
-
-### 4. 种子数据
-
-应用启动时通过 ABP 的 `IDataSeeder` 执行所有 `IDataSeedContributor` 实现，包括：
-
-- RBAC（用户、角色、菜单、超级管理员 `super_admin`）
-- 字典、配置、消息等演示数据
-- 各模块菜单与按钮权限
-
-默认管理员：**admin / Admin@123**
-
-## 解决方案结构
+## 各层职责
 
 ```
 BeaverX.Admin/
-├── BeaverX.Admin.Http.Host/             # 启动入口、appsettings、Serilog、JWT/CORS
+├── BeaverX.Admin.Http.Host/             # 启动入口、appsettings、中间件
 ├── BeaverX.Admin.Http.Api/              # Controller、鉴权 Filter
-├── BeaverX.Admin.Infrastructure/        # MinIO、CAP、JWT 签发、密码哈希等技术实现
+├── BeaverX.Admin.Infrastructure/        # JWT、MinIO、CAP、Hangfire、SignalR 等
 ├── BeaverX.Admin.Application/           # AppService、Seeder、业务编排
-├── BeaverX.Admin.Application.Contracts/ # DTO、IAppService、基础设施接口
-├── BeaverX.Admin.Domain/                # 实体
+├── BeaverX.Admin.Application.Contracts/ # DTO、应用/基础设施接口
+├── BeaverX.Admin.Domain/                # 实体、领域规则
 ├── BeaverX.Admin.Domain.Shared/         # 权限码、枚举等共享常量
 └── BeaverX.Admin.EntityFrameworkCore/   # DbContext、Migrations
 ```
 
-### 分层职责
 
-| 层 | 职责 | 示例 |
-|----|------|------|
-| Domain | 实体、领域规则 | `SysConfig`、`Menu` |
-| Domain.Shared | 跨层常量 | `RbacPermissionCodes` |
-| Application.Contracts | 对外契约 | `IConfigAppService`、`IBlobStorage`、`IJwtTokenService` |
-| Application | 业务实现 | `ConfigAppService`、`ExportTaskMessageService` |
-| Infrastructure | 技术细节实现 | `MinioBlobStorage`、`JwtTokenService`、`ExportTaskCapSubscriber` |
-| EntityFrameworkCore | 持久化 | `AdminDbContext`、迁移 |
-| Http.Api | HTTP 适配 | `ConfigController` |
-| Http.Host | 组合根、中间件 | JWT Bearer 校验、CORS、模块注册 |
+| 层                     | 职责      | 示例                                          |
+| --------------------- | ------- | ------------------------------------------- |
+| Domain                | 实体、领域规则 | `SysConfig`、`Menu`                          |
+| Domain.Shared         | 跨层常量    | `RbacPermissionCodes`                       |
+| Application.Contracts | 对外契约    | `IConfigAppService`、`IBlobStorage`          |
+| Application           | 业务实现    | `ConfigAppService`、`AuthAppService`         |
+| Infrastructure        | 技术实现    | `JwtTokenService`、`ExportTaskCapSubscriber` |
+| EntityFrameworkCore   | 持久化     | `AdminDbContext`、迁移                         |
+| Http.Api              | HTTP 适配 | `ConfigController`                          |
+| Http.Host             | 组合根     | 模块注册、JWT / CORS                             |
 
-### 依赖注入约定
 
-实现 `IScopedDependency`（或 `ITransientDependency` / `ISingletonDependency`）的类会被 **ABP** 自动注册。AppService 同时实现业务接口即可被 Controller 注入。
-
-## API 约定
-
-- 路由前缀：`/api/[Controller]`（继承 `AdminControllerBase` → `AbpControllerBase`）
-- 实体 / DTO 主键：`Guid`（路由约束 `{id:guid}`）
-- 权限：Controller 方法标注 `[RequirePermission("system:xxx:yyy")]`
-- 权限码定义：`BeaverX.Admin.Domain.Shared/Rbac/RbacPermissionCodes.cs`
-- 业务异常：抛出 `BusinessException`（`Domain.Shared`），由 `BusinessExceptionFilter` 统一返回 JSON
+实现 `IScopedDependency` / `ITransientDependency` / `ISingletonDependency` 的类型由 ABP 自动注册。
 
 ## 配置说明
 
-| 配置节 | 文件 | 说明 |
-|--------|------|------|
-| `ConnectionStrings:Default` | appsettings.Development.json | PostgreSQL（`master`）或 MySQL（`master-mysql`） |
-| `Cache:RedisConnectionString` | appsettings.json | Redis（缓存 / SignalR / CAP / 在线用户） |
-| `Jwt` | appsettings.json | 签发与校验 |
-| `CorsOrgins` | appsettings.Development.json | 前端源，逗号分隔 |
-| `Minio` | appsettings.json | 文件服务（可不配） |
-| `Cache` | appsettings.json | Redis 键前缀、连接串、默认 TTL |
-| `Serilog` | appsettings.json | 日志级别与文件路径 `Logs/log-*.txt` |
 
-## 数据库迁移
-
-```bash
-# 新增迁移
-dotnet ef migrations add <MigrationName> \
-  --project BeaverX.Admin.EntityFrameworkCore \
-  --startup-project BeaverX.Admin.Http.Host
-
-# 更新数据库
-dotnet ef database update \
-  --project BeaverX.Admin.EntityFrameworkCore \
-  --startup-project BeaverX.Admin.Http.Host
-
-# 回滚到指定迁移
-dotnet ef database update <PreviousMigrationName> \
-  --project BeaverX.Admin.EntityFrameworkCore \
-  --startup-project BeaverX.Admin.Http.Host
-```
-
-新增实体后记得在 `AdminDbContext.OnModelCreating` 中配置表名、索引、字段长度。
-
-## 新增业务模块（标准流程）
-
-以「系统配置」为例，建议按以下顺序开发。
-
-### 1. 领域实体
-
-`BeaverX.Admin.Domain/Config/SysConfig.cs`，继承 `FullAuditedEntity<Guid>`。
-
-### 2. DbContext
-
-`AdminDbContext` 增加 `DbSet<SysConfig>` 与 `OnModelCreating` 配置，然后执行迁移。
-
-### 3. 权限码
-
-`RbacPermissionCodes.cs` 增加：
-
-```csharp
-public static class Config
-{
-    public const string List = "system:config:list";
-    public const string Create = "system:config:create";
-    // ...
-}
-```
-
-### 4. 契约层
-
-- `Application.Contracts/Config/Dtos/ConfigDtos.cs`
-- `Application.Contracts/Config/IConfigAppService.cs`
-
-### 5. 应用服务
-
-`Application/Config/ConfigAppService.cs`：
-
-- 实现 `IConfigAppService` + `IScopedDependency`
-- 使用 `IRepository<T>` 访问数据
-- 校验失败抛 `BusinessException`
-
-### 6. Controller
-
-`Http.Api/Controllers/ConfigController.cs`：
-
-```csharp
-public class ConfigController : AdminControllerBase
-{
-    [RequirePermission(RbacPermissionCodes.System.Config.List)]
-    [HttpGet("list")]
-    public Task<PagedResultDto<ConfigDto>> GetListAsync(...) => ...;
-}
-```
-
-### 7. 菜单与种子
-
-- `ConfigMenuSeeder`：写入菜单、`path`、`component`、按钮权限，并赋给 `super_admin`
-- `ConfigDataSeeder`（可选）：演示数据
-- 实现 `IDataSeedContributor` + `ITransientDependency`，启动时由 ABP `IDataSeeder` 自动执行
-
-菜单字段需与前端约定一致：
-
-| 字段 | 示例 | 说明 |
-|------|------|------|
-| `Path` | `/system/config` | 路由地址，**可自定义** |
-| `Component` | `system/config/index` | 须与 `views/system/config/index.vue` 对应，用于前端匹配 |
-| `Perms` | `system:config:list` | 页面访问权限 |
-
-前端根据 `Component` 匹配页面，根据 `Path` 注册/展示路由地址；二者职责分离。
-
-### 8. 前端联调
-
-参考 [beaverx-vue-admin README](https://github.com/hdonghua/beaverx-vue-admin)：
-
-1. 在 `router/routes/modules/` 增加静态路由与 `views/` 页面
-2. 在菜单管理（或种子）中配置相同 `Component`，`Path` 可按需填写
-3. 在 `constants/permissions.ts` 增加与 `RbacPermissionCodes` 一致的权限常量（供 `v-permission` 使用）
-4. 为角色分配菜单后联调
-
-**component 不一致** 是最常见的 403 原因（例如后端 `system/configs/index`，前端视图是 `system/config/index`）。
-
-## RBAC 要点
-
-- 超级管理员角色编码：`super_admin`，拥有全部菜单权限（查询与分配时自动全量）
-- 菜单类型：目录 / 菜单 / 按钮；按钮 `IsVisible = false`，用于接口权限
-- 隐藏菜单：`IsVisible = false` 的菜单不在侧边栏显示，但授权后仍可访问路由
-
-## 站内信（管理端发送）
-
-| API | 权限 | 说明 |
-|-----|------|------|
-| `POST /api/SiteMessageAdmin/send` | `system:message:send` | 向指定用户或全部启用用户发送站内信 |
-
-发送走通用 `IMessageSender` → `site` 渠道（`SiteMessageChannelSender`），写入 `user_messages` 并通过 SignalR 推送 `message.unread.changed`。
-
-前端页面：`/system/message`（发送站内信），菜单由 `MessageMenuSeeder` 在启动时种子写入。
-
-## 实时通知（SignalR）
-
-导出任务与未读消息通过 SignalR 推送，替代前端轮询。已启用 **Redis Backplane** 与 **`RedisOnlineUserTracker`**，多实例下可跨节点推送。
-
-| 组件 | 说明 |
-|------|------|
-| `IRealtimeNotifier` | 通用推送接口（Contracts） |
-| `SignalRRealtimeNotifier` | SignalR 实现（Infrastructure） |
-| `RealtimePublisher` | 业务编排：组装 payload 并推送 |
-| `AdminNotificationHub` | Hub 地址 `/hubs/notifications`；查询参数 `deviceId` 为浏览器设备指纹 |
-| Redis Backplane | `AddStackExchangeRedis`，频道前缀 `BeaverXAdmin:SignalR:` |
-| 在线态 | 按 `userId + deviceId` 聚合；心跳约 25s，Redis TTL 90s，无心跳自动离线 |
-
-### 事件
-
-| 事件名 | 触发时机 | Payload |
-|--------|----------|---------|
-| `export.task.changed` | 创建/认领/完成/失败 | `{ task, activeCount }` |
-| `message.unread.changed` | 标为已读等 | `{ unreadCount }` |
-
-客户端连接时携带 JWT（`accessTokenFactory` 或 query `access_token`），服务端按 `ClaimTypes.NameIdentifier` 定向推送到用户。
-
-## 消息发送（多渠道）
-
-站内信读取/已读 API 由 `IMessageAppService` 提供；**发送**统一走 `IMessageSender`，便于后续扩展钉钉、企微等渠道。
-
-| 组件 | 说明 |
-|------|------|
-| `IMessageSender` | 通用发送门面（Contracts） |
-| `IMessageChannelSender` | 单渠道发送器接口 |
-| `MessageSender` | 按渠道分发（Application） |
-| `MessageChannelRegistry` | 渠道注册表 |
-| `SiteMessageChannelSender` | 站内信：写 `user_messages` + 推送未读数 |
-
-### 渠道常量
-
-`MessageChannels`：`site`（站内信）、`dingtalk`、`wecom`（预留）。
-
-### 使用示例
-
-业务代码注入 `IMessageSender`：
-
-```csharp
-await _messageSender.SendAsync(new SendMessageRequest
-{
-    UserId = userId,
-    Type = UserMessageTypes.Notice,
-    Title = "导出完成",
-    Content = "您的导出任务已完成，请前往下载。",
-    Channels = [MessageChannels.Site]  // 省略则发送到全部已注册渠道
-}, cancellationToken);
-```
-
-### 扩展新渠道
-
-1. 在 `Infrastructure`（或独立包）实现 `IMessageChannelSender`，声明 `Channel` 常量
-2. 实现 `IScopedDependency` 即可被 DI 自动注册
-3. 调用方通过 `Channels` 指定渠道，或默认广播到全部已注册渠道
-
-## 定时任务（Hangfire）
-
-基于 **Hangfire + PostgreSQL / MySQL**（随分支：`master` / `master-mysql`），支持两种互不冲突的周期性任务：
-
-| 方式 | 说明 | Hangfire Job Id |
-|------|------|-----------------|
-| **后台 HTTP API 任务** | 管理端「系统管理 → 定时任务」或 `POST /api/ScheduledJob` 配置，定时请求 HTTP URL | `scheduled-job:{id}` |
-| **代码 `IRecurringJob`** | 实现接口并注册 DI，启动时自动同步到 Hangfire | 类型全名 |
-
-### 方式一：后台 HTTP API 任务
-
-- 数据表：`sys_scheduled_jobs`、`sys_scheduled_job_logs`
-- 前端页面：`/system/job`（权限 `system:job:*`）
-- 创建/更新后由 `IHangfireScheduledJobRegistrar` 同步 Hangfire；支持手动触发、Cron 校验、执行日志
-- 当前 `JobType` 仅支持 **HttpApi**（GET/POST/PUT/DELETE）
-
-```http
-POST /api/ScheduledJob
-{
-  "jobCode": "health-check",
-  "name": "健康检查",
-  "jobType": 1,
-  "cronExpression": "0 */5 * * *",
-  "httpMethod": 1,
-  "httpUrl": "http://localhost:5216/api/Health",
-  "timeoutSeconds": 30
-}
-```
-
-### 方式二：代码 `IRecurringJob`
-
-实现 `IRecurringJob`（含 `CronExpression` + `ExecuteAsync`），继承 `IScopedDependency` 即可被 DI 扫描；`CodeRecurringJobSyncHostedService` 启动时注册。
-
-```csharp
-public class SampleDailyRecurringJob : IRecurringJob
-{
-    public string CronExpression => "0 0 * * *";
-
-    public Task ExecuteAsync(CancellationToken cancellationToken = default)
-    {
-        // 注入 IRepository / IAppService 执行业务
-        return Task.CompletedTask;
-    }
-}
-```
-
-参考：`Application/Scheduling/Jobs/SampleDailyRecurringJob.cs`
-
-### 配置与 Dashboard
-
-```json
-{
-  "Hangfire": {
-    "SchemaName": "hangfire",
-    "EnableDashboard": true,
-    "DashboardPath": "/hangfire",
-    "SyncBusinessJobsOnStartup": true,
-    "BusinessJobStartupSyncMode": "MergeFromHangfire",
-    "Auth": { "Enabled": true, "Username": "hangfire", "Password": "hangfire123" }
-  }
-}
-```
-
-- Dashboard：`/hangfire`（HTTP Basic，与业务 JWT 无关）
-- 多实例：Hangfire 使用数据库持久化（PostgreSQL 或 MySQL），多节点可同时跑 Worker，**任务逻辑需幂等**
-
-保姆级说明见配套文档 `doc-beaverx-admin/docs/backend/scheduled-jobs.md`。
-
-## 异步导出（DotNetCap）
-
-导出任务采用 **CAP + 数据库存储（PostgreSQL / MySQL，随分支）+ Redis Streams 传输 + MinIO 文件**：
-
-| 组件 | 说明 |
-|------|------|
-| `export_tasks` | 业务任务表（状态、参数、文件链接） |
-| `local_message_outbox` | CAP 消息消费去重，仅记录 `cap_message_id`（同一消息只成功消费一次） |
-| `cap` schema | CAP 自带的 published / received 消息表 |
-| Redis Streams | CAP 消息传输（`DotNetCore.CAP.RedisStreams`） |
-| `ExportTaskCapSubscriber`（Infrastructure） | CAP 消费者，生成 Excel（内存流）后上传 MinIO |
-
-### 流程
-
-1. `POST /api/ExportTask` 写入 `export_tasks`，发布 CAP 消息
-2. `ICapPublisher` 发布 `export.task.execute` 消息（经 Redis Streams）
-3. 消费者校验 `cap_message_id` 未消费 → 认领任务（`Pending → Processing`）→ 导出 → 上传 MinIO → `Completed` → 记录 `cap_message_id`
-4. 启动时 `ExportTaskRecoveryHostedService` 恢复中断的 Pending 任务
-
-### 幂等策略
-
-- **CAP 消费层**（`CapMessageConsumeService`）：成功后写入 `local_message_outbox.cap_message_id`，CAP 重投同一消息时直接跳过
-- **业务层**（如 `ExportTaskMessageService`）：`export_tasks.Status` 原子认领（`Pending → Processing`），已完成/进行中任务不再处理
-- **重试**：失败时任务回滚为 `Pending`，由 CAP 自动重试（最多 5 次）；`cap_message_id` 仅在成功后才写入
-
-新增异步 CAP 消费者时：业务自行保证幂等，成功后调用 `CapMessageConsumeService.MarkConsumedAsync(capMessageId)` 即可。
-
-### 扩展导出类型
-
-实现 `IExportHandler` 并注册 `ExportType` 常量，前端传对应 `exportType` 与 `parameters` 即可。
-
-## 缓存（Redis）
-
-通用缓存通过 `ICacheService`（Contracts）+ `CacheService`（Infrastructure）提供，**固定使用 Redis 分布式缓存**。
-
-### 配置
-
-```json
-{
-  "Cache": {
-    "KeyPrefix": "beaverx:admin:",
-    "RedisConnectionString": "localhost:6379",
-    "DefaultExpirationSeconds": 3600
-  }
-}
-```
-
-| 字段 | 说明 |
-|------|------|
-| `KeyPrefix` | 全局键前缀，如 `beaverx:admin:` |
-| `RedisConnectionString` | Redis 连接串（必填） |
-| `DefaultExpirationSeconds` | `SetAsync` 未指定过期时间时的默认 TTL |
-
-### 使用
-
-在 AppService 中注入 `ICacheService`：
-
-```csharp
-var user = await _cache.GetOrSetAsync(
-    $"user:{id}",
-    ct => LoadUserFromDbAsync(id, ct),
-    TimeSpan.FromMinutes(10),
-    cancellationToken);
-```
-
-业务代码只写逻辑键（如 `user:1`），前缀由配置统一拼接。
-
-## 多节点部署
-
-缓存、SignalR、CAP、在线用户**默认已走 Redis 分布式方案**（见 `BeaverXAdminInfrastructureModule`），多实例部署时确保各节点共用同一 Redis 与数据库即可。
-
-| 能力 | 实现 |
-|------|------|
-| 业务缓存 `ICacheService` | `AddStackExchangeRedisCache` |
-| SignalR 实时推送 | Redis Backplane（`AddStackExchangeRedis`） |
-| 在线用户 `IOnlineUserTracker` | `RedisOnlineUserTracker`（按设备指纹聚合，TTL + 心跳续期） |
-| CAP 异步导出 | `UseRedis`（Redis Streams） |
-| Hangfire | 数据库持久化（PostgreSQL / MySQL）；多 Worker 时任务需幂等 |
-| JWT / 数据库 / MinIO | 无节点亲和 |
-
-连接串仅读取 `Cache:RedisConnectionString`（见 `RedisConnectionHelper`）。
-
-### 推荐检查清单
-
-- [ ] 数据库（PostgreSQL 或 MySQL）、Redis、MinIO 对所有 API 实例可达
-- [ ] 各实例 Redis / JWT / CORS 配置一致
-- [ ] 负载均衡开启 WebSocket 粘性会话**或**依赖 Backplane（已内置 Backplane，粘性非必须）
-
-## 日志
-
-- 控制台 + `BeaverX.Admin.Http.Host/Logs/log-YYYYMMDD.txt`
-- 开发环境可在 `appsettings.Development.json` 覆盖 `Serilog:MinimumLevel`
-- HTTP 请求日志：`UseSerilogRequestLogging()`
-
-## 常见问题
-
-| 现象 | 排查 |
-|------|------|
-| 迁移失败 | 连接串是否正确；是否指定 `--startup-project` |
-| 启动后无种子数据 | 检查 `IDataSeedContributor` 是否实现；表是否已有数据（种子幂等跳过） |
-| 前端 403 | 角色是否分配菜单；`Component` 是否与 `views/` 一致；权限码是否与 Controller 一致 |
-| CORS 错误 | `CorsOrgins` 是否包含前端地址 |
-| MinIO 相关错误 | 导出/上传依赖 MinIO，请确认服务与配置 |
-| 导出一直 Pending | 检查 CAP / Redis 是否启动；查看 `cap` schema 与 `Logs/` |
-| 启动报 Redis 连接串缺失 | 配置 `Cache:RedisConnectionString` |
-
-## 相关仓库
-
-- 管理后台前端：[beaverx-vue-admin](https://github.com/hdonghua/beaverx-vue-admin)
+| 配置节                                            | 文件                           | 说明                                         |
+| ---------------------------------------------- | ---------------------------- | ------------------------------------------ |
+| `ConnectionStrings:Default`                    | appsettings.Development.json | PostgreSQL 连接串                             |
+| `Cache:RedisConnectionString`                  | appsettings.json             | Redis（缓存 / SignalR / CAP / 刷新令牌 / 在线用户），必填 |
+| `Cache:KeyPrefix` / `DefaultExpirationSeconds` | appsettings.json             | 缓存键前缀与默认 TTL                               |
+| `Jwt`                                          | appsettings.json             | 签发与校验（Issuer、Audience、SecretKey、过期时间）      |
+| `CorsOrgins`                                   | appsettings.Development.json | 前端源，逗号分隔                                   |
+| `Minio`                                        | appsettings.json             | 对象存储（可选；导出/上传依赖时需配置）                       |
+| `Hangfire`                                     | appsettings.json             | Schema、Dashboard、启动同步策略                    |
+| `Payment`                                      | appsettings.json             | 支付回调与证书路径等                                 |
+| `Serilog`                                      | appsettings.json             | 日志级别与 `Logs/log-*.txt`                     |
