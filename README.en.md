@@ -88,3 +88,8 @@ Local development settings are centralized in `BeaverX.Admin.Http.Host/appsettin
 | `Hangfire` | Schema, dashboard, startup sync |
 | `Payment` | Payment notify URL, cert paths, etc. |
 | `Serilog` | Log levels and `Logs/log-*.txt` |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+

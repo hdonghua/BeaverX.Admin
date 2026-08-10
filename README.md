@@ -94,3 +94,7 @@ BeaverX.Admin/
 | `Hangfire` | Schema、Dashboard、启动同步策略 |
 | `Payment` | 支付回调与证书路径等 |
 | `Serilog` | 日志级别与 `Logs/log-*.txt` |
+
+## 开源许可
+
+本项目基于 [MIT License](LICENSE) 开源。
